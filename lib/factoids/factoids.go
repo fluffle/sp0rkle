@@ -10,6 +10,7 @@ import (
 )
 
 type FactoidType int
+
 const (
 	// Factoids can be of these types
 	F_FACT FactoidType = iota
@@ -20,11 +21,11 @@ const (
 
 // A factoid maps a key to a value, and keeps some stats about it
 type Factoid struct {
-	Key, Value string
-	Type FactoidType
+	Key, Value                  string
+	Type                        FactoidType
 	Created, Modified, Accessed *FactoidStat
-	Perms *FactoidPerms
-	Id mongo.ObjectId `bson:"_id"`
+	Perms                       *FactoidPerms
+	Id                          mongo.ObjectId `bson:"_id"`
 }
 
 // Represent info about things that happened to the factoid
@@ -42,7 +43,7 @@ type FactoidStat struct {
 // Represent info about things that can be done to the factoid
 type FactoidPerms struct {
 	ReadOnly bool
-	Owner string
+	Owner    string
 }
 
 // Factoids are stored in a mongo collection of Factoid structs
@@ -54,8 +55,8 @@ type FactoidCollection struct {
 func Collection(conn mongo.Conn) (*FactoidCollection, os.Error) {
 	fc := &FactoidCollection{
 		&mongo.Collection{
-			Conn: conn,
-			Namespace: "sp0rkle.factoids",
+			Conn:         conn,
+			Namespace:    "sp0rkle.factoids",
 			LastErrorCmd: mongo.DefaultLastErrorCmd,
 		},
 	}

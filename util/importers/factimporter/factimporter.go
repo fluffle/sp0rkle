@@ -33,7 +33,7 @@ func parseFactoid(row []interface{}, out chan *factoids.Factoid) {
 	values := parseMultipleValues(toString(row[cValue]))
 	c := &factoids.FactoidStat{
 		Timestamp: parseTimestamp(row[cCreated]),
-		Nick: toString(row[cCreator]),
+		Nick:      toString(row[cCreator]),
 		// We don't know these things :-(
 		Ident: "", Host: "", Chan: "", Count: 1,
 	}
@@ -49,7 +49,7 @@ func parseFactoid(row []interface{}, out chan *factoids.Factoid) {
 	}
 	p := &factoids.FactoidPerms{
 		ReadOnly: parseReadOnly(row[cAccess]),
-		Owner: toString(row[cCreator]),
+		Owner:    toString(row[cCreator]),
 	}
 	for _, val := range values {
 		t, v := parseValue(toString(row[cKey]), toString(row[cRel]), val)
@@ -67,7 +67,7 @@ func parseFactoid(row []interface{}, out chan *factoids.Factoid) {
 func parseMultipleValues(v string) []string {
 	temp_vals := strings.Split(v, "|", -1)
 	vals := make([]string, 0, len(temp_vals))
-	for i:= 0; i < len(temp_vals); i++ {
+	for i := 0; i < len(temp_vals); i++ {
 		str := temp_vals[i]
 		for strings.HasSuffix(str, "\\") {
 			// This | separator was escaped!
@@ -101,7 +101,7 @@ func parseValue(k, r, v string) (ft factoids.FactoidType, fv string) {
 		ft = factoids.F_URL
 	} else {
 		// Just a normal factoid whose value is actually "key relation value"
-		ft, fv = factoids.F_FACT, strings.Join([]string{k,r,v}, " ")
+		ft, fv = factoids.F_FACT, strings.Join([]string{k, r, v}, " ")
 	}
 	return
 }
@@ -119,14 +119,14 @@ func looksURLish(s string) bool {
 func parseTimestamp(ts interface{}) *time.Time {
 	var tm int64
 	switch ts.(type) {
-		case float64:
-			tm = int64(ts.(float64))
-		case int64:
-			tm = ts.(int64)
-		case string:
-			tm, _ = strconv.Atoi64(ts.(string))
-		default:
-			return nil
+	case float64:
+		tm = int64(ts.(float64))
+	case int64:
+		tm = ts.(int64)
+	case string:
+		tm, _ = strconv.Atoi64(ts.(string))
+	default:
+		return nil
 	}
 	return time.SecondsToLocalTime(tm)
 }
@@ -134,13 +134,13 @@ func parseTimestamp(ts interface{}) *time.Time {
 // Ditto for the Access field.
 func parseReadOnly(b interface{}) bool {
 	switch b.(type) {
-		case float64:
-			return b.(float64) > 0
-		case int64:
-			return b.(int64) > 0
-		case string:
-			i, _ := strconv.Atoi(b.(string))
-			return i > 0
+	case float64:
+		return b.(float64) > 0
+	case int64:
+		return b.(int64) > 0
+	case string:
+		i, _ := strconv.Atoi(b.(string))
+		return i > 0
 	}
 	// default to ReadOnly == false
 	return false
@@ -149,16 +149,16 @@ func parseReadOnly(b interface{}) bool {
 // And in many other fields that *really* should be strings.
 func toString(s interface{}) string {
 	switch s.(type) {
-		case float64:
-			if float64(int(s.(float64))) == s.(float64) {
-				return strconv.Itoa(int(s.(float64)))
-			} else {
-				return strconv.Ftoa64(s.(float64), 'f', -1)
-			}
-		case int64:
-			return strconv.Itoa64(s.(int64))
-		case string:
-			return s.(string)
+	case float64:
+		if float64(int(s.(float64))) == s.(float64) {
+			return strconv.Itoa(int(s.(float64)))
+		} else {
+			return strconv.Ftoa64(s.(float64), 'f', -1)
+		}
+	case int64:
+		return strconv.Itoa64(s.(int64))
+	case string:
+		return s.(string)
 	}
 	return ""
 }
@@ -185,7 +185,7 @@ func main() {
 	row_feeder := func(sth *sqlite3.Statement, row ...interface{}) {
 		rows <- row
 	}
-	
+
 	// Function to execute a query on the SQLite db.
 	db_query := func(dbh *sqlite3.Database) {
 		n, err := dbh.Execute("SELECT * FROM Factoids;", row_feeder)
@@ -203,7 +203,7 @@ func main() {
 		// once we've done the query, close the channel to indicate this
 		close(rows)
 	}()
-	
+
 	// Another goroutine to munge the rows into factoids.
 	// This was originally done inside the SQLite callbacks, but
 	// cgo or sqlite3 obscures runtime panics and makes fail happen.
