@@ -43,6 +43,7 @@ func parseFactoid(row []interface{}, out chan *factoids.Factoid) {
 	if ts := parseTimestamp(row[cModified]); ts != nil {
 		m.Timestamp = ts
 		m.Nick = toString(row[cModifier])
+		m.Count = 1
 	} else {
 		m.Timestamp = c.Timestamp
 		m.Nick = c.Nick
@@ -65,7 +66,7 @@ func parseFactoid(row []interface{}, out chan *factoids.Factoid) {
 // Also, pipe-separated with escaped \| but not escaped \\
 // is REALLY FUCKING STUPID and occasionally bad to parse.
 func parseMultipleValues(v string) []string {
-	temp_vals := strings.Split(v, "|", -1)
+	temp_vals := strings.Split(v, "|")
 	vals := make([]string, 0, len(temp_vals))
 	for i := 0; i < len(temp_vals); i++ {
 		str := temp_vals[i]
@@ -86,6 +87,10 @@ func parseMultipleValues(v string) []string {
 // Parse a single factoid value, stripping <me>/<reply>
 func parseValue(k, r, v string) (ft factoids.FactoidType, fv string) {
 	v = strings.TrimSpace(v)
+	// Assume v is a normal factoid
+	ft = factoids.F_FACT
+
+	// Check for perlfu prefixes and strip them
 	if strings.HasPrefix(v, "<me>") {
 		// <me>does something
 		ft, fv = factoids.F_ACTION, v[4:]
@@ -99,9 +104,10 @@ func parseValue(k, r, v string) (ft factoids.FactoidType, fv string) {
 		// Quite a few factoids are just <reply>http://some.url/
 		// it's helpful to detect this so we can do useful things
 		ft = factoids.F_URL
-	} else {
+	}
+	if ft == factoids.F_FACT {
 		// Just a normal factoid whose value is actually "key relation value"
-		ft, fv = factoids.F_FACT, strings.Join([]string{k, r, v}, " ")
+		fv = strings.Join([]string{k, r, v}, " ")
 	}
 	return
 }
@@ -164,6 +170,8 @@ func toString(s interface{}) string {
 }
 
 func main() {
+	flag.Parse()
+
 	// Let's go find some mongo.
 	conn, err := mongo.Dial("localhost")
 	if err != nil {
