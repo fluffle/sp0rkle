@@ -1,0 +1,64 @@
+Getting started, from scratch:
+
+1) Install some dependencies.
+
+sudo apt-get install build-essential mongodb libsqlite3-dev mercurial git bzr
+
+2) Build go.
+
+cd $HOME # do this in your home directory
+hg clone -u release https://go.googlecode.com/hg/ go
+cd go/src
+./all.bash
+
+# ... wait for compile ...
+
+# consider putting these in ~/.bashrc too...
+export GOROOT="$HOME/go"
+export PATH="$PATH:$HOME/go/bin"
+
+3) Use goinstall to get dependencies.
+
+goinstall github.com/fluffle/goirc/client
+goinstall github.com/kuroneko/gosqlite3
+goinstall github.com/skelterjohn/go-gb/gb
+goinstall launchpad.net/mgo
+
+4) Clone sp0rkle's code from github.
+
+# Note: in order to submit patches more easily, you might want to get a github
+# account, fork the bot, and clone from your own writeable version.
+
+# If you do that, clone with:
+git clone ssh://git@github.com:<username>/sp0rkle.git
+# and then add my repository as an alternative remote to pull from:
+git remote add -f -m fluffle http://github.com/fluffle/sp0rkle.git
+
+# Otherwise, just clone from my repository:
+git clone http://github.com/fluffle/sp0rkle.git
+
+5) Import the old factoid database into mongo:
+
+gb  # build things
+bin/factimporter --db=/path/to/db
+
+# If you don't know where to get the db, you shouldn't be submitting patches :-)
+
+6) Code, build, commit, push :)
+
+while coding:
+  vim <stuff>:wq
+  gb  # build
+  bin/sp0rkle --host irc.pl0rt.org --port 6697 --ssl  # run
+  ^C
+
+git add <stuff>
+git commit -m "Some useful message about the edit to <stuff>."
+
+# If you cloned from your own repo:
+git push  # pushes changes in your branches up to github
+# ... then send me a pull request on github :-)
+
+# Otherwise, I guess you'll have to mail me a patch, or something:
+# This might work, untested, you should read man git-format-patch(1).
+git format-patch --attach --stdout --to=abramley@gmail.com | mail
