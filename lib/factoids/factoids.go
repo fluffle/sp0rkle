@@ -95,8 +95,11 @@ func (fc *FactoidCollection) GetPseudoRand(key string) (*Factoid) {
 		log.Printf("Counting for key failed: %v", err)
 		return nil
 	}
-	log.Printf("Got %d results back from query.\n", count)
 	if count == 0 {
+		if ok {
+			// we've seen this before, but people have deleted it since.
+			fc.seen[key] = nil, false
+		}
 		return nil
 	}
 	var res Factoid
@@ -111,7 +114,7 @@ func (fc *FactoidCollection) GetPseudoRand(key string) (*Factoid) {
 		if !ok {
 			// only store seen for keys that have more than one factoid
 			log.Printf("Creating seen data for key %s.\n", key)
-			fc.seen[key] = make([]bson.ObjectId, 0, 1)
+			fc.seen[key] = make([]bson.ObjectId, 0, count)
 		}
 		log.Printf("Storing id %v for key %s.\n", res.Id, key)
 		fc.seen[key] = append(fc.seen[key], res.Id)
@@ -119,7 +122,7 @@ func (fc *FactoidCollection) GetPseudoRand(key string) (*Factoid) {
 		// if the count of results is 1 and we're storing seen data for key
 		// then we've exhausted the possible results and should wipe it
 		log.Printf("Zeroing seen data for key %s.\n", key)
-		fc.seen[key] = make([]bson.ObjectId, 0, 1)
+		fc.seen[key] = nil, false
 	}
 	return &res
 }
