@@ -73,8 +73,8 @@ func main() {
 }
 
 func h_connected(irc *client.Conn, line *client.Line) {
-	log.Println("Connected, joining #...")
-	irc.Join("#")
+	log.Println("Connected, joining #sp0rklf...")
+	irc.Join("#sp0rklf")
 }
 
 func h_privmsg(irc *client.Conn, line *client.Line) {
