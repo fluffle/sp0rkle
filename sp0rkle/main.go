@@ -29,6 +29,7 @@ type sp0rkle struct {
 var handlers = map[string]func(*client.Conn, *client.Line) {
 	"connected":    h_connected,
 	"privmsg":      h_privmsg,
+	"action":       h_action,
 	"disconnected": h_disconnected,
 }
 
@@ -95,7 +96,30 @@ func h_privmsg(irc *client.Conn, line *client.Line) {
 		}
 	}
 }
+
+func h_action(irc *client.Conn, line *client.Line) {
+	bot := getState(irc)
+	key := strings.ToLower(strings.TrimSpace(line.Args[1]))
+	var fact *factoids.Factoid
 	
+	if fact = bot.fc.GetPseudoRand(key); fact == nil {
+		// Support sp0rkle's habit of stripping off it's own nick
+		// but only for actions, not privmsgs.
+		if strings.HasSuffix(key, irc.Me.Nick) {
+			key = strings.TrimSpace(key[:len(key)-len(irc.Me.Nick)])
+			if fact = bot.fc.GetPseudoRand(key); fact == nil {
+				return
+			}
+		}
+	}
+	switch fact.Type {
+	case factoids.F_ACTION:
+		irc.Action(line.Args[0], fact.Value)
+	default:
+		irc.Privmsg(line.Args[0], fact.Value)
+	}
+}
+
 func h_disconnected(irc *client.Conn, line *client.Line) {
 	log.Println("Disconnected...")
 	bot := getState(irc)
