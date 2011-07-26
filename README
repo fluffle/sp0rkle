@@ -30,7 +30,7 @@ goinstall launchpad.net/mgo
 # account, fork the bot, and clone from your own writeable version.
 
 # If you do that, clone with:
-git clone ssh://git@github.com:<username>/sp0rkle.git
+git clone git@github.com:<username>/sp0rkle.git
 # and then add my repository as an alternative remote to pull from:
 git remote add -f -m fluffle http://github.com/fluffle/sp0rkle.git
 
