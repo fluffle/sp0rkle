@@ -8,6 +8,7 @@ import (
 	"github.com/fluffle/goirc/client"
 	"lib/db"
 	"lib/factoids"
+	"lib/util"
 	"log"
 	"strings"
 )
@@ -16,8 +17,12 @@ var host *string = flag.String("host", "", "IRC server to connect to.")
 var port *string = flag.String("port", "6667", "Port to connect to.")
 var ssl  *bool   = flag.Bool("ssl", false, "Use SSL when connecting.")
 
-type botState struct {
+// The bot is called sp0rkle...
+type sp0rkle struct {
+	// and it has a Factoid Collection...
 	fc   *factoids.FactoidCollection
+
+	// and we need to kill it occasionally.
 	quit chan bool
 }
 
@@ -44,12 +49,12 @@ func main() {
 	if err != nil {
 		log.Fatalf("factoid collection failed: %v\n", err)
 	}
-	state := &botState{fc: fc, quit: make(chan bool)}
+	bot := &sp0rkle{fc: fc, quit: make(chan bool)}
 	
 	// Configure IRC client
 	irc := client.New("sp0rklf", "boing", "not really sp0rkle")
 	irc.SSL = *ssl
-	irc.State = state
+	irc.State = bot
 	
 	for event, handler := range handlers {
 		irc.AddHandler(event, handler)
@@ -66,7 +71,7 @@ func main() {
 		select {
 		case err := <-irc.Err:
 			log.Printf("goirc error: %s\n", err)
-		case quit = <-state.quit:
+		case quit = <-bot.quit:
 			log.Println("Shutting down...")
 		}
 	}
@@ -78,9 +83,10 @@ func h_connected(irc *client.Conn, line *client.Line) {
 }
 
 func h_privmsg(irc *client.Conn, line *client.Line) {
-	state := irc.State.(*botState)
-	text := line.Args[1]
-	if fact := state.fc.GetPseudoRand(strings.ToLower(text)); fact != nil {
+	bot := getState(irc)
+	key := strings.ToLower(strings.TrimSpace(line.Args[1]))
+	key = util.RemovePrefixedNick(key, irc.Me.Nick)
+	if fact := bot.fc.GetPseudoRand(key); fact != nil {
 		switch fact.Type {
 		case factoids.F_ACTION:
 			irc.Action(line.Args[0], fact.Value)
@@ -92,8 +98,10 @@ func h_privmsg(irc *client.Conn, line *client.Line) {
 	
 func h_disconnected(irc *client.Conn, line *client.Line) {
 	log.Println("Disconnected...")
-	state := irc.State.(*botState)
-	state.quit <- true
+	bot := getState(irc)
+	bot.quit <- true
 }
 
-	
+func getState(irc *client.Conn) *sp0rkle {
+	return irc.State.(*sp0rkle)
+}
