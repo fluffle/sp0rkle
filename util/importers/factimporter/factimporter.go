@@ -5,8 +5,9 @@ package main
 import (
 	"flag"
 	"fmt"
-	"github.com/garyburd/go-mongo"
 	"github.com/kuroneko/gosqlite3"
+	"launchpad.net/gobson/bson"
+	"lib/db"
 	"lib/factoids"
 	"strconv"
 	"strings"
@@ -57,6 +58,7 @@ func parseFactoid(row []interface{}, out chan *factoids.Factoid) {
 		out <- &factoids.Factoid{
 			Key: toString(row[cKey]), Value: v, Type: t,
 			Created: c, Modified: m, Accessed: nil, Perms: p,
+			Id: bson.NewObjectId(),
 		}
 	}
 }
@@ -66,7 +68,7 @@ func parseFactoid(row []interface{}, out chan *factoids.Factoid) {
 // Also, pipe-separated with escaped \| but not escaped \\
 // is REALLY FUCKING STUPID and occasionally bad to parse.
 func parseMultipleValues(v string) []string {
-	temp_vals := strings.Split(v, "|")
+	temp_vals := strings.Split(v, "|", -1)
 	vals := make([]string, 0, len(temp_vals))
 	for i := 0; i < len(temp_vals); i++ {
 		str := temp_vals[i]
@@ -173,13 +175,13 @@ func main() {
 	flag.Parse()
 
 	// Let's go find some mongo.
-	conn, err := mongo.Dial("localhost")
+	mdb, err := db.Connect("localhost")
 	if err != nil {
 		fmt.Printf("Oh no: %v", err)
 		return
 	}
-	defer conn.Close()
-	fc, err := factoids.Collection(conn)
+	defer mdb.Session.Close()
+	fc, err := factoids.Collection(mdb)
 	if err != nil {
 		fmt.Printf("Oh no: %v", err)
 		return
@@ -227,11 +229,15 @@ func main() {
 	for fact := range facts {
 		// ... push each fact into mongo
 		err = fc.Insert(fact)
-		count++
 		if err != nil {
-			fmt.Printf("Awww: %v", err)
-			continue
+			fmt.Printf("Awww: %v\n", err)
+		} else {
+			if count % 1000 == 0 {
+				fmt.Printf("%d...", count)
+			}
+			count++
 		}
 	}
+	fmt.Println("done.")
 	fmt.Printf("Inserted %d factoids.\n", count)
 }

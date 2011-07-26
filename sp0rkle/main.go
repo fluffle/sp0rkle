@@ -6,7 +6,7 @@ import (
 	"flag"
 	"fmt"
 	"github.com/fluffle/goirc/client"
-	"github.com/garyburd/go-mongo"
+	"lib/db"
 	"lib/factoids"
 	"log"
 	"strings"
@@ -35,12 +35,12 @@ func main() {
 	}
 	
 	// Connect to mongo and initialise state
-	conn, err := mongo.Dial("localhost")
+	db, err := db.Connect("localhost")
 	if err != nil {
 		log.Fatalf("mongo dial failed: %v\n", err)
 	}
-	defer conn.Close()
-	fc, err := factoids.Collection(conn)
+	defer db.Session.Close()
+	fc, err := factoids.Collection(db)
 	if err != nil {
 		log.Fatalf("factoid collection failed: %v\n", err)
 	}
@@ -81,8 +81,12 @@ func h_privmsg(irc *client.Conn, line *client.Line) {
 	state := irc.State.(*botState)
 	text := line.Args[1]
 	if fact := state.fc.GetPseudoRand(strings.ToLower(text)); fact != nil {
-		log.Printf("%s", fact.Id.String())
-		irc.Privmsg(line.Args[0], fact.Value)
+		switch fact.Type {
+		case factoids.F_ACTION:
+			irc.Action(line.Args[0], fact.Value)
+		default:
+			irc.Privmsg(line.Args[0], fact.Value)
+		}
 	}
 }
 	
