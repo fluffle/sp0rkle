@@ -13,14 +13,25 @@ import (
 	"strings"
 )
 
-var host *string = flag.String("host", "", "IRC server to connect to.")
-var port *string = flag.String("port", "6667", "Port to connect to.")
-var ssl  *bool   = flag.Bool("ssl", false, "Use SSL when connecting.")
+var host    *string = flag.String("host", "", "IRC server to connect to.")
+var port    *string = flag.String("port", "6667", "Port to connect to.")
+var ssl     *bool   = flag.Bool("ssl", false, "Use SSL when connecting.")
+var nick    *string = flag.String("nick", "sp0rklf",
+                                  "Name of bot, defaults to 'sp0rklf'")
+var channel *string = flag.String("channel", "#sp0rklf",
+                                  "Channel to join, defaults to '#sp0rklf'")
+
 
 // The bot is called sp0rkle...
 type sp0rkle struct {
 	// and it has a Factoid Collection...
 	fc   *factoids.FactoidCollection
+
+	//nickname of bot
+	nick *string
+
+	//channel to join on start up
+	channel *string
 
 	// and we need to kill it occasionally.
 	quit chan bool
@@ -51,6 +62,8 @@ func main() {
 		log.Fatalf("factoid collection failed: %v\n", err)
 	}
 	bot := &sp0rkle{fc: fc, quit: make(chan bool)}
+	bot.channel = channel
+	bot.nick = nick
 	
 	// Configure IRC client
 	irc := client.New("sp0rklf", "boing", "not really sp0rkle")
@@ -79,8 +92,9 @@ func main() {
 }
 
 func h_connected(irc *client.Conn, line *client.Line) {
-	log.Println("Connected, joining #sp0rklf...")
-	irc.Join("#sp0rklf")
+	bot := getState(irc)
+	log.Println("Connected, joining %s", *bot.channel)
+	irc.Join(*bot.channel)
 }
 
 func h_privmsg(irc *client.Conn, line *client.Line) {
@@ -101,7 +115,7 @@ func h_action(irc *client.Conn, line *client.Line) {
 	bot := getState(irc)
 	key := strings.ToLower(strings.TrimSpace(line.Args[1]))
 	var fact *factoids.Factoid
-	
+
 	if fact = bot.fc.GetPseudoRand(key); fact == nil {
 		// Support sp0rkle's habit of stripping off it's own nick
 		// but only for actions, not privmsgs.
