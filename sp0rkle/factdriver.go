@@ -13,6 +13,10 @@ import (
 
 type factoidDriver struct {
 	*factoids.FactoidCollection
+
+	// Keep a reference to the last factoid looked up around
+	// for use with 'edit that' and 'delete that' commands.
+	lastseen *factoids.Factoid
 }
 
 func FactoidDriver(db *db.Database) Driver {
@@ -103,6 +107,7 @@ func fd_lookup(irc *client.Conn, line *client.Line, fd *factoidDriver) {
 		}
 	}
 	if fact != nil {
+		fd.lastseen = fact
 		switch fact.Type {
 		case factoids.F_ACTION:
 			irc.Action(line.Args[0], fact.Value)
