@@ -75,15 +75,23 @@ func Collection(dbh *db.Database) (*FactoidCollection, os.Error) {
 	return fc, nil
 }
 
-func (fc *FactoidCollection) GetFirst(key string) (*Factoid) {
-	var res Factoid
-	if err := fc.Find(bson.M{"key": key}).One(&res); err != nil {
-		return nil
+// Can't call this Count because that'd override mgo.Collection.Count()
+func (fc *FactoidCollection) GetCount(key string) int {
+	if num, err := fc.Find(bson.M{"key": key}).Count(); err == nil {
+		return num
 	}
-	return &res
+	return 0
 }
 
-func (fc *FactoidCollection) GetPseudoRand(key string) (*Factoid) {
+func (fc *FactoidCollection) GetFirst(key string) *Factoid {
+	var res Factoid
+	if err := fc.Find(bson.M{"key": key}).One(&res); err == nil {
+		return &res
+	}
+	return nil
+}
+
+func (fc *FactoidCollection) GetPseudoRand(key string) *Factoid {
 	lookup := bson.M{"key": key}
 	ids, ok := fc.seen[key]
 	if ok && len(ids) > 0 {
