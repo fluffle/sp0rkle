@@ -39,9 +39,9 @@ type FactoidStat struct {
 	// When <thing> happened
 	Timestamp *time.Time
 	// Who did <thing>
-	Nick, Ident, Host string
+	db.StorableNick
 	// Where they did <thing>
-	Chan string
+	db.StorableChan
 	// How many times <thing> has been done before
 	Count int
 }
@@ -49,7 +49,7 @@ type FactoidStat struct {
 // Represent info about things that can be done to the factoid
 type FactoidPerms struct {
 	ReadOnly bool
-	Owner    string
+	db.StorableNick
 }
 
 // Factoids are stored in a mongo collection of Factoid structs
@@ -126,6 +126,20 @@ func (fc *FactoidCollection) GetPseudoRand(key string) (*Factoid) {
 		fc.seen[key] = nil, false
 	}
 	return &res
+}
+
+// Helper to make the work of putting together a completely new *Factoid easier
+func NewFactoid(key, value string, n db.StorableNick, c db.StorableChan) *Factoid {
+	ts := time.LocalTime()
+	ft, fv := ParseValue(value)
+	return &Factoid{
+		Key: key, Value: fv, Type: ft,
+		Created:  &FactoidStat{ts, n, c, 1},
+		Modified: &FactoidStat{ts, n, c, 0},
+		Accessed: &FactoidStat{ts, n, c, 0},
+		Perms:    &FactoidPerms{false, n},
+		Id:       bson.NewObjectId(),
+	}
 }
 
 func ParseValue(v string) (ft FactoidType, fv string) {

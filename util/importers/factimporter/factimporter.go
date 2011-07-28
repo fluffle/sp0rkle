@@ -33,31 +33,28 @@ const (
 func parseFactoid(row []interface{}, out chan *factoids.Factoid) {
 	values := parseMultipleValues(toString(row[cValue]))
 	c := &factoids.FactoidStat{
-		Timestamp: parseTimestamp(row[cCreated]),
-		Nick:      toString(row[cCreator]),
-		// We don't know these things :-(
-		Ident: "", Host: "", Chan: "", Count: 1,
+		parseTimestamp(row[cCreated]),
+		db.StorableNick{toString(row[cCreator]), "", ""},
+		db.StorableChan{""}, 1,
 	}
-	m := &factoids.FactoidStat{
-		Ident: "", Host: "", Chan: "", Count: 0,
-	}
+	m := &factoids.FactoidStat{StorableChan: db.StorableChan{""}, Count: 0}
 	if ts := parseTimestamp(row[cModified]); ts != nil {
 		m.Timestamp = ts
-		m.Nick = toString(row[cModifier])
+		m.StorableNick = db.StorableNick{toString(row[cModifier]), "", ""}
 		m.Count = 1
 	} else {
 		m.Timestamp = c.Timestamp
-		m.Nick = c.Nick
+		m.StorableNick = c.StorableNick
 	}
 	p := &factoids.FactoidPerms{
-		ReadOnly: parseReadOnly(row[cAccess]),
-		Owner:    toString(row[cCreator]),
+		parseReadOnly(row[cAccess]),
+		db.StorableNick{toString(row[cCreator]), "", ""},
 	}
 	for _, val := range values {
 		t, v := parseValue(toString(row[cKey]), toString(row[cRel]), val)
 		out <- &factoids.Factoid{
 			Key: toString(row[cKey]), Value: v, Type: t,
-			Created: c, Modified: m, Accessed: nil, Perms: p,
+			Created: c, Modified: m, Accessed: c, Perms: p,
 			Id: bson.NewObjectId(),
 		}
 	}
