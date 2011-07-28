@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/fluffle/goirc/event"
 	"github.com/fluffle/goirc/client"
+	"launchpad.net/gobson/bson"
 	"lib/db"
 	"lib/factoids"
 	"lib/util"
@@ -18,7 +19,7 @@ type factoidDriver struct {
 
 	// Keep a reference to the last factoid looked up around
 	// for use with 'edit that' and 'delete that' commands.
-	lastseen *factoids.Factoid
+	lastseen bson.ObjectId
 }
 
 func FactoidDriver(db *db.Database) Driver {
@@ -26,7 +27,7 @@ func FactoidDriver(db *db.Database) Driver {
 	if err != nil {
 		log.Fatalf("factoid collection failed: %v\n", err)
 	}
-	return &factoidDriver{fc}
+	return &factoidDriver{fc, ""}
 }
 
 type FactoidHandler func(*client.Conn, *client.Line, *factoidDriver)
@@ -43,6 +44,7 @@ func (fd *factoidDriver) RegisterHandlers(r event.EventRegistry) {
 	r.AddHandler("action", client.IRCHandler(fd_action))
 	r.AddHandler("fd_lookup", FDHandler(fd_lookup))
 	r.AddHandler("fd_add", FDHandler(fd_add))
+	r.AddHandler("fd_delete", FDHandler(fd_delete))
 }
 
 func (fd *factoidDriver) Name() string {
@@ -57,11 +59,15 @@ func fd_privmsg(irc *client.Conn, line *client.Line) {
 	// change, so we need to copy line for our own edification.
 	nl := line.Copy()
 	nl.Args[1] = l
+	l = strings.ToLower(l)
 
 	if p && (strings.Index(l, ":=") != -1 || strings.Index(l, ":is") != -1) {
-		// We're being addressed directly, this could be a factoid add.
-		// Currently, just support := for adds. English parsing is hard.
+		// We're being addressed directly; this looks like a factoid add.
 		irc.Dispatcher.Dispatch("fd_add", irc, nl, fd)
+		return
+	} else if p && strings.HasPrefix(strings.ToLower(l), "forget that") {
+		// We're being addressed directly; this looks like a factoid delete.
+		irc.Dispatcher.Dispatch("fd_delete", irc, nl, fd)
 		return
 	}
 	// If we get to here, none of the other FD command possibilities
@@ -93,11 +99,31 @@ func fd_add(irc *client.Conn, line *client.Line, fd *factoidDriver) {
 	fact := factoids.NewFactoid(key, val, n, c)
 	if err := fd.Insert(fact); err == nil {
 		count := fd.GetCount(key)
-		irc.Privmsg(line.Args[0],
-			fmt.Sprintf("Woo, I now know %d things about '%s'.", count, key))
+		irc.Privmsg(line.Args[0], fmt.Sprintf(
+			"%s: Woo, I now know %d things about '%s'.",
+			line.Nick, count, key))
 	} else {
 		irc.Privmsg(line.Args[0], fmt.Sprintf("Oh no! %s.", err))
 	}
+}
+
+func fd_delete(irc *client.Conn, line *client.Line, fd *factoidDriver) {
+	// Get fresh state on the last seen factoid.
+	if fact := fd.GetById(fd.lastseen); fact != nil {
+		if err := fd.Remove(bson.M{"_id": fd.lastseen}); err == nil {
+			irc.Privmsg(line.Args[0], fmt.Sprintf(
+				"%s: I forgot that '%s' was '%s'.",
+				line.Nick, fact.Key, fact.Value))
+		} else {
+			irc.Privmsg(line.Args[0], fmt.Sprintf(
+				"%s: I failed to forget '%s': %s",
+				line.Nick, fact.Key, err))
+		}
+	} else {
+		irc.Privmsg(line.Args[0], fmt.Sprintf(
+			"%s: I've already forgotten it.", line.Nick))
+	}
+	fd.lastseen = ""
 }
 
 func fd_lookup(irc *client.Conn, line *client.Line, fd *factoidDriver) {
@@ -113,7 +139,7 @@ func fd_lookup(irc *client.Conn, line *client.Line, fd *factoidDriver) {
 		}
 	}
 	if fact != nil {
-		fd.lastseen = fact
+		fd.lastseen = fact.Id
 		switch fact.Type {
 		case factoids.F_ACTION:
 			irc.Action(line.Args[0], fact.Value)
