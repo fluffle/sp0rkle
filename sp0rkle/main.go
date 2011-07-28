@@ -11,13 +11,13 @@ import (
 	"strings"
 )
 
-var host    *string = flag.String("host", "", "IRC server to connect to.")
-var port    *string = flag.String("port", "6667", "Port to connect to.")
-var ssl     *bool   = flag.Bool("ssl", false, "Use SSL when connecting.")
-var nick    *string = flag.String("nick", "sp0rklf",
-                                  "Name of bot, defaults to 'sp0rklf'")
+var host *string = flag.String("host", "", "IRC server to connect to.")
+var port *string = flag.String("port", "6667", "Port to connect to.")
+var ssl *bool = flag.Bool("ssl", false, "Use SSL when connecting.")
+var nick *string = flag.String("nick", "sp0rklf",
+	"Name of bot, defaults to 'sp0rklf'")
 var channel *string = flag.String("channel", "#sp0rklf",
-                                  "Channel to join, defaults to '#sp0rklf'")
+	"Channel to join, defaults to '#sp0rklf'")
 
 
 func main() {
@@ -43,7 +43,7 @@ func main() {
 	bot.AddDriver("factoids", FactoidDriver(db))
 
 	// Configure IRC client
-	irc := client.New("sp0rklf", "boing", "not really sp0rkle")
+	irc := client.New(*nick, "boing", "not really sp0rkle")
 	irc.SSL = *ssl
 	irc.State = bot
 	bot.RegisterAll(irc.Registry)

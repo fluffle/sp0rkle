@@ -65,7 +65,7 @@ type FactoidCollection struct {
 func Collection(dbh *db.Database) (*FactoidCollection, os.Error) {
 	fc := &FactoidCollection{
 		Collection: dbh.C(COLLECTION),
-		seen: make(map[string][]bson.ObjectId),
+		seen:       make(map[string][]bson.ObjectId),
 	}
 	err := fc.EnsureIndex(mgo.Index{Key: []string{"key"}})
 	if err != nil {

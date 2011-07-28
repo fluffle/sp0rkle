@@ -203,7 +203,7 @@ func main() {
 		if err != nil {
 			fmt.Printf("Awww: %v\n", err)
 		} else {
-			if count % 1000 == 0 {
+			if count%1000 == 0 {
 				fmt.Printf("%d...", count)
 			}
 			count++
