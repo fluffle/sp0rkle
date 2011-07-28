@@ -48,7 +48,7 @@ func fd_privmsg(irc *client.Conn, line *client.Line) {
 	nl := line.Copy()
 	nl.Args[1] = l
 
-	if p && strings.Index(l, ":=") != -1 {
+	if p && (strings.Index(l, ":=") != -1 || strings.Index(l, ":is") != -1) {
 		// We're being addressed directly, this could be a factoid add.
 		// Currently, just support := for adds. English parsing is hard.
 		irc.Dispatcher.Dispatch("fd_add", irc, nl, fd)
@@ -66,9 +66,18 @@ func fd_action(irc *client.Conn, line *client.Line) {
 }
 
 func fd_add(irc *client.Conn, line *client.Line, fd *factoidDriver) {
-	kv := strings.Split(line.Args[1], ":=", 2)
-	key := strings.ToLower(strings.TrimSpace(kv[0]))
-	val := strings.TrimSpace(kv[1])
+	var key, val string
+	if strings.Index(line.Args[1], ":=") != -1 {
+		kv := strings.Split(line.Args[1], ":=", 2)
+		key = strings.ToLower(strings.TrimSpace(kv[0]))
+		val = strings.TrimSpace(kv[1])
+	} else {
+		// we use :is to add val = "key is val"
+		kv := strings.Split(line.Args[1], ":is", 2)
+		key = strings.ToLower(strings.TrimSpace(kv[0]))
+		val = strings.Join([]string{strings.TrimSpace(kv[0]),
+			"is", strings.TrimSpace(kv[1])}, " ")
+	}
 	n := db.StorableNick{line.Nick, line.Ident, line.Host}
 	c := db.StorableChan{line.Args[0]}
 	fact := factoids.NewFactoid(key, val, n, c)
