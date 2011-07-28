@@ -61,18 +61,26 @@ func fd_privmsg(irc *client.Conn, line *client.Line) {
 	nl.Args[1] = l
 	l = strings.ToLower(l)
 
-	if p && (strings.Index(l, ":=") != -1 || strings.Index(l, ":is") != -1) {
-		// We're being addressed directly; this looks like a factoid add.
-		irc.Dispatcher.Dispatch("fd_add", irc, nl, fd)
-		return
-	} else if p && strings.HasPrefix(strings.ToLower(l), "forget that") {
-		// We're being addressed directly; this looks like a factoid delete.
-		irc.Dispatcher.Dispatch("fd_delete", irc, nl, fd)
+	if !p {
+		// If we're not being addressed directly, short-circuit to lookup.
+		irc.Dispatcher.Dispatch("fd_lookup", irc, nl, fd)
 		return
 	}
+
+	// Test for various possible courses of action.
+	switch {
+	// Factoid add: 'key := value' or 'key :is value'
+	case strings.Index(l, ":=") != -1: fallthrough
+	case strings.Index(l, ":is") != -1:
+		irc.Dispatcher.Dispatch("fd_add", irc, nl, fd)
+	// Factoid delete: 'forget that' => deletes fd.lastseen
+	case strings.HasPrefix(strings.ToLower(l), "forget that"):
+		irc.Dispatcher.Dispatch("fd_delete", irc, nl, fd)
 	// If we get to here, none of the other FD command possibilities
 	// have matched, so try a lookup...
-	irc.Dispatcher.Dispatch("fd_lookup", irc, nl, fd)
+	default:
+		irc.Dispatcher.Dispatch("fd_lookup", irc, nl, fd)
+	}
 }
 
 func fd_action(irc *client.Conn, line *client.Line) {
