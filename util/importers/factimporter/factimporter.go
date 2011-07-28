@@ -52,6 +52,10 @@ func parseFactoid(row []interface{}, out chan *factoids.Factoid) {
 	}
 	for _, val := range values {
 		t, v := parseValue(toString(row[cKey]), toString(row[cRel]), val)
+		if v == "" {
+			// skip the many factoids with empty values.
+			continue
+		}
 		out <- &factoids.Factoid{
 			Key: toString(row[cKey]), Value: v, Type: t,
 			Created: c, Modified: m, Accessed: c, Perms: p,
