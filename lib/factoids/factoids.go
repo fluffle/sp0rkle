@@ -6,9 +6,11 @@ import (
 	"launchpad.net/gobson/bson"
 	"launchpad.net/mgo"
 	"lib/db"
+	"lib/util"
 	"log"
 	"os"
 	"rand"
+	"strings"
 	"time"
 )
 
@@ -20,7 +22,6 @@ const (
 	// Factoids can be of these types
 	F_FACT FactoidType = iota
 	F_ACTION
-	F_REPLY
 	F_URL
 )
 
@@ -125,4 +126,26 @@ func (fc *FactoidCollection) GetPseudoRand(key string) (*Factoid) {
 		fc.seen[key] = nil, false
 	}
 	return &res
+}
+
+func ParseValue(v string) (ft FactoidType, fv string) {
+	// Assume v is a normal factoid
+	ft = F_FACT
+
+	// Check for perlfu prefixes and strip them
+	if strings.HasPrefix(v, "<me>") {
+		// <me>does something
+		ft, fv = F_ACTION, v[4:]
+	} else if strings.HasPrefix(v, "<reply>") {
+		// <reply>
+		fv = v[7:]
+	} else {
+		fv = v
+	}
+	if util.LooksURLish(fv) {
+		// Quite a few factoids are just <reply>http://some.url/
+		// it's helpful to detect this so we can do useful things
+		ft = F_URL
+	}
+	return
 }

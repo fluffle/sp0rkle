@@ -88,27 +88,10 @@ func parseMultipleValues(v string) []string {
 
 // Parse a single factoid value, stripping <me>/<reply>
 func parseValue(k, r, v string) (ft factoids.FactoidType, fv string) {
-	v = strings.TrimSpace(v)
-	// Assume v is a normal factoid
-	ft = factoids.F_FACT
-
-	// Check for perlfu prefixes and strip them
-	if strings.HasPrefix(v, "<me>") {
-		// <me>does something
-		ft, fv = factoids.F_ACTION, v[4:]
-	} else if strings.HasPrefix(v, "<reply>") {
-		// <reply> 
-		ft, fv = factoids.F_REPLY, v[7:]
-	} else {
-		fv = v
-	}
-	if util.LooksURLish(fv) {
-		// Quite a few factoids are just <reply>http://some.url/
-		// it's helpful to detect this so we can do useful things
-		ft = factoids.F_URL
-	}
+	ft, fv = factoids.ParseValue(strings.TrimSpace(v))
 	if ft == factoids.F_FACT {
 		// Just a normal factoid whose value is actually "key relation value"
+		// as that's how they're stored in the old SQLite database...
 		fv = strings.Join([]string{k, r, v}, " ")
 	}
 	return
