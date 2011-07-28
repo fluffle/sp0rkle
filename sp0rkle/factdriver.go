@@ -73,8 +73,9 @@ func fd_privmsg(irc *client.Conn, line *client.Line) {
 	case strings.Index(l, ":=") != -1: fallthrough
 	case strings.Index(l, ":is") != -1:
 		irc.Dispatcher.Dispatch("fd_add", irc, nl, fd)
-	// Factoid delete: 'forget that' => deletes fd.lastseen
-	case strings.HasPrefix(strings.ToLower(l), "forget that"):
+	// Factoid delete: 'forget|delete that' => deletes fd.lastseen
+	case strings.HasPrefix(l, "forget that"): fallthrough
+	case strings.HasPrefix(l, "delete that"):
 		irc.Dispatcher.Dispatch("fd_delete", irc, nl, fd)
 	// If we get to here, none of the other FD command possibilities
 	// have matched, so try a lookup...
@@ -129,7 +130,7 @@ func fd_delete(irc *client.Conn, line *client.Line, fd *factoidDriver) {
 		}
 	} else {
 		irc.Privmsg(line.Args[0], fmt.Sprintf(
-			"%s: I've already forgotten it.", line.Nick))
+			"%s: Whatever that was, I've already forgotten it.", line.Nick))
 	}
 	fd.lastseen = ""
 }
