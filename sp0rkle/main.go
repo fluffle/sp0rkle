@@ -39,8 +39,8 @@ func main() {
 	defer db.Session.Close()
 
 	// Add drivers
-	bot.AddDriver("self", bot)
-	bot.AddDriver("factoids", FactoidDriver(db))
+	bot.AddDriver(bot)
+	bot.AddDriver(FactoidDriver(db))
 
 	// Configure IRC client
 	irc := client.New(*nick, "boing", "not really sp0rkle")

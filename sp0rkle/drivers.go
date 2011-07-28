@@ -6,5 +6,6 @@ import (
 
 // Interface for a driver
 type Driver interface {
+	Name() string
 	RegisterHandlers(event.EventRegistry)
 }

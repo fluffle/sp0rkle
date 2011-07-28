@@ -11,6 +11,8 @@ import (
 	"strings"
 )
 
+const _FD_NAME string = "factoids"
+
 type factoidDriver struct {
 	*factoids.FactoidCollection
 
@@ -41,6 +43,10 @@ func (fd *factoidDriver) RegisterHandlers(r event.EventRegistry) {
 	r.AddHandler("action", client.IRCHandler(fd_action))
 	r.AddHandler("fd_lookup", FDHandler(fd_lookup))
 	r.AddHandler("fd_add", FDHandler(fd_add))
+}
+
+func (fd *factoidDriver) Name() string {
+	return _FD_NAME
 }
 
 func fd_privmsg(irc *client.Conn, line *client.Line) {
@@ -118,5 +124,5 @@ func fd_lookup(irc *client.Conn, line *client.Line, fd *factoidDriver) {
 }
 
 func getFD(irc *client.Conn) *factoidDriver {
-	return getState(irc).drivers["factoids"].(*factoidDriver)
+	return getState(irc).drivers[_FD_NAME].(*factoidDriver)
 }

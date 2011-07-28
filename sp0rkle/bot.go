@@ -7,6 +7,8 @@ import (
 )
 
 // The bot is called sp0rkle...
+const _BOT_NAME string = "sp0rkle"
+
 type sp0rkle struct {
 	// it's got a bunch of drivers that register event handlers
 	drivers map[string]Driver
@@ -31,14 +33,18 @@ func (bot *sp0rkle) RegisterHandlers(r event.EventRegistry) {
 	r.AddHandler("disconnected", client.IRCHandler(bot_disconnected))
 }
 
+func (bot *sp0rkle) Name() string {
+	return _BOT_NAME
+}
+
 func (bot *sp0rkle) RegisterAll(r event.EventRegistry) {
 	for _, d := range bot.drivers {
 		d.RegisterHandlers(r)
 	}
 }
 
-func (bot *sp0rkle) AddDriver(name string, d Driver) {
-	bot.drivers[name] = d
+func (bot *sp0rkle) AddDriver(d Driver) {
+	bot.drivers[d.Name()] = d
 }
 
 func (bot *sp0rkle) AddChannel(c string) {
