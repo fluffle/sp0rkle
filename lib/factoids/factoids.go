@@ -83,6 +83,14 @@ func (fc *FactoidCollection) GetCount(key string) int {
 	return 0
 }
 
+func (fc *FactoidCollection) GetById(id bson.ObjectId) *Factoid {
+	var res Factoid
+	if err := fc.Find(bson.M{"_id": id}).One(&res); err == nil {
+		return &res
+	}
+	return nil
+}
+
 func (fc *FactoidCollection) GetFirst(key string) *Factoid {
 	var res Factoid
 	if err := fc.Find(bson.M{"key": key}).One(&res); err == nil {
