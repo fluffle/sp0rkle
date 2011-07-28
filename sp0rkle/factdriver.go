@@ -45,6 +45,7 @@ func (fd *factoidDriver) RegisterHandlers(r event.EventRegistry) {
 	r.AddHandler("fd_lookup", FDHandler(fd_lookup))
 	r.AddHandler("fd_add", FDHandler(fd_add))
 	r.AddHandler("fd_delete", FDHandler(fd_delete))
+	r.AddHandler("fd_replace", FDHandler(fd_replace))
 }
 
 func (fd *factoidDriver) Name() string {
@@ -77,6 +78,11 @@ func fd_privmsg(irc *client.Conn, line *client.Line) {
 	case strings.HasPrefix(l, "forget that"): fallthrough
 	case strings.HasPrefix(l, "delete that"):
 		irc.Dispatcher.Dispatch("fd_delete", irc, nl, fd)
+	// Factoid replace: 'replace that with' => updates fd.lastseen
+	case strings.HasPrefix(l, "replace that with "):
+		// chop off the "known" bit to leave just the replacement
+		nl.Args[1] = nl.Args[1][18:]
+		irc.Dispatcher.Dispatch("fd_replace", irc, nl, fd)
 	// If we get to here, none of the other FD command possibilities
 	// have matched, so try a lookup...
 	default:
@@ -156,6 +162,26 @@ func fd_lookup(irc *client.Conn, line *client.Line, fd *factoidDriver) {
 			irc.Privmsg(line.Args[0], fact.Value)
 		}
 	}
+}
+
+func fd_replace(irc *client.Conn, line *client.Line, fd *factoidDriver) {
+	if fact := fd.GetById(fd.lastseen); fact != nil {
+		old := fact.Value
+		fact.Value = line.Args[1]
+		if err := fd.Update(bson.M{"_id": fd.lastseen}, fact); err == nil {
+			irc.Privmsg(line.Args[0], fmt.Sprintf(
+				"%s: '%s' was '%s', now is '%s'.",
+				line.Nick, fact.Key, old, fact.Value))
+		} else {
+			irc.Privmsg(line.Args[0], fmt.Sprintf(
+				"%s: I failed to replace '%s': %s",
+				line.Nick, fact.Key, err))
+		}
+	} else {
+		irc.Privmsg(line.Args[0], fmt.Sprintf(
+			"%s: Whatever that was, I've already forgotten it.", line.Nick))
+	}
+	fd.lastseen = ""
 }
 
 func getFD(irc *client.Conn) *factoidDriver {
