@@ -86,8 +86,9 @@ func parseMultipleValues(v string) []string {
 // Parse a single factoid value, stripping <me>/<reply>
 func parseValue(k, r, v string) (ft factoids.FactoidType, fv string) {
 	ft, fv = factoids.ParseValue(strings.TrimSpace(v))
-	if ft == factoids.F_FACT {
-		// Just a normal factoid whose value is actually "key relation value"
+	if ft == factoids.F_FACT && fv == v {
+		// If fv == v, ParseValue hasn't stripped off a <reply>, so this is
+		// just a normal factoid whose value is actually "key relation value"
 		// as that's how they're stored in the old SQLite database...
 		fv = strings.Join([]string{k, r, v}, " ")
 	}

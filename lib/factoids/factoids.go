@@ -159,7 +159,9 @@ func ParseValue(v string) (ft FactoidType, fv string) {
 		// <me>does something
 		ft, fv = F_ACTION, v[4:]
 	} else if strings.HasPrefix(v, "<reply>") {
-		// <reply>
+		// <reply> is treated the same as F_FACT now,
+		// Factoid.Key is not used except for searching.
+		// NOTE: careful with this -- it's used in factimporter too...
 		fv = v[7:]
 	} else {
 		fv = v
