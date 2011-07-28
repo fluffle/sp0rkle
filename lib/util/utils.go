@@ -27,3 +27,12 @@ func HasPrefixedNick(text, nick string) bool {
 	}
 	return prefixed
 }
+
+// Does this string look like a URL to you?
+// This should be fairly conservative, I hope:
+//   s starts with http:// or https:// and contains no spaces
+func LooksURLish(s string) bool {
+	return ((strings.HasPrefix(s, "http://") ||
+		strings.HasPrefix(s, "https://")) &&
+		strings.Index(s, " ") == -1)
+}

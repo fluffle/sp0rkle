@@ -102,7 +102,7 @@ func parseValue(k, r, v string) (ft factoids.FactoidType, fv string) {
 	} else {
 		fv = v
 	}
-	if looksURLish(fv) {
+	if util.LooksURLish(fv) {
 		// Quite a few factoids are just <reply>http://some.url/
 		// it's helpful to detect this so we can do useful things
 		ft = factoids.F_URL
@@ -112,15 +112,6 @@ func parseValue(k, r, v string) (ft factoids.FactoidType, fv string) {
 		fv = strings.Join([]string{k, r, v}, " ")
 	}
 	return
-}
-
-// Does this string look like a URL to you?
-// This should be fairly conservative, I hope:
-//   s starts with http:// or https:// and contains no spaces
-func looksURLish(s string) bool {
-	return ((strings.HasPrefix(s, "http://") ||
-		strings.HasPrefix(s, "https://")) &&
-		strings.Index(s, " ") == -1)
 }
 
 // Parse the Created field with a type switch, cos it varies :-/
