@@ -57,7 +57,7 @@ func parseFactoid(row []interface{}, out chan *factoids.Factoid) {
 			continue
 		}
 		out <- &factoids.Factoid{
-			Key: toString(row[cKey]), Value: v, Type: t,
+			Key: toString(row[cKey]), Value: v, Type: t, Chance: 1.0,
 			Created: c, Modified: m, Accessed: c, Perms: p,
 			Id: bson.NewObjectId(),
 		}

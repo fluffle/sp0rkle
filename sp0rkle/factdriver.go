@@ -9,6 +9,7 @@ import (
 	"lib/factoids"
 	"lib/util"
 	"log"
+	"rand"
 	"strings"
 )
 
@@ -153,7 +154,9 @@ func fd_lookup(irc *client.Conn, line *client.Line, fd *factoidDriver) {
 			fact = fd.GetPseudoRand(key)
 		}
 	}
-	if fact != nil {
+	// Chance is used to limit the rate of factoid replies for things
+	// people say a lot, like smilies, or 'lol', or 'i love the peen'.
+	if fact != nil && rand.Float32() < fact.Chance {
 		fd.lastseen = fact.Id
 		switch fact.Type {
 		case factoids.F_ACTION:

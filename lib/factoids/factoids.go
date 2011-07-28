@@ -28,6 +28,7 @@ const (
 // A factoid maps a key to a value, and keeps some stats about it
 type Factoid struct {
 	Key, Value                  string
+	Chance						float32
 	Type                        FactoidType
 	Created, Modified, Accessed *FactoidStat
 	Perms                       *FactoidPerms
@@ -50,6 +51,20 @@ type FactoidStat struct {
 type FactoidPerms struct {
 	ReadOnly bool
 	db.StorableNick
+}
+
+// Helper to make the work of putting together a completely new *Factoid easier
+func NewFactoid(key, value string, n db.StorableNick, c db.StorableChan) *Factoid {
+	ts := time.LocalTime()
+	ft, fv := ParseValue(value)
+	return &Factoid{
+		Key: key, Value: fv, Type: ft, Chance: 1.0,
+		Created:  &FactoidStat{ts, n, c, 1},
+		Modified: &FactoidStat{ts, n, c, 0},
+		Accessed: &FactoidStat{ts, n, c, 0},
+		Perms:    &FactoidPerms{false, n},
+		Id:       bson.NewObjectId(),
+	}
 }
 
 // Factoids are stored in a mongo collection of Factoid structs
@@ -142,20 +157,6 @@ func (fc *FactoidCollection) GetPseudoRand(key string) *Factoid {
 		fc.seen[key] = nil, false
 	}
 	return &res
-}
-
-// Helper to make the work of putting together a completely new *Factoid easier
-func NewFactoid(key, value string, n db.StorableNick, c db.StorableChan) *Factoid {
-	ts := time.LocalTime()
-	ft, fv := ParseValue(value)
-	return &Factoid{
-		Key: key, Value: fv, Type: ft,
-		Created:  &FactoidStat{ts, n, c, 1},
-		Modified: &FactoidStat{ts, n, c, 0},
-		Accessed: &FactoidStat{ts, n, c, 0},
-		Perms:    &FactoidPerms{false, n},
-		Id:       bson.NewObjectId(),
-	}
 }
 
 func ParseValue(v string) (ft FactoidType, fv string) {
