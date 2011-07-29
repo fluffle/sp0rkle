@@ -169,8 +169,8 @@ func fd_chance(irc *client.Conn, line *client.Line, fd *factoidDriver) {
 		fact.Chance = chance
 		if err := fd.Update(bson.M{"_id": fd.lastseen}, fact); err == nil {
 			irc.Privmsg(line.Args[0], fmt.Sprintf(
-				"%s: '%s' was at '%.2f' chance, now is at '%.2f'.",
-				line.Nick, fact.Key, old, chance))
+				"%s: '%s' was at %.0f%% chance, now is at %.0f%%.",
+				line.Nick, fact.Key, old*100, chance*100))
 		} else {
 			irc.Privmsg(line.Args[0], fmt.Sprintf(
 				"%s: I failed to replace '%s': %s",
