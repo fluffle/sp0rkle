@@ -28,7 +28,7 @@ const (
 // A factoid maps a key to a value, and keeps some stats about it
 type Factoid struct {
 	Key, Value                  string
-	Chance						float32
+	Chance                      float32
 	Type                        FactoidType
 	Created, Modified, Accessed *FactoidStat
 	Perms                       *FactoidPerms
