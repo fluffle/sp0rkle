@@ -41,14 +41,15 @@ func main() {
 
 	// Add drivers
 	bot.AddDriver(bot)
-	bot.AddDriver(FactoidDriver(db))
+	fd := FactoidDriver(db)
+	bot.AddDriver(fd)
 
 	// Configure IRC client
 	irc := client.New(*nick, "boing", "not really sp0rkle")
 	irc.SSL = *ssl
 	irc.Debug = *debug
 	irc.State = bot
-	bot.RegisterAll(irc.Registry)
+	bot.RegisterAll(irc.Registry, fd)
 
 	hp := strings.Join([]string{*host, *port}, ":")
 	if err := irc.Connect(hp); err != nil {

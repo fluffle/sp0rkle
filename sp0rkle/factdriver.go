@@ -23,14 +23,21 @@ type factoidDriver struct {
 	// Keep a reference to the last factoid looked up around
 	// for use with 'edit that' and 'delete that' commands.
 	lastseen bson.ObjectId
+
+	// A list of text processing plugins to apply to factoid values
+	plugins []FactoidPlugin
 }
 
-func FactoidDriver(db *db.Database) Driver {
+func FactoidDriver(db *db.Database) *factoidDriver {
 	fc, err := factoids.Collection(db)
 	if err != nil {
 		log.Fatalf("factoid collection failed: %v\n", err)
 	}
-	return &factoidDriver{fc, ""}
+	return &factoidDriver{
+		FactoidCollection: fc,
+		lastseen:          "",
+		plugins:           make([]FactoidPlugin, 0),
+	}
 }
 
 type FactoidHandler func(*client.Conn, *client.Line, *factoidDriver)
@@ -270,12 +277,15 @@ func fd_lookup(irc *client.Conn, line *client.Line, fd *factoidDriver) {
 	// Chance is used to limit the rate of factoid replies for things
 	// people say a lot, like smilies, or 'lol', or 'i love the peen'.
 	if fact != nil && rand.Float32() < fact.Chance {
+		// Store this as the last seen factoid
 		fd.lastseen = fact.Id
+		// Apply the list of factoid plugins to the factoid value.
+		val := fd.ApplyPlugins(fact.Value, line)
 		switch fact.Type {
 		case factoids.F_ACTION:
-			irc.Action(line.Args[0], fact.Value)
+			irc.Action(line.Args[0], val)
 		default:
-			irc.Privmsg(line.Args[0], fact.Value)
+			irc.Privmsg(line.Args[0], val)
 		}
 	}
 }

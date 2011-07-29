@@ -37,9 +37,15 @@ func (bot *sp0rkle) Name() string {
 	return _BOT_NAME
 }
 
-func (bot *sp0rkle) RegisterAll(r event.EventRegistry) {
+func (bot *sp0rkle) RegisterAll(r event.EventRegistry, pm PluginManager) {
 	for _, d := range bot.drivers {
+		// Register the driver's event handlers with the event registry.
 		d.RegisterHandlers(r)
+		// If the driver provides FactoidPlugins to change factoid output
+		// register them with the PluginManager here too.
+		if pp, ok := d.(PluginProvider); ok {
+			pp.RegisterPlugins(pm)
+		}
 	}
 }
 
