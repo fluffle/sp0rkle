@@ -66,9 +66,17 @@ func fd_privmsg(irc *client.Conn, line *client.Line) {
 	nl := line.Copy()
 	nl.Args[1] = l
 	l = strings.ToLower(l)
+	// If we're being talked to in private, line.Args[0] will contain our Nick.
+	// To ensure the replies go to the right place (without performing this
+	// check everywhere) test for this and set line.Args[0] == line.Nick.
+	// We should consider this as "addressing" us too, and set p = true
+	if nl.Args[0] == irc.Me.Nick {
+		nl.Args[0] = nl.Nick
+		p = true
+	}
 
+	// If we're not being addressed directly, short-circuit to lookup.
 	if !p {
-		// If we're not being addressed directly, short-circuit to lookup.
 		irc.Dispatcher.Dispatch("fd_lookup", irc, nl, fd)
 		return
 	}
