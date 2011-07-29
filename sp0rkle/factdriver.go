@@ -9,6 +9,7 @@ import (
 	"lib/factoids"
 	"lib/util"
 	"log"
+	"os"
 	"rand"
 	"strings"
 	"strconv"
@@ -49,6 +50,7 @@ func (fd *factoidDriver) RegisterHandlers(r event.EventRegistry) {
 	r.AddHandler("fd_delete", FDHandler(fd_delete))
 	r.AddHandler("fd_replace", FDHandler(fd_replace))
 	r.AddHandler("fd_chance", FDHandler(fd_chance))
+	r.AddHandler("fd_literal", FDHandler(fd_literal))
 }
 
 func (fd *factoidDriver) Name() string {
@@ -77,19 +79,29 @@ func fd_privmsg(irc *client.Conn, line *client.Line) {
 	case strings.Index(l, ":=") != -1: fallthrough
 	case strings.Index(l, ":is") != -1:
 		irc.Dispatcher.Dispatch("fd_add", irc, nl, fd)
+
 	// Factoid delete: 'forget|delete that' => deletes fd.lastseen
 	case strings.HasPrefix(l, "forget that"): fallthrough
 	case strings.HasPrefix(l, "delete that"):
 		irc.Dispatcher.Dispatch("fd_delete", irc, nl, fd)
+
 	// Factoid replace: 'replace that with' => updates fd.lastseen
 	case strings.HasPrefix(l, "replace that with "):
 		// chop off the "known" bit to leave just the replacement
 		nl.Args[1] = nl.Args[1][18:]
 		irc.Dispatcher.Dispatch("fd_replace", irc, nl, fd)
+
+	// Factoid chance: 'chance of that is' => sets chance of fd.lastseen
 	case strings.HasPrefix(l, "chance of that is "):
 		// chop off the "known" bit to leave just the replacement
 		nl.Args[1] = nl.Args[1][18:]
 		irc.Dispatcher.Dispatch("fd_chance", irc, nl, fd)
+
+	// Factoid literal: 'literal key' => info about factoid
+	case strings.HasPrefix(l, "literal "):
+		// chop off the "known" bit to leave just the key
+		nl.Args[1] = nl.Args[1][8:]
+		irc.Dispatcher.Dispatch("fd_literal", irc, nl, fd)
 	// If we get to here, none of the other FD command possibilities
 	// have matched, so try a lookup...
 	default:
@@ -200,6 +212,39 @@ func fd_delete(irc *client.Conn, line *client.Line, fd *factoidDriver) {
 			"%s: Whatever that was, I've already forgotten it.", line.Nick))
 	}
 	fd.lastseen = ""
+}
+
+func fd_literal(irc *client.Conn, line *client.Line, fd *factoidDriver) {
+	key := strings.ToLower(strings.TrimSpace(line.Args[1]))
+	if count := fd.GetCount(key); count == 0 {
+		irc.Privmsg(line.Args[0], fmt.Sprintf(
+			"%s: I don't know anything about '%s'.",
+			line.Nick, key))
+		return
+	} else if count > 10 && strings.HasPrefix(line.Args[0], "#") {
+		irc.Privmsg(line.Args[0], fmt.Sprintf(
+			"%s: I know too much about '%s', ask me privately.",
+			line.Nick, key))
+		return
+	}
+
+	// Temporarily turn off flood protection cos we could be spamming a bit.
+	irc.Flood = true
+	defer func() { irc.Flood = false }()
+	// Passing an anonymous function to For makes it a little hard to abstract
+	// away in lib/factoids. Fortunately this is something of a one-off.
+	var fact *factoids.Factoid
+	f := func() os.Error {
+		if fact != nil {
+			irc.Privmsg(line.Args[0], fmt.Sprintf(
+				"%s: %s", line.Nick, fact.Value))
+		}
+		return nil
+	}
+	if err := fd.Find(bson.M{"key": key}).For(&fact, f); err != nil {
+		irc.Privmsg(line.Args[0], fmt.Sprintf(
+			"%s: Something went wrong: %s", line.Nick, err))
+	}
 }
 
 func fd_lookup(irc *client.Conn, line *client.Line, fd *factoidDriver) {
