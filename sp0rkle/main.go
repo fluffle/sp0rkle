@@ -18,6 +18,7 @@ var nick *string = flag.String("nick", "sp0rklf",
 	"Name of bot, defaults to 'sp0rklf'")
 var channel *string = flag.String("channel", "#sp0rklf",
 	"Channel to join, defaults to '#sp0rklf'")
+var debug *bool = flag.Bool("debug", false, "Turn on IRC client debug.")
 
 
 func main() {
@@ -45,6 +46,7 @@ func main() {
 	// Configure IRC client
 	irc := client.New(*nick, "boing", "not really sp0rkle")
 	irc.SSL = *ssl
+	irc.Debug = *debug
 	irc.State = bot
 	bot.RegisterAll(irc.Registry)
 
