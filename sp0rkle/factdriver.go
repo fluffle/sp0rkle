@@ -11,6 +11,7 @@ import (
 	"log"
 	"rand"
 	"strings"
+	"strconv"
 )
 
 const _FD_NAME string = "factoids"
@@ -47,6 +48,7 @@ func (fd *factoidDriver) RegisterHandlers(r event.EventRegistry) {
 	r.AddHandler("fd_add", FDHandler(fd_add))
 	r.AddHandler("fd_delete", FDHandler(fd_delete))
 	r.AddHandler("fd_replace", FDHandler(fd_replace))
+	r.AddHandler("fd_chance", FDHandler(fd_chance))
 }
 
 func (fd *factoidDriver) Name() string {
@@ -84,6 +86,10 @@ func fd_privmsg(irc *client.Conn, line *client.Line) {
 		// chop off the "known" bit to leave just the replacement
 		nl.Args[1] = nl.Args[1][18:]
 		irc.Dispatcher.Dispatch("fd_replace", irc, nl, fd)
+	case strings.HasPrefix(l, "chance of that is "):
+		// chop off the "known" bit to leave just the replacement
+		nl.Args[1] = nl.Args[1][18:]
+		irc.Dispatcher.Dispatch("fd_chance", irc, nl, fd)
 	// If we get to here, none of the other FD command possibilities
 	// have matched, so try a lookup...
 	default:
@@ -121,6 +127,60 @@ func fd_add(irc *client.Conn, line *client.Line, fd *factoidDriver) {
 	} else {
 		irc.Privmsg(line.Args[0], fmt.Sprintf("Oh no! %s.", err))
 	}
+}
+
+func fd_chance(irc *client.Conn, line *client.Line, fd *factoidDriver) {
+	str := strings.TrimSpace(line.Args[1])
+	var chance float32
+
+	if strings.HasSuffix(str, "%") {
+		// Handle 'chance of that is \d+%'
+		if i, err := strconv.Atoi(str[:len(str)-1]); err != nil {
+			irc.Privmsg(line.Args[0], fmt.Sprintf(
+				"%s: '%s' didn't look like a % chance to me.",
+				line.Nick, str))
+			return
+		} else {
+			chance = float32(i) / 100
+		}
+	} else {
+		// Assume the chance is a floating point number.
+		if c, err := strconv.Atof32(str); err != nil {
+			irc.Privmsg(line.Args[0], fmt.Sprintf(
+				"%s: '%s' didn't look like a chance to me.",
+				line.Nick, str))
+			return
+		} else {
+			chance = c
+		}
+	}
+
+	// Make sure the chance we've parsed lies in (0.0,1.0]
+	if chance > 1.0 || chance <= 0.0 {
+		irc.Privmsg(line.Args[0], fmt.Sprintf(
+			"%s: '%s' was outside possible chance ranges.",
+			line.Nick, str))
+		return
+	}
+
+	// ok, we're good to update the chance.
+	if fact := fd.GetById(fd.lastseen); fact != nil {
+		old := fact.Chance
+		fact.Chance = chance
+		if err := fd.Update(bson.M{"_id": fd.lastseen}, fact); err == nil {
+			irc.Privmsg(line.Args[0], fmt.Sprintf(
+				"%s: '%s' was at '%.2f' chance, now is at '%.2f'.",
+				line.Nick, fact.Key, old, chance))
+		} else {
+			irc.Privmsg(line.Args[0], fmt.Sprintf(
+				"%s: I failed to replace '%s': %s",
+				line.Nick, fact.Key, err))
+		}
+	} else {
+		irc.Privmsg(line.Args[0], fmt.Sprintf(
+			"%s: Whatever that was, I've already forgotten it.", line.Nick))
+	}
+	fd.lastseen = ""
 }
 
 func fd_delete(irc *client.Conn, line *client.Line, fd *factoidDriver) {
@@ -170,7 +230,7 @@ func fd_lookup(irc *client.Conn, line *client.Line, fd *factoidDriver) {
 func fd_replace(irc *client.Conn, line *client.Line, fd *factoidDriver) {
 	if fact := fd.GetById(fd.lastseen); fact != nil {
 		old := fact.Value
-		fact.Value = line.Args[1]
+		fact.Value = strings.TrimSpace(line.Args[1])
 		if err := fd.Update(bson.M{"_id": fd.lastseen}, fact); err == nil {
 			irc.Privmsg(line.Args[0], fmt.Sprintf(
 				"%s: '%s' was '%s', now is '%s'.",
