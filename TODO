@@ -1,0 +1,86 @@
+The todo list is broken down into the follwing sections
+Core: Items that affect the main framework
+Plugins: Specific plugins that need creating
+Bugs:
+
+
+Plugins
+=======
+*decide
+  command: decide, choose
+  decide carrots peas
+  decide write unit tests | fix bugs
+  decide "tidy your room" "eat your greens" "behave"
+
+*Calculate
+  #Wrapper round google calc, as well as some specific lookups
+  command: calc(ulate)
+  5 + 2
+  convert_chr
+  convert_ord
+  convert_base
+  calc_len
+  calc_netmask
+
+*length
+  #Returns the length in characters of the given string
+*exchange
+  #convert from one currancy to another
+  command: exchange, convert
+  exchange 10 GBP to USD
+
+*weather
+  weather manchester, uk
+
+
+
+*Remind
+  //Remind me, (or someone) about something at a certain point in the future
+  remind me $msg at $time
+  remind $person $msg in $period_of_time
+  remind list
+  remind (del,delete,forget) X
+
+*date
+  //current date
+  date
+  date uk
+  date shanghai
+
+*Tell
+  //Tell person X when they next appear online
+  tell steve where's the laptop?
+
+
+*lines
+  //Keep a scoreboard of who has said how many lines a person has said
+  Should also hurl abuse for every x-thousand lines said
+  lines top10
+  lines $nick
+
+
+*Seen
+  //related to <lines>, when was the last time we saw person X say something,
+  and what were the last two things they said (since last can often be pingtout)
+  Also report similar sounding nicknames (steve, steve-afk)
+  Should track lots of actions, such as "changing there nick"
+
+*urlsearch
+  //Keep a track of urls that are said and allow them to be searched (using regex)
+  urlsearch guthub.com
+
+*Quote
+  //quote DB
+  q(uote )add $quote
+  quote $search_term
+  quote $ID
+  q(uote )del $quote_id
+
+
+Core
+====
+*Ticker for reminders
+*Help
+  each plugin and command should implement a help function, e.g.
+  help quote =>  "QuoteDB: type help <command>, where command is qadd, qdell"
+
