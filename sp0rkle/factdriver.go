@@ -192,8 +192,14 @@ func fd_chance(irc *client.Conn, line *client.Line, fd *factoidDriver) {
 
 	// ok, we're good to update the chance.
 	if fact := fd.GetById(fd.lastseen); fact != nil {
+		// Store the old chance, update with the new
 		old := fact.Chance
 		fact.Chance = chance
+		// Update the Modified field
+		n := db.StorableNick{line.Nick, line.Ident, line.Host}
+		c := db.StorableChan{line.Args[0]}
+		fact.Modify(n, c)
+		// And store the new factoid data
 		if err := fd.Update(bson.M{"_id": fd.lastseen}, fact); err == nil {
 			irc.Privmsg(line.Args[0], fmt.Sprintf(
 				"%s: '%s' was at %.0f%% chance, now is at %.0f%%.",
@@ -279,6 +285,17 @@ func fd_lookup(irc *client.Conn, line *client.Line, fd *factoidDriver) {
 	if fact != nil && rand.Float32() < fact.Chance {
 		// Store this as the last seen factoid
 		fd.lastseen = fact.Id
+		// Update the Accessed field
+		n := db.StorableNick{line.Nick, line.Ident, line.Host}
+		c := db.StorableChan{line.Args[0]}
+		fact.Access(n, c)
+		// And store the new factoid data
+		if err := fd.Update(bson.M{"_id": fact.Id}, fact); err != nil {
+			irc.Privmsg(line.Args[0], fmt.Sprintf(
+				"%s: I failed to update '%s': %s",
+				line.Nick, fact.Key, err))
+		}
+
 		// Apply the list of factoid plugins to the factoid value.
 		val := fd.ApplyPlugins(fact.Value, line)
 		switch fact.Type {
@@ -292,8 +309,15 @@ func fd_lookup(irc *client.Conn, line *client.Line, fd *factoidDriver) {
 
 func fd_replace(irc *client.Conn, line *client.Line, fd *factoidDriver) {
 	if fact := fd.GetById(fd.lastseen); fact != nil {
+		// Store the old factoid value
 		old := fact.Value
+		// Replace the value with the new one
 		fact.Value = strings.TrimSpace(line.Args[1])
+		// Update the Modified field
+		n := db.StorableNick{line.Nick, line.Ident, line.Host}
+		c := db.StorableChan{line.Args[0]}
+		fact.Modify(n, c)
+		// And store the new factoid data
 		if err := fd.Update(bson.M{"_id": fd.lastseen}, fact); err == nil {
 			irc.Privmsg(line.Args[0], fmt.Sprintf(
 				"%s: '%s' was '%s', now is '%s'.",

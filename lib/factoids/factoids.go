@@ -67,6 +67,20 @@ func NewFactoid(key, value string, n db.StorableNick, c db.StorableChan) *Factoi
 	}
 }
 
+func (f *Factoid) Access(n db.StorableNick, c db.StorableChan) {
+	f.Accessed.Timestamp = time.LocalTime()
+	f.Accessed.StorableNick = n
+	f.Accessed.StorableChan = c
+	f.Accessed.Count++
+}
+
+func (f *Factoid) Modify(n db.StorableNick, c db.StorableChan) {
+	f.Modified.Timestamp = time.LocalTime()
+	f.Modified.StorableNick = n
+	f.Modified.StorableChan = c
+	f.Modified.Count++
+}
+
 // Factoids are stored in a mongo collection of Factoid structs
 type FactoidCollection struct {
 	// We're wrapping mgo.Collection so we can provide our own methods.
