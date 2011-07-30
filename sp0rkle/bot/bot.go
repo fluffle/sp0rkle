@@ -1,76 +1,68 @@
-package main
+package bot
 
 import (
 	"github.com/fluffle/goirc/client"
 	"github.com/fluffle/goirc/event"
-	"log"
+	"sp0rkle/base"
 )
 
 // The bot is called sp0rkle...
-const _BOT_NAME string = "sp0rkle"
+const botName string = "sp0rkle"
 
-type sp0rkle struct {
+type Sp0rkle struct {
+	// Embed a connection to IRC.
+	Conn *client.Conn
+
 	// it's got a bunch of drivers that register event handlers
-	drivers map[string]Driver
+	drivers map[string]base.Driver
 
-	//channel to join on start up
+	// channel to join on start up
 	channels []string
 
 	// and we need to kill it occasionally.
-	quit chan bool
+	Quit chan bool
 }
 
-func Bot() *sp0rkle {
-	return &sp0rkle{
-		drivers:  make(map[string]Driver),
+func Bot() *Sp0rkle {
+	return &Sp0rkle{
+		Conn:     nil,
+		drivers:  make(map[string]base.Driver),
 		channels: make([]string, 0, 1),
-		quit:     make(chan bool),
+		Quit:     make(chan bool),
 	}
 }
 
-func (bot *sp0rkle) RegisterHandlers(r event.EventRegistry) {
-	r.AddHandler("connected", client.IRCHandler(bot_connected))
-	r.AddHandler("disconnected", client.IRCHandler(bot_disconnected))
+func (bot *Sp0rkle) Name() string {
+	return botName
 }
 
-func (bot *sp0rkle) Name() string {
-	return _BOT_NAME
-}
-
-func (bot *sp0rkle) RegisterAll(r event.EventRegistry, pm PluginManager) {
+func (bot *Sp0rkle) RegisterAll(r event.EventRegistry, pm base.PluginManager) {
 	for _, d := range bot.drivers {
 		// Register the driver's event handlers with the event registry.
 		d.RegisterHandlers(r)
 		// If the driver provides FactoidPlugins to change factoid output
 		// register them with the PluginManager here too.
-		if pp, ok := d.(PluginProvider); ok {
+		if pp, ok := d.(base.PluginProvider); ok {
 			pp.RegisterPlugins(pm)
 		}
 	}
 }
 
-func (bot *sp0rkle) AddDriver(d Driver) {
+func (bot *Sp0rkle) Dispatch(name string, ev ...interface{}) {
+	// Shim the bot into the parameter list of every event dispatched via it.
+	ev = append([]interface{}{bot}, ev...)
+	bot.Conn.Dispatcher.Dispatch(name, ev...)
+}
+
+func (bot *Sp0rkle) AddDriver(d base.Driver) {
 	bot.drivers[d.Name()] = d
 }
 
-func (bot *sp0rkle) AddChannel(c string) {
+func (bot *Sp0rkle) GetDriver(name string) base.Driver {
+	// Callers will have to unbox the returned driver themselves
+	return bot.drivers[name]
+}
+
+func (bot *Sp0rkle) AddChannel(c string) {
 	bot.channels = append(bot.channels, c)
-}
-
-func bot_connected(irc *client.Conn, line *client.Line) {
-	bot := getState(irc)
-	for _, c := range bot.channels {
-		log.Printf("Joining %s on startup.\n", c)
-		irc.Join(c)
-	}
-}
-
-func bot_disconnected(irc *client.Conn, line *client.Line) {
-	log.Println("Disconnected...")
-	bot := getState(irc)
-	bot.quit <- true
-}
-
-func getState(irc *client.Conn) *sp0rkle {
-	return irc.State.(*sp0rkle)
 }
