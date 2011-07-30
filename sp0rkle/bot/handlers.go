@@ -15,14 +15,14 @@ type BotHandler func(*Sp0rkle, *base.Line)
 func (bot *Sp0rkle) RegisterHandlers(r event.EventRegistry) {
 	// Generic shim to wrap an irc event into a bot event.
 	forward_event := func(name string) event.Handler {
-		return client.IRCHandler(func(irc *client.Conn, line *client.Line) {
+		return client.NewHandler(func(irc *client.Conn, line *client.Line) {
 			getState(irc).Dispatch("bot_"+name, &base.Line{Line: *line.Copy()})
 		})
 	}
 
-	r.AddHandler("connected", client.IRCHandler(bot_connected))
-	r.AddHandler("disconnected", client.IRCHandler(bot_disconnected))
-	r.AddHandler("privmsg", client.IRCHandler(bot_privmsg))
+	r.AddHandler("connected", client.NewHandler(bot_connected))
+	r.AddHandler("disconnected", client.NewHandler(bot_disconnected))
+	r.AddHandler("privmsg", client.NewHandler(bot_privmsg))
 	r.AddHandler("action", forward_event("action"))
 }
 
