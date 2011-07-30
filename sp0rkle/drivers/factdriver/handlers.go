@@ -1,57 +1,31 @@
-package main
+package factdriver
 
 import (
 	"fmt"
 	"github.com/fluffle/goirc/event"
-	"github.com/fluffle/goirc/client"
 	"launchpad.net/gobson/bson"
 	"lib/db"
 	"lib/factoids"
-	"lib/util"
-	"log"
 	"os"
 	"rand"
+	"sp0rkle/bot"
+	"sp0rkle/base"
 	"strings"
 	"strconv"
 )
 
-const _FD_NAME string = "factoids"
-
-type factoidDriver struct {
-	*factoids.FactoidCollection
-
-	// Keep a reference to the last factoid looked up around
-	// for use with 'edit that' and 'delete that' commands.
-	lastseen bson.ObjectId
-
-	// A list of text processing plugins to apply to factoid values
-	plugins []FactoidPlugin
-}
-
-func FactoidDriver(db *db.Database) *factoidDriver {
-	fc, err := factoids.Collection(db)
-	if err != nil {
-		log.Fatalf("factoid collection failed: %v\n", err)
-	}
-	return &factoidDriver{
-		FactoidCollection: fc,
-		lastseen:          "",
-		plugins:           make([]FactoidPlugin, 0),
-	}
-}
-
-type FactoidHandler func(*client.Conn, *client.Line, *factoidDriver)
+type FactoidHandler func(*bot.Sp0rkle, *factoidDriver, *base.Line)
 
 // Unboxer for FactoidDriver handlers
 func FDHandler(f FactoidHandler) event.Handler {
 	return event.NewHandler(func(ev ...interface{}) {
-		f(ev[0].(*client.Conn), ev[1].(*client.Line), ev[2].(*factoidDriver))
+		f(ev[0].(*bot.Sp0rkle), ev[1].(*factoidDriver), ev[2].(*base.Line))
 	})
 }
 
 func (fd *factoidDriver) RegisterHandlers(r event.EventRegistry) {
-	r.AddHandler("privmsg", client.IRCHandler(fd_privmsg))
-	r.AddHandler("action", client.IRCHandler(fd_action))
+	r.AddHandler("bot_privmsg", bot.NewHandler(fd_privmsg))
+	r.AddHandler("bot_action", bot.NewHandler(fd_action))
 	r.AddHandler("fd_lookup", FDHandler(fd_lookup))
 	r.AddHandler("fd_add", FDHandler(fd_add))
 	r.AddHandler("fd_delete", FDHandler(fd_delete))
@@ -60,77 +34,62 @@ func (fd *factoidDriver) RegisterHandlers(r event.EventRegistry) {
 	r.AddHandler("fd_literal", FDHandler(fd_literal))
 }
 
-func (fd *factoidDriver) Name() string {
-	return _FD_NAME
-}
-
-func fd_privmsg(irc *client.Conn, line *client.Line) {
-	fd := getFD(irc)
-	l, p := util.RemovePrefixedNick(strings.TrimSpace(line.Args[1]), irc.Me.Nick)
-	// We want line.Args[1] to contain the (possibly) stripped version of itself
-	// but modifying the pointer will result in other goroutines seeing the
-	// change, so we need to copy line for our own edification.
-	nl := line.Copy()
-	nl.Args[1] = l
-	l = strings.ToLower(l)
-	// If we're being talked to in private, line.Args[0] will contain our Nick.
-	// To ensure the replies go to the right place (without performing this
-	// check everywhere) test for this and set line.Args[0] == line.Nick.
-	// We should consider this as "addressing" us too, and set p = true
-	if nl.Args[0] == irc.Me.Nick {
-		nl.Args[0] = nl.Nick
-		p = true
-	}
+func fd_privmsg(bot *bot.Sp0rkle, line *base.Line) {
+	fd := bot.GetDriver(driverName).(*factoidDriver)
 
 	// If we're not being addressed directly, short-circuit to lookup.
-	if !p {
-		irc.Dispatcher.Dispatch("fd_lookup", irc, nl, fd)
+	if !line.Addressed {
+		bot.Dispatch("fd_lookup", fd, line)
 		return
 	}
 
+	l := strings.ToLower(line.Args[1])
 	// Test for various possible courses of action.
 	switch {
 	// Factoid add: 'key := value' or 'key :is value'
 	case strings.Index(l, ":=") != -1: fallthrough
 	case strings.Index(l, ":is") != -1:
-		irc.Dispatcher.Dispatch("fd_add", irc, nl, fd)
+		bot.Dispatch("fd_add", fd, line)
 
 	// Factoid delete: 'forget|delete that' => deletes fd.lastseen
 	case strings.HasPrefix(l, "forget that"): fallthrough
 	case strings.HasPrefix(l, "delete that"):
-		irc.Dispatcher.Dispatch("fd_delete", irc, nl, fd)
+		bot.Dispatch("fd_delete", fd, line)
 
 	// Factoid replace: 'replace that with' => updates fd.lastseen
 	case strings.HasPrefix(l, "replace that with "):
 		// chop off the "known" bit to leave just the replacement
+		nl := line.Copy()
 		nl.Args[1] = nl.Args[1][18:]
-		irc.Dispatcher.Dispatch("fd_replace", irc, nl, fd)
+		bot.Dispatch("fd_replace", fd, line)
 
 	// Factoid chance: 'chance of that is' => sets chance of fd.lastseen
 	case strings.HasPrefix(l, "chance of that is "):
 		// chop off the "known" bit to leave just the replacement
+		nl := line.Copy()
 		nl.Args[1] = nl.Args[1][18:]
-		irc.Dispatcher.Dispatch("fd_chance", irc, nl, fd)
+		bot.Dispatch("fd_chance", fd, nl)
 
 	// Factoid literal: 'literal key' => info about factoid
 	case strings.HasPrefix(l, "literal "):
 		// chop off the "known" bit to leave just the key
+		nl := line.Copy()
 		nl.Args[1] = nl.Args[1][8:]
-		irc.Dispatcher.Dispatch("fd_literal", irc, nl, fd)
+		bot.Dispatch("fd_literal", fd, nl)
 	// If we get to here, none of the other FD command possibilities
 	// have matched, so try a lookup...
 	default:
-		irc.Dispatcher.Dispatch("fd_lookup", irc, nl, fd)
+		bot.Dispatch("fd_lookup", fd, line)
 	}
 }
 
-func fd_action(irc *client.Conn, line *client.Line) {
-	fd := getFD(irc)
+func fd_action(bot *bot.Sp0rkle, line *base.Line) {
+	fd := bot.GetDriver(driverName).(*factoidDriver)
 	// Actions just trigger a lookup.
-	irc.Dispatcher.Dispatch("fd_lookup", irc, line, fd)
+	bot.Dispatch("fd_lookup", fd, line)
 }
 
-func fd_add(irc *client.Conn, line *client.Line, fd *factoidDriver) {
+func fd_add(bot *bot.Sp0rkle, fd *factoidDriver, line *base.Line) {
 	var key, val string
 	if strings.Index(line.Args[1], ":=") != -1 {
 		kv := strings.Split(line.Args[1], ":=", 2)
@@ -148,22 +107,22 @@ func fd_add(irc *client.Conn, line *client.Line, fd *factoidDriver) {
 	fact := factoids.NewFactoid(key, val, n, c)
 	if err := fd.Insert(fact); err == nil {
 		count := fd.GetCount(key)
-		irc.Privmsg(line.Args[0], fmt.Sprintf(
+		bot.Conn.Privmsg(line.Args[0], fmt.Sprintf(
 			"%s: Woo, I now know %d things about '%s'.",
 			line.Nick, count, key))
 	} else {
-		irc.Privmsg(line.Args[0], fmt.Sprintf("Oh no! %s.", err))
+		bot.Conn.Privmsg(line.Args[0], fmt.Sprintf("Oh no! %s.", err))
 	}
 }
 
-func fd_chance(irc *client.Conn, line *client.Line, fd *factoidDriver) {
+func fd_chance(bot *bot.Sp0rkle, fd *factoidDriver, line *base.Line) {
 	str := strings.TrimSpace(line.Args[1])
 	var chance float32
 
 	if strings.HasSuffix(str, "%") {
 		// Handle 'chance of that is \d+%'
 		if i, err := strconv.Atoi(str[:len(str)-1]); err != nil {
-			irc.Privmsg(line.Args[0], fmt.Sprintf(
+			bot.Conn.Privmsg(line.Args[0], fmt.Sprintf(
 				"%s: '%s' didn't look like a % chance to me.",
 				line.Nick, str))
 			return
@@ -173,7 +132,7 @@ func fd_chance(irc *client.Conn, line *client.Line, fd *factoidDriver) {
 	} else {
 		// Assume the chance is a floating point number.
 		if c, err := strconv.Atof32(str); err != nil {
-			irc.Privmsg(line.Args[0], fmt.Sprintf(
+			bot.Conn.Privmsg(line.Args[0], fmt.Sprintf(
 				"%s: '%s' didn't look like a chance to me.",
 				line.Nick, str))
 			return
@@ -184,7 +143,7 @@ func fd_chance(irc *client.Conn, line *client.Line, fd *factoidDriver) {
 
 	// Make sure the chance we've parsed lies in (0.0,1.0]
 	if chance > 1.0 || chance <= 0.0 {
-		irc.Privmsg(line.Args[0], fmt.Sprintf(
+		bot.Conn.Privmsg(line.Args[0], fmt.Sprintf(
 			"%s: '%s' was outside possible chance ranges.",
 			line.Nick, str))
 		return
@@ -192,85 +151,91 @@ func fd_chance(irc *client.Conn, line *client.Line, fd *factoidDriver) {
 
 	// ok, we're good to update the chance.
 	if fact := fd.GetById(fd.lastseen); fact != nil {
+		// Store the old chance, update with the new
 		old := fact.Chance
 		fact.Chance = chance
+		// Update the Modified field
+		n := db.StorableNick{line.Nick, line.Ident, line.Host}
+		c := db.StorableChan{line.Args[0]}
+		fact.Modify(n, c)
+		// And store the new factoid data
 		if err := fd.Update(bson.M{"_id": fd.lastseen}, fact); err == nil {
-			irc.Privmsg(line.Args[0], fmt.Sprintf(
+			bot.Conn.Privmsg(line.Args[0], fmt.Sprintf(
 				"%s: '%s' was at %.0f%% chance, now is at %.0f%%.",
 				line.Nick, fact.Key, old*100, chance*100))
 		} else {
-			irc.Privmsg(line.Args[0], fmt.Sprintf(
+			bot.Conn.Privmsg(line.Args[0], fmt.Sprintf(
 				"%s: I failed to replace '%s': %s",
 				line.Nick, fact.Key, err))
 		}
 	} else {
-		irc.Privmsg(line.Args[0], fmt.Sprintf(
+		bot.Conn.Privmsg(line.Args[0], fmt.Sprintf(
 			"%s: Whatever that was, I've already forgotten it.", line.Nick))
 	}
 	fd.lastseen = ""
 }
 
-func fd_delete(irc *client.Conn, line *client.Line, fd *factoidDriver) {
+func fd_delete(bot *bot.Sp0rkle, fd *factoidDriver, line *base.Line) {
 	// Get fresh state on the last seen factoid.
 	if fact := fd.GetById(fd.lastseen); fact != nil {
 		if err := fd.Remove(bson.M{"_id": fd.lastseen}); err == nil {
-			irc.Privmsg(line.Args[0], fmt.Sprintf(
+			bot.Conn.Privmsg(line.Args[0], fmt.Sprintf(
 				"%s: I forgot that '%s' was '%s'.",
 				line.Nick, fact.Key, fact.Value))
 		} else {
-			irc.Privmsg(line.Args[0], fmt.Sprintf(
+			bot.Conn.Privmsg(line.Args[0], fmt.Sprintf(
 				"%s: I failed to forget '%s': %s",
 				line.Nick, fact.Key, err))
 		}
 	} else {
-		irc.Privmsg(line.Args[0], fmt.Sprintf(
+		bot.Conn.Privmsg(line.Args[0], fmt.Sprintf(
 			"%s: Whatever that was, I've already forgotten it.", line.Nick))
 	}
 	fd.lastseen = ""
 }
 
-func fd_literal(irc *client.Conn, line *client.Line, fd *factoidDriver) {
+func fd_literal(bot *bot.Sp0rkle, fd *factoidDriver, line *base.Line) {
 	key := strings.ToLower(strings.TrimSpace(line.Args[1]))
 	if count := fd.GetCount(key); count == 0 {
-		irc.Privmsg(line.Args[0], fmt.Sprintf(
+		bot.Conn.Privmsg(line.Args[0], fmt.Sprintf(
 			"%s: I don't know anything about '%s'.",
 			line.Nick, key))
 		return
 	} else if count > 10 && strings.HasPrefix(line.Args[0], "#") {
-		irc.Privmsg(line.Args[0], fmt.Sprintf(
+		bot.Conn.Privmsg(line.Args[0], fmt.Sprintf(
 			"%s: I know too much about '%s', ask me privately.",
 			line.Nick, key))
 		return
 	}
 
 	// Temporarily turn off flood protection cos we could be spamming a bit.
-	irc.Flood = true
-	defer func() { irc.Flood = false }()
+	bot.Conn.Flood = true
+	defer func() { bot.Conn.Flood = false }()
 	// Passing an anonymous function to For makes it a little hard to abstract
 	// away in lib/factoids. Fortunately this is something of a one-off.
 	var fact *factoids.Factoid
 	f := func() os.Error {
 		if fact != nil {
-			irc.Privmsg(line.Args[0], fmt.Sprintf(
+			bot.Conn.Privmsg(line.Args[0], fmt.Sprintf(
 				"%s: %s", line.Nick, fact.Value))
 		}
 		return nil
 	}
 	if err := fd.Find(bson.M{"key": key}).For(&fact, f); err != nil {
-		irc.Privmsg(line.Args[0], fmt.Sprintf(
+		bot.Conn.Privmsg(line.Args[0], fmt.Sprintf(
 			"%s: Something went wrong: %s", line.Nick, err))
 	}
 }
 
-func fd_lookup(irc *client.Conn, line *client.Line, fd *factoidDriver) {
+func fd_lookup(bot *bot.Sp0rkle, fd *factoidDriver, line *base.Line) {
 	key := strings.ToLower(strings.TrimSpace(line.Args[1]))
 	var fact *factoids.Factoid
 
 	if fact = fd.GetPseudoRand(key); fact == nil && line.Cmd == "ACTION" {
 		// Support sp0rkle's habit of stripping off it's own nick
 		// but only for actions, not privmsgs.
-		if strings.HasSuffix(key, irc.Me.Nick) {
-			key = strings.TrimSpace(key[:len(key)-len(irc.Me.Nick)])
+		if strings.HasSuffix(key, bot.Conn.Me.Nick) {
+			key = strings.TrimSpace(key[:len(key)-len(bot.Conn.Me.Nick)])
 			fact = fd.GetPseudoRand(key)
 		}
 	}
@@ -279,37 +244,51 @@ func fd_lookup(irc *client.Conn, line *client.Line, fd *factoidDriver) {
 	if fact != nil && rand.Float32() < fact.Chance {
 		// Store this as the last seen factoid
 		fd.lastseen = fact.Id
+		// Update the Accessed field
+		n := db.StorableNick{line.Nick, line.Ident, line.Host}
+		c := db.StorableChan{line.Args[0]}
+		fact.Access(n, c)
+		// And store the new factoid data
+		if err := fd.Update(bson.M{"_id": fact.Id}, fact); err != nil {
+			bot.Conn.Privmsg(line.Args[0], fmt.Sprintf(
+				"%s: I failed to update '%s': %s",
+				line.Nick, fact.Key, err))
+		}
+
 		// Apply the list of factoid plugins to the factoid value.
 		val := fd.ApplyPlugins(fact.Value, line)
 		switch fact.Type {
 		case factoids.F_ACTION:
-			irc.Action(line.Args[0], val)
+			bot.Conn.Action(line.Args[0], val)
 		default:
-			irc.Privmsg(line.Args[0], val)
+			bot.Conn.Privmsg(line.Args[0], val)
 		}
 	}
 }
 
-func fd_replace(irc *client.Conn, line *client.Line, fd *factoidDriver) {
+func fd_replace(bot *bot.Sp0rkle, fd *factoidDriver, line *base.Line) {
 	if fact := fd.GetById(fd.lastseen); fact != nil {
+		// Store the old factoid value
 		old := fact.Value
+		// Replace the value with the new one
 		fact.Value = strings.TrimSpace(line.Args[1])
+		// Update the Modified field
+		n := db.StorableNick{line.Nick, line.Ident, line.Host}
+		c := db.StorableChan{line.Args[0]}
+		fact.Modify(n, c)
+		// And store the new factoid data
 		if err := fd.Update(bson.M{"_id": fd.lastseen}, fact); err == nil {
-			irc.Privmsg(line.Args[0], fmt.Sprintf(
+			bot.Conn.Privmsg(line.Args[0], fmt.Sprintf(
 				"%s: '%s' was '%s', now is '%s'.",
 				line.Nick, fact.Key, old, fact.Value))
 		} else {
-			irc.Privmsg(line.Args[0], fmt.Sprintf(
+			bot.Conn.Privmsg(line.Args[0], fmt.Sprintf(
 				"%s: I failed to replace '%s': %s",
 				line.Nick, fact.Key, err))
 		}
 	} else {
-		irc.Privmsg(line.Args[0], fmt.Sprintf(
+		bot.Conn.Privmsg(line.Args[0], fmt.Sprintf(
 			"%s: Whatever that was, I've already forgotten it.", line.Nick))
 	}
 	fd.lastseen = ""
-}
-
-func getFD(irc *client.Conn) *factoidDriver {
-	return getState(irc).drivers[_FD_NAME].(*factoidDriver)
 }

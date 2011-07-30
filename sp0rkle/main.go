@@ -8,6 +8,9 @@ import (
 	"github.com/fluffle/goirc/client"
 	"lib/db"
 	"log"
+	"sp0rkle/bot"
+	"sp0rkle/drivers/decisiondriver"
+	"sp0rkle/drivers/factdriver"
 	"strings"
 )
 
@@ -29,7 +32,7 @@ func main() {
 	}
 
 	// Initialise bot state
-	bot := Bot()
+	bot := bot.Bot()
 	bot.AddChannel(*channel)
 
 	// Connect to mongo
@@ -41,14 +44,18 @@ func main() {
 
 	// Add drivers
 	bot.AddDriver(bot)
-	fd := FactoidDriver(db)
+	fd := factdriver.FactoidDriver(db)
 	bot.AddDriver(fd)
+	bot.AddDriver(decisiondriver.DecisionDriver())
 
 	// Configure IRC client
 	irc := client.New(*nick, "boing", "not really sp0rkle")
 	irc.SSL = *ssl
 	irc.Debug = *debug
 	irc.State = bot
+
+	// Save pointer to connection in bot, and register handlers.
+	bot.Conn = irc
 	bot.RegisterAll(irc.Registry, fd)
 
 	hp := strings.Join([]string{*host, *port}, ":")
@@ -62,7 +69,7 @@ func main() {
 		select {
 		case err := <-irc.Err:
 			log.Printf("goirc error: %s\n", err)
-		case quit = <-bot.quit:
+		case quit = <-bot.Quit:
 			log.Println("Shutting down...")
 		}
 	}
