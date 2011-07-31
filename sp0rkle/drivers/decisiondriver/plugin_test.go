@@ -27,7 +27,7 @@ func TestRand(t *testing.T) {
 	for i, s := range tests {
 		ret := rand_replacer(s, mytestrand)
 		if ret != expected[i] {
-			t.Fail()
+			t.Errorf("Expected: %s\nGot: %s\n", expected[i], ret)
 		}
 	}
 }
