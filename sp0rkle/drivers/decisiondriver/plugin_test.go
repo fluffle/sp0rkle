@@ -31,3 +31,31 @@ func TestRand(t *testing.T) {
 		}
 	}
 }
+
+func TestDecide(t *testing.T) {
+	tests := []string{
+		"singlevalue",
+		"sausage eggs spam",
+		"carrots | ham",
+		"spam | spam and sausage | eggs | ham | spam spam spam spam eggs and spam",
+		"\"spam\" \"spam and sausage\" \"eggs\" \"ham\" \"spam spam spam spam eggs and spam\"",
+		"\"cheese\" \"ham",
+		"'cheese' 'carrots' 'sausage'",
+	}
+	expected := []string{
+		"error: see help for details",
+		"sausage",
+		"carrots",
+		"spam",
+		"spam",
+		"Error: unmatched quotes",
+		"cheese",
+	}
+	for i, s := range tests {
+		ret := rand_decider(s, mytestrand)
+		if ret != expected[i] {
+			t.Errorf("Expected: %s\nGot: %s\n\n",expected[i], ret)
+		}
+	}
+}
+

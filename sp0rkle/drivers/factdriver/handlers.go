@@ -251,8 +251,8 @@ func fd_lookup(bot *bot.Sp0rkle, fd *factoidDriver, line *base.Line) {
 		// And store the new factoid data
 		if err := fd.Update(bson.M{"_id": fact.Id}, fact); err != nil {
 			bot.Conn.Privmsg(line.Args[0], fmt.Sprintf(
-				"%s: I failed to update '%s': %s",
-				line.Nick, fact.Key, err))
+				"%s: I failed to update '%s', if: $id: %s ",
+				line.Nick, fact.Key, fact.Id, err))
 		}
 
 		// Apply the list of factoid plugins to the factoid value.
