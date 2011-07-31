@@ -106,3 +106,43 @@ func TestRemoveFormatting(t *testing.T) {
 		}
 	}
 }
+
+func TestRemovePrefixes(t *testing.T) {
+	tests := []string{
+		"some text",
+	    "oook, some text",
+		"see some text",
+		"uhhm some text",
+		"ummmmm some text",
+		"hey, some text",
+		"actually some text",
+		"oooooo some text",
+		"well, some text",
+		"iirc some text",
+		"but some text",
+		"and some text",
+		"or, some text",
+		"eh, some text",
+		".... some text",
+		"like, some text",
+		"ooohhhh some text",
+		"yeeaaaa some text",
+		"yeehhhh some text",
+		"yahhhhh some text",
+		"yup, some text",
+		"lol, some text",
+		"wow, some text",
+		"hhmmmm some text",
+		"eeerr, some text",
+		"hahaha some text",
+		"heh some text",
+		"hey, like actually iirc some text",
+		"... like haha and oooo, but iirc uhhm well, actually yup some text",
+	}
+	for _, s := range tests {
+		ret := RemovePrefixes(s)
+		if ret != "some text" {
+			t.Errorf("Expected: some text\nGot: %s\n", ret)
+		}
+	}
+}
