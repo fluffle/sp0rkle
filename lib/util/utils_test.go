@@ -64,6 +64,28 @@ func TestRemoveColours(t *testing.T) {
 	}
 }
 
+func BenchmarkRemoveColours(b *testing.B) {
+	teststr := "has \00312,144\00312 sets \0032,4of\003 colours"
+	for i := 0; i < b.N; i++ {
+		RemoveColours(teststr)
+	}
+}
+
+/*
+func RemoveColoursRx(s string) string {
+	rx := regexp.MustCompile("\003([0-9][0-9]?(,[0-9][0-9]?)?)?")
+	s = rx.ReplaceAllString(s, "")
+	return s
+}
+
+func BenchmarkRemoveColoursRx(b *testing.B) {
+	teststr := "has \00312,144\00312 sets \0032,4of\003 colours"
+	for i := 0; i < b.N; i++ {
+		RemoveColoursRx(teststr)
+	}
+}
+*/
+
 func TestRemoveFormatting(t *testing.T) {
 	tests := []string{
 		"has no formatting",

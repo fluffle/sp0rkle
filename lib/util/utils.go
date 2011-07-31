@@ -45,6 +45,8 @@ func RemoveColours(s string) string {
 	L:
 		for {
 			// Who needs regex anyway.
+			// util.BenchmarkRemoveColours    1000000  1936 ns/op
+			// util.BenchmarkRemoveColoursRx    50000 41497 ns/op
 			switch {
 			case c != -1 && (j-c) > 2:
 				break L
