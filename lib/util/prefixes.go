@@ -87,8 +87,8 @@ st2:
 	fallthrough
 case 2:
 // line 90 "prefixes.go"
-	if data[p] <= 127 { goto st2 }
-	goto st0
+	if 128 <= data[p] { goto st0 }
+	goto st2
 st0:
 cs = 0;
 	goto _out;
