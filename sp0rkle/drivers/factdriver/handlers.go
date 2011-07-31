@@ -93,12 +93,12 @@ func fd_add(bot *bot.Sp0rkle, fd *factoidDriver, line *base.Line) {
 	var key, val string
 	if strings.Index(line.Args[1], ":=") != -1 {
 		kv := strings.Split(line.Args[1], ":=", 2)
-		key = strings.ToLower(strings.TrimSpace(kv[0]))
+		key = ToKey(kv[0], false)
 		val = strings.TrimSpace(kv[1])
 	} else {
 		// we use :is to add val = "key is val"
 		kv := strings.Split(line.Args[1], ":is", 2)
-		key = strings.ToLower(strings.TrimSpace(kv[0]))
+		key = ToKey(kv[0], false)
 		val = strings.Join([]string{strings.TrimSpace(kv[0]),
 			"is", strings.TrimSpace(kv[1])}, " ")
 	}
@@ -195,7 +195,7 @@ func fd_delete(bot *bot.Sp0rkle, fd *factoidDriver, line *base.Line) {
 }
 
 func fd_literal(bot *bot.Sp0rkle, fd *factoidDriver, line *base.Line) {
-	key := strings.ToLower(strings.TrimSpace(line.Args[1]))
+	key := ToKey(line.Args[1], false)
 	if count := fd.GetCount(key); count == 0 {
 		bot.Conn.Privmsg(line.Args[0], fmt.Sprintf(
 			"%s: I don't know anything about '%s'.",
@@ -228,7 +228,8 @@ func fd_literal(bot *bot.Sp0rkle, fd *factoidDriver, line *base.Line) {
 }
 
 func fd_lookup(bot *bot.Sp0rkle, fd *factoidDriver, line *base.Line) {
-	key := strings.ToLower(strings.TrimSpace(line.Args[1]))
+	// Only perform extra prefix removal if we weren't addressed directly
+	key := ToKey(line.Args[1], !line.Addressed)
 	var fact *factoids.Factoid
 
 	if fact = fd.GetPseudoRand(key); fact == nil && line.Cmd == "ACTION" {
