@@ -3,6 +3,7 @@ package decisiondriver
 import (
 	"rand"
 	"testing"
+  "lib/util"
 )
 
 // deterministic randomizer
