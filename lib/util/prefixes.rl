@@ -1,5 +1,7 @@
 package util
 
+import "fmt"
+
 /* 
  * This file requires version 6.7 of Ragel. Build the .go source with:
  *   $ ragel -Z -G2 -o prefixes.go prefixes.rl
@@ -58,7 +60,7 @@ package util
 	;
 	prefixes = prefix sp %mark ;
 
-	main := prefixes*;
+	main := prefixes* ascii*;
 }%%
 
 func RemovePrefixes(s string) string {
@@ -68,6 +70,11 @@ func RemovePrefixes(s string) string {
 	
 	%% write init;
 	%% write exec;
+
+	if cs < config_first_final {
+		fmt.Printf("Parse error at %d\n", p)
+		fmt.Printf("%s <- HERE -> %s", data[:p], data[p:])
+	}
 
 	if m > 0 {
 		return s[m:]
