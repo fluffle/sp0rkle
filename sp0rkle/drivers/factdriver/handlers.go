@@ -32,6 +32,7 @@ func (fd *factoidDriver) RegisterHandlers(r event.EventRegistry) {
 	r.AddHandler("fd_replace", FDHandler(fd_replace))
 	r.AddHandler("fd_chance", FDHandler(fd_chance))
 	r.AddHandler("fd_literal", FDHandler(fd_literal))
+	r.AddHandler("fd_search", FDHandler(fd_search))
 }
 
 func fd_privmsg(bot *bot.Sp0rkle, line *base.Line) {
@@ -76,6 +77,13 @@ func fd_privmsg(bot *bot.Sp0rkle, line *base.Line) {
 		nl := line.Copy()
 		nl.Args[1] = nl.Args[1][8:]
 		bot.Dispatch("fd_literal", fd, nl)
+
+	// Factoid search: 'fact search' => list of possible key matches
+	case strings.HasPrefix(l, "fact search "):
+		nl := line.Copy()
+		nl.Args[1] = nl.Args[1][12:]
+		bot.Dispatch("fd_search", fd, nl)
+
 	// If we get to here, none of the other FD command possibilities
 	// have matched, so try a lookup...
 	default:
@@ -292,4 +300,26 @@ func fd_replace(bot *bot.Sp0rkle, fd *factoidDriver, line *base.Line) {
 			"%s: Whatever that was, I've already forgotten it.", line.Nick))
 	}
 	fd.lastseen = ""
+}
+
+func fd_search(bot *bot.Sp0rkle, fd *factoidDriver, line *base.Line) {
+	if keys := fd.GetKeysMatching(line.Args[1]); keys == nil || len(keys) == 0 {
+		bot.Conn.Privmsg(line.Args[0], fmt.Sprintf(
+			"%s: I couldn't think of anything matching '%s'.",
+			line.Nick, line.Args[0]))
+	} else {
+		// RESULTS.
+		count := len(keys)
+		if count > 10 {
+			res := strings.Join(keys[:10], "', '")
+			bot.Conn.Privmsg(line.Args[0], fmt.Sprintf(
+				"%s: I found %d keys matching '%s', here's the first 10: '%s'.",
+				line.Nick, count, line.Args[1], res))
+		} else {
+			res := strings.Join(keys, "', '")
+			bot.Conn.Privmsg(line.Args[0], fmt.Sprintf(
+				"%s: I found %d keys matching '%s', here they are: '%s'.",
+				line.Nick, count, line.Args[1], res))
+		}
+	}
 }
