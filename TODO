@@ -1,7 +1,8 @@
-The todo list is broken down into the follwing sections
-Core: Items that affect the main framework
+The todo list is broken down into the following sections:
 Drivers: Specific drivers that need creating
-Bugs:
+Core: Items that affect the main framework
+Testability: Items surounding the test framework
+Bugs: Known problems with current implementation
 
 
 Drivers
@@ -123,9 +124,11 @@ Core
 ====
 *Persistent ignore list
 *Admin commands like join/part/ignore (and perms)
+
 *Ticker for reminders
   - probably implemented with go func(){ time.Sleep(t); ... }()
   - it's the lazy way out :-)
+
 *Help
   each plugin and command should implement a help function, e.g.
   help quote =>  "QuoteDB: type help <command>, where command is qadd, qdell"
@@ -133,3 +136,18 @@ Core
   - help on its own lists driver names
   - drivers should look for first word after help being driverName and reply
   - also look into godoc -> wiki.git dumping
+
+Testability
+===========
+*Ensure all functions (where applicable) have unit tests
+
+*gomock
+  - mock out the DB connection
+
+*Benchmarking
+  - Rough benchmarking/stress testing
+  - Ensure we can not over load by performing too many searches at once
+
+Bugs
+====
+<Known issue that are not feature requests should be listed here>
