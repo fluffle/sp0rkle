@@ -173,6 +173,16 @@ func (fc *FactoidCollection) GetPseudoRand(key string) *Factoid {
 	return &res
 }
 
+func (fc *FactoidCollection) GetKeysMatching(regex string) []string {
+	var res []string
+	query := fc.Find(bson.M{"key": bson.M{"$regex": regex}})
+	if err := query.Distinct("key", &res); err != nil {
+		log.Printf("Distinct regex query for '%s' failed: %v\n", regex, err)
+		return nil
+	}
+	return res
+}
+
 func ParseValue(v string) (ft FactoidType, fv string) {
 	// Assume v is a normal factoid
 	ft = F_FACT
