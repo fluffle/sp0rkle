@@ -129,4 +129,7 @@ Core
 *Help
   each plugin and command should implement a help function, e.g.
   help quote =>  "QuoteDB: type help <command>, where command is qadd, qdell"
-
+  - standard HelpHandler implemented by drivers and dispatched by bot_privmsg
+  - help on its own lists driver names
+  - drivers should look for first word after help being driverName and reply
+  - also look into godoc -> wiki.git dumping
