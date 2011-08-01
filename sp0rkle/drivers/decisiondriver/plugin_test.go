@@ -41,6 +41,7 @@ func TestDecide(t *testing.T) {
 		"\"spam\" \"spam and sausage\" \"eggs\" \"ham\" \"spam spam spam spam eggs and spam\"",
 		"\"cheese\" \"ham",
 		"'cheese' 'carrots' 'sausage'",
+		"decide foo bar \"something with spaces in it\"",
 	}
 	expected := []string{
 		"error: see help for details",
@@ -50,6 +51,7 @@ func TestDecide(t *testing.T) {
 		"spam",
 		"Error: unmatched quotes",
 		"cheese",
+		"something with spaces in it",
 	}
 	for i, s := range tests {
 		ret := rand_decider(s, mytestrand)

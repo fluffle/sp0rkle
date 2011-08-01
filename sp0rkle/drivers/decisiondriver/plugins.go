@@ -86,10 +86,10 @@ func dd_decider(dd *decisionDriver, val string, line *base.Line) string {
 
 // Split this out so we can inject a deterministic rand.Rand for testing.
 func rand_decider(val string, r *rand.Rand) string {
+	i := 0
+	fmt.Printf("looking at '$s'\n", val)
 	for {
-		var lo, hi float32
-		var err os.Error
-		format := "%.0f"
+		i ++
 		// TODO(bob-smith): The following block could be refactored out
 		// Work out the indices of the plugin start and end.
 		ps := strings.Index(val, "<plugin=decide ")
@@ -103,35 +103,38 @@ func rand_decider(val string, r *rand.Rand) string {
 		}
 		pe += ps
 		// Mid is where the plugin args start.
-		mid := ps + 16
-		// If there's a space before the plugin ends, we also have a format.
-		sp := strings.Index(val[mid:pe], " ")
-		if sp != -1 {
-			sp += mid
-			format = strings.TrimSpace(val[sp:pe])
-		} else {
-			sp = pe
-		}
+		mid := ps + 15
+		fmt.Printf("A: '%s'\n", val[mid:pe])
+		options := strings.Split(val[mid:pe]," ", -1)
+		rnd := r.Intn(len(options))
+		fmt.Printf("length: %d, rnd: %d\n",len(options), rnd)
+		chosenone := options[rnd]
+
 		// If there's a dash before the space or the plugin ends, we have a
 		// range lo-hi, rather than just 0-hi.
-		if dash := strings.Index(val[mid:sp], "-"); dash != -1 {
-			dash += mid
-			if lo, err = strconv.Atof32(val[mid:dash]); err != nil {
-				lo = 0
-			}
-			if hi, err = strconv.Atof32(val[dash+1 : sp]); err != nil {
-				hi = 0
-			}
-		} else {
-			lo = 0
-			if hi, err = strconv.Atof32(val[mid:sp]); err != nil {
-				hi = 0
-			}
+		val = val[:ps] + chosenone  + val[pe+1:]
+		if i > 5{
+			break
 		}
-		rnd := r.Float32()*(hi-lo) + lo
-		val = val[:ps] + fmt.Sprintf(format, rnd) + val[pe+1:]
 	}
 
 
-	return "NOT IMPLEMENTED" + val
+	return "NOT IMPLEMENTED'" + val +"'"
 }
+
+/*
+func choices(val string) []string{
+	if string.IndexAny("'\"", val){
+		if strings.Index(val[mid:pe], "\"") {
+			fmt.Printf("\n")
+		}
+	}else{
+		//String doesn't contains ' or ", so is just a list of words
+		return strings.Split(val," ", -1)
+
+
+	}
+	return "BROKEN"
+
+}
+*/
