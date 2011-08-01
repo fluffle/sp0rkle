@@ -1,37 +1,50 @@
 The todo list is broken down into the follwing sections
 Core: Items that affect the main framework
-Plugins: Specific plugins that need creating
+Drivers: Specific drivers that need creating
 Bugs:
 
 
-Plugins
+Drivers
 =======
 *decide
   command: decide, choose
   decide carrots peas
   decide write unit tests | fix bugs
   decide "tidy your room" "eat your greens" "behave"
+  factoid plugins for decide and rand
 
 *Calculate
   #Wrapper round google calc, as well as some specific lookups
+  // Not sure about using google -- HTML scraping *sucks*
+  // Should be able to write a pretty good calc parser in ragel :-)
+  // Maybe use mongo for persistent constant storage and allow new consts
+  // to be defined by users
   command: calc(ulate)
   5 + 2
-  convert_chr
-  convert_ord
-  convert_base
-  calc_len
-  calc_netmask
+  convert_chr => ascii character -> decimal repr of uint8
+  convert_ord => decimal repr of uint8 -> ascii character
+  convert_base => base 10to16 <decimal> -> <hex> for bases 2..62
+  calc_len => length <string> -> string length
+  calc_netmask => netmask ip.add.re.ss/cidr | netmask ip.add.re.ss ne.t.ma.sk
+    -> $ip/$cidr is in the range $bot-$top and has the netmask $netmask
 
-*length
-  #Returns the length in characters of the given string
-*exchange
-  #convert from one currancy to another
-  command: exchange, convert
-  exchange 10 GBP to USD
 
-*weather
-  weather manchester, uk
+// There are probably more useful web services with JSON apis to wrap,
+// these can probably all be in one driver to al
+*WebServices
+  - exchange (XE.com?)
+    command: exchange, convert
+    exchange 10 GBP to USD
 
+  - weather (weather.com?)
+    weather manchester, uk
+
+  - google?
+  - ftse or other share indexen?
+  - auto-tinyurl or similar for long urls
+  *
+  - Storing url contents locally in ~sp0rkle/pub_html on 'save that', and
+    providing a link to the stored content. Avoid storing 4chan content ;-)
 
 
 *Remind
@@ -40,16 +53,18 @@ Plugins
   remind $person $msg in $period_of_time
   remind list
   remind (del,delete,forget) X
-
-*date
-  //current date
-  date
-  date uk
-  date shanghai
-
 *Tell
   //Tell person X when they next appear online
   tell steve where's the laptop?
+
+
+*date
+  //current date
+  // this is currently done with the $date identifier, but making it
+  // properly timezone aware would be winful and hopefully not too hard
+  date
+  date uk
+  date shanghai
 
 
 *lines
@@ -67,7 +82,7 @@ Plugins
 
 *urlsearch
   //Keep a track of urls that are said and allow them to be searched (using regex)
-  urlsearch guthub.com
+  urlsearch github.com
 
 *Quote
   //quote DB
@@ -76,10 +91,41 @@ Plugins
   quote $ID
   q(uote )del $quote_id
 
+*Factoids
+  // Mostly done, in lib/factoids and sp0rkle/drivers/factdriver
+  // Still TODO
+  - Factoid search: fact search X => list of keys containing X
+  - Factoid info: fact info X => stats about factoid X
+  - Factoid stats: fact stats => stats about all factoids
+  - Store fd.lastseen on a per-channel basis
+  - Permissions system:
+    + each factoid has "owner" == creator initially
+    + owner can set factoid read-only, prevents others modifying/deleting
+    + need some mechanism for giving/taking ownership (someone needs "root")
+  - Something that utilises the access count to help prune unseen factoids
+  - Regex factoid value editing: edit that =~ s/// => applies regex to factoid
+  - Some clever way of flattening *pointer values when needed on import
+  - Pointer handling for those that aren't flattened on import
+  - Help, as mentioned below
+  - More unit tests
+  - Pruning of 404'd F_URL factoids
+
+*Insult generator
+  - needed for many many factoids :-)
+
+*Todo
+  - Might just drop this -- noone uses it (i planned to but failed)
+
+*Trivia
+  - does anyone care about this? the question list is a bit meh atm.
 
 Core
 ====
+*Persistent ignore list
+*Admin commands like join/part/ignore (and perms)
 *Ticker for reminders
+  - probably implemented with go func(){ time.Sleep(t); ... }()
+  - it's the lazy way out :-)
 *Help
   each plugin and command should implement a help function, e.g.
   help quote =>  "QuoteDB: type help <command>, where command is qadd, qdell"
