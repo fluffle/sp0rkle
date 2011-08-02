@@ -87,7 +87,6 @@ func dd_decider(dd *decisionDriver, val string, line *base.Line) string {
 // Split this out so we can inject a deterministic rand.Rand for testing.
 func rand_decider(val string, r *rand.Rand) string {
 	i := 0
-	fmt.Printf("looking at '$s'\n", val)
 	for {
 		i ++
 		// TODO(bob-smith): The following block could be refactored out
@@ -119,7 +118,7 @@ func rand_decider(val string, r *rand.Rand) string {
 	}
 
 
-	return "NOT IMPLEMENTED'" + val +"'"
+	return val
 }
 
 /*
