@@ -27,36 +27,36 @@ func TestRand(t *testing.T) {
 	for i, s := range tests {
 		ret := rand_replacer(s, mytestrand)
 		if ret != expected[i] {
-			t.Errorf("Expected: %s\nGot: %s\n", expected[i], ret)
+			t.Errorf("Test: %s\nExpected: %s\nGot: %s\n", s, expected[i], ret)
 		}
 	}
 }
 
 func TestDecide(t *testing.T) {
 	tests := []string{
-		"singlevalue",
-		"sausage eggs spam",
-		"carrots | ham",
-		"spam | spam and sausage | eggs | ham | spam spam spam spam eggs and spam",
-		"\"spam\" \"spam and sausage\" \"eggs\" \"ham\" \"spam spam spam spam eggs and spam\"",
-		"\"cheese\" \"ham",
-		"'cheese' 'carrots' 'sausage'",
-		"decide foo bar \"something with spaces in it\"",
+		"<plugin=decide singlevalue>",
+		"<plugin=decide AAA BBB CCC>",
+		"<plugin=decide DDD | EEE>",
+		"<plugin=decide spam | spam and sausage | eggs | ham | spam eggs and spam>",
+		"<plugin=decide \"spam\" \"spam and sausage\" \"eggs\" \"ham\" \"spam spam spam spam eggs and spam\">",
+		"<plugin=decide \"cheese\" \"ham>",
+		"<plugin=decide 'cheese' 'carrots' 'sausage'>",
+		"<plugin=decide decide foo bar \"something with spaces in it\">",
 	}
 	expected := []string{
 		"error: see help for details",
+		"AAA",
+		"EEE",
 		"sausage",
-		"carrots",
-		"spam",
 		"spam",
 		"Error: unmatched quotes",
-		"cheese",
+		"sausage",
 		"something with spaces in it",
 	}
 	for i, s := range tests {
 		ret := rand_decider(s, mytestrand)
 		if ret != expected[i] {
-			t.Errorf("Expected: %s\nGot: %s\n\n",expected[i], ret)
+			t.Errorf("Test: %s\nExpected: %s\nGot: %s\n\n",s,expected[i], ret)
 		}
 	}
 }
