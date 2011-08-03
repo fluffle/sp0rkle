@@ -48,12 +48,14 @@ func fd_privmsg(bot *bot.Sp0rkle, line *base.Line) {
 	// Test for various possible courses of action.
 	switch {
 	// Factoid add: 'key := value' or 'key :is value'
-	case strings.Index(l, ":=") != -1: fallthrough
+	case strings.Index(l, ":=") != -1:
+		fallthrough
 	case strings.Index(l, ":is") != -1:
 		bot.Dispatch("fd_add", fd, line)
 
 	// Factoid delete: 'forget|delete that' => deletes fd.lastseen
-	case strings.HasPrefix(l, "forget that"): fallthrough
+	case strings.HasPrefix(l, "forget that"):
+		fallthrough
 	case strings.HasPrefix(l, "delete that"):
 		bot.Dispatch("fd_delete", fd, line)
 
@@ -100,12 +102,12 @@ func fd_action(bot *bot.Sp0rkle, line *base.Line) {
 func fd_add(bot *bot.Sp0rkle, fd *factoidDriver, line *base.Line) {
 	var key, val string
 	if strings.Index(line.Args[1], ":=") != -1 {
-		kv := strings.Split(line.Args[1], ":=", 2)
+		kv := strings.SplitN(line.Args[1], ":=", 2)
 		key = ToKey(kv[0], false)
 		val = strings.TrimSpace(kv[1])
 	} else {
 		// we use :is to add val = "key is val"
-		kv := strings.Split(line.Args[1], ":is", 2)
+		kv := strings.SplitN(line.Args[1], ":is", 2)
 		key = ToKey(kv[0], false)
 		val = strings.Join([]string{strings.TrimSpace(kv[0]),
 			"is", strings.TrimSpace(kv[1])}, " ")
