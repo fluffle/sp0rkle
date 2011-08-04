@@ -104,7 +104,7 @@ func rand_decider(val string, r *rand.Rand) string {
 		// Mid is where the plugin args start.
 		mid := ps + 15
 		fmt.Printf("A: '%s'\n", val[mid:pe])
-		options := strings.Split(val[mid:pe]," ", -1)
+		options := strings.SplitN(val[mid:pe]," ", -1)
 		rnd := r.Intn(len(options))
 		fmt.Printf("length: %d, rnd: %d\n",len(options), rnd)
 		chosenone := options[rnd]
