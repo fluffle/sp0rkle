@@ -69,7 +69,7 @@ func parseFactoid(row []interface{}, out chan *factoids.Factoid) {
 // Also, pipe-separated with escaped \| but not escaped \\
 // is REALLY FUCKING STUPID and occasionally bad to parse.
 func parseMultipleValues(v string) []string {
-	temp_vals := strings.Split(v, "|", -1)
+	temp_vals := strings.Split(v, "|")
 	vals := make([]string, 0, len(temp_vals))
 	for i := 0; i < len(temp_vals); i++ {
 		str := temp_vals[i]
