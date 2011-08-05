@@ -53,7 +53,7 @@ func (fd *factoidDriver) ApplyPlugins(val string, line *base.Line) string {
 // Does some standard processing on s to make it key-like.
 func ToKey(s string, prefixes bool) string {
 	// Lowercase and strip leading/trailing spaces and (some) punctuation
-	s = strings.ToLower(strings.Trim(s, "!?. "))
+	s = strings.ToLower(strings.Trim(s, "!?., "))
 	// Remove IRC formatting and colours
 	s = util.RemoveColours(util.RemoveFormatting(s))
 	if prefixes {

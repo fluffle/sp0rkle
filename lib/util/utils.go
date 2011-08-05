@@ -79,13 +79,13 @@ func RemoveFormatting(s string) string {
 }
 
 var prefixes []string = []string{
-	"o*k", "see", "u(h+m*|m+)", "hey", "actually", "ooo+",
+	"o*k+", "see", "u(h+m*|m+)", "hey", "actually", "ooo+",
 	"we+ll+", "iirc", "but", "and", "or", "eh", `\.+`,
 	"like", "o+h+", "y(e+a+h*|e+h+|a+h+)", "yup", "lol",
 	"wow", "h+m+", "e+r+", "[ha][ha]+", "[he][he][he]+",
 }
 var prefixrx *regexp.Regexp = regexp.MustCompile(
-	"^((" + strings.Join(prefixes, "|") + ")(, |,| ))+")
+	"^((" + strings.Join(prefixes, "|") + "),? *)+ ")
 
 func RemovePrefixes(s string) string {
 	if idx := prefixrx.FindStringIndex(s); idx != nil {

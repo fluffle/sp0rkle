@@ -307,9 +307,19 @@ func fd_lookup(bot *bot.Sp0rkle, fd *factoidDriver, line *base.Line) {
 			fact = fd.GetPseudoRand(key)
 		}
 	}
+	if fact == nil {
+		return
+	}
 	// Chance is used to limit the rate of factoid replies for things
 	// people say a lot, like smilies, or 'lol', or 'i love the peen'.
-	if fact != nil && rand.Float32() < fact.Chance {
+	chance := fact.Chance
+	if key == "" {
+		// This is doing a "random" lookup, triggered by someone typing in
+		// something entirely composed of the chars stripped by ToKey().
+		// To avoid making this too spammy, forcibly limit the chance to 40%.
+		chance = 0.4
+	}
+	if rand.Float32() < chance {
 		// Store this as the last seen factoid
 		fd.lastseen = fact.Id
 		// Update the Accessed field
