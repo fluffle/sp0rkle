@@ -89,9 +89,9 @@ func fd_privmsg(bot *bot.Sp0rkle, line *base.Line) {
 		bot.Dispatch("fd_search", fd, nl)
 
 	// Factoid info: 'fact info key' => some information about key
-	case strings.HasPrefix(l, "fact info "):
+	case strings.HasPrefix(l, "fact info"):
 		nl := line.Copy()
-		nl.Args[1] = nl.Args[1][10:]
+		nl.Args[1] = nl.Args[1][9:]
 		bot.Dispatch("fd_info", fd, nl)
 
 	// If we get to here, none of the other FD command possibilities
@@ -221,14 +221,22 @@ func fd_info(bot *bot.Sp0rkle, fd *factoidDriver, line *base.Line) {
 			line.Nick, key))
 		return
 	}
-	msgs := []string{
-		fmt.Sprintf("%s: I know %d things about '%s'.", line.Nick, count, key),
+	msgs := make([]string, 0, 10)
+	if key == "" {
+		msgs = append(msgs, fmt.Sprintf("%s: In total, I know %d things.",
+			line.Nick, count))
+	} else {
+		msgs = append(msgs, fmt.Sprintf("%s: I know %d things about '%s'.",
+			line.Nick, count, key))
 	}
 	if created := fd.GetLast("created", key); created != nil {
 		c := created.Created
-		msgs = append(msgs, fmt.Sprintf(
-			"A factoid for '%s' was last created on %s by %s,",
-			key, c.Timestamp.Format(time.ANSIC), c.Nick))
+		msgs = append(msgs, "A factoid")
+		if key != "" {
+			msgs = append(msgs, fmt.Sprintf("for '%s'", key))
+		}
+		msgs = append(msgs, fmt.Sprintf("was last created on %s by %s,",
+			c.Timestamp.Format(time.ANSIC), c.Nick))
 	}
 	if modified := fd.GetLast("modified", key); modified != nil {
 		m := modified.Modified
@@ -241,9 +249,14 @@ func fd_info(bot *bot.Sp0rkle, fd *factoidDriver, line *base.Line) {
 			a.Timestamp.Format(time.ANSIC), a.Nick))
 	}
 	if info := fd.InfoMR(key); info != nil {
+		if key == "" {
+			msgs = append(msgs, "These factoids have")
+		} else {
+			msgs = append(msgs, fmt.Sprintf("'%s' has", key))
+		}
 		msgs = append(msgs, fmt.Sprintf(
-			"'%s' has been modified %d times and accessed %d times.",
-			key, info.Modified, info.Accessed))
+			"been modified %d times and accessed %d times.",
+			info.Modified, info.Accessed))
 	}
 	bot.Conn.Privmsg(line.Args[0], strings.Join(msgs, " "))
 }
