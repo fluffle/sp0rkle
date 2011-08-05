@@ -137,7 +137,7 @@ func (fc *FactoidCollection) GetPseudoRand(key string) *Factoid {
 	lookup := bson.M{"key": key}
 	ids, ok := fc.seen[key]
 	if ok && len(ids) > 0 {
-		log.Printf("Seen %s before, %d stored id's\n", key, len(ids))
+		log.Printf("Seen '%s' before, %d stored id's", key, len(ids))
 		lookup["_id"] = bson.M{"$nin": ids}
 	}
 	query := fc.Find(lookup)
@@ -164,15 +164,15 @@ func (fc *FactoidCollection) GetPseudoRand(key string) *Factoid {
 	if count != 1 {
 		if !ok {
 			// only store seen for keys that have more than one factoid
-			log.Printf("Creating seen data for key %s.\n", key)
+			log.Printf("Creating seen data for key '%s'.", key)
 			fc.seen[key] = make([]bson.ObjectId, 0, count)
 		}
-		log.Printf("Storing id %v for key %s.\n", res.Id, key)
+		log.Printf("Storing id %v for key '%s'.", res.Id, key)
 		fc.seen[key] = append(fc.seen[key], res.Id)
 	} else if ok {
 		// if the count of results is 1 and we're storing seen data for key
 		// then we've exhausted the possible results and should wipe it
-		log.Printf("Zeroing seen data for key %s.\n", key)
+		log.Printf("Zeroing seen data for key '%s'.", key)
 		fc.seen[key] = nil, false
 	}
 	return &res
