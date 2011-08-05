@@ -111,7 +111,7 @@ func Collection(dbh *db.Database) (*FactoidCollection, os.Error) {
 
 // Can't call this Count because that'd override mgo.Collection.Count()
 func (fc *FactoidCollection) GetCount(key string) int {
-	if num, err := fc.Find(bson.M{"key": key}).Count(); err == nil {
+	if num, err := fc.Find(lookup(key)).Count(); err == nil {
 		return num
 	}
 	return 0
@@ -127,14 +127,14 @@ func (fc *FactoidCollection) GetById(id bson.ObjectId) *Factoid {
 
 func (fc *FactoidCollection) GetFirst(key string) *Factoid {
 	var res Factoid
-	if err := fc.Find(bson.M{"key": key}).One(&res); err == nil {
+	if err := fc.Find(lookup(key)).One(&res); err == nil {
 		return &res
 	}
 	return nil
 }
 
 func (fc *FactoidCollection) GetPseudoRand(key string) *Factoid {
-	lookup := bson.M{"key": key}
+	lookup := lookup(key)
 	ids, ok := fc.seen[key]
 	if ok && len(ids) > 0 {
 		log.Printf("Seen '%s' before, %d stored id's", key, len(ids))
@@ -192,7 +192,7 @@ func (fc *FactoidCollection) GetLast(op, key string) *Factoid {
 	var res Factoid
 	// op == "modified", "accessed", "created"
 	op = op + ".timestamp"
-	q := fc.Find(bson.M{"key": key}).Sort(bson.M{op: -1})
+	q := fc.Find(lookup(key)).Sort(bson.M{op: -1})
 	if err := q.One(&res); err == nil {
 		return &res
 	}
@@ -202,25 +202,28 @@ func (fc *FactoidCollection) GetLast(op, key string) *Factoid {
 func (fc *FactoidCollection) InfoMR(key string) *FactoidInfo {
 	mr := mgo.MapReduce{
 		Map: `function() { emit("count", {
-			a: this.accessed.count,
-			m: this.modified.count,
-			c: this.created.count,
+			accessed: this.accessed.count,
+			modified: this.modified.count,
+			created: this.created.count,
 		})}`,
 		Reduce: `function(k,l) {
 			var sum = { accessed: 0, modified: 0, created: 0 };
 			for each (var v in l) {
-				sum.accessed += v.a;
-				sum.modified += v.m;
-				sum.created  += v.c;
+				sum.accessed += v.accessed;
+				sum.modified += v.modified;
+				sum.created  += v.created;
 			}
 			return sum;
 		}`,
 	}
 	var res []struct{ Id int "_id"; Value FactoidInfo }
-	_, err := fc.Find(bson.M{"key": key}).MapReduce(mr, &res)
+	info, err := fc.Find(lookup(key)).MapReduce(mr, &res)
 	if err != nil || len(res) == 0 {
 		log.Printf("Info MR for '%s' failed: %v", key, err)
 		return nil
+	} else {
+		log.Printf("Info MR mapped %d, emitted %d, produced %d in %d ms.",
+			info.InputCount, info.EmitCount, info.OutputCount, info.Time/1e6)
 	}
 	return &res[0].Value
 }
@@ -248,4 +251,13 @@ func ParseValue(v string) (ft FactoidType, fv string) {
 		ft = F_URL
 	}
 	return
+}
+
+// Shortcut to create correct lookup struct for mgo.Collection.Find().
+// Returning an empty bson.M means key == "" can operate on all factoids.
+func lookup(key string) bson.M {
+	if key == "" {
+		return bson.M{}
+	}
+	return bson.M{"key": key}
 }
