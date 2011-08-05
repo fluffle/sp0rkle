@@ -53,6 +53,11 @@ type FactoidPerms struct {
 	db.StorableNick
 }
 
+// Represent info returned from the Info MapReduce
+type FactoidInfo struct {
+	Created, Modified, Accessed int
+}
+
 // Helper to make the work of putting together a completely new *Factoid easier
 func NewFactoid(key, value string, n db.StorableNick, c db.StorableChan) *Factoid {
 	ts := time.LocalTime()
@@ -182,6 +187,44 @@ func (fc *FactoidCollection) GetKeysMatching(regex string) []string {
 	}
 	return res
 }
+
+func (fc *FactoidCollection) GetLast(op, key string) *Factoid {
+	var res Factoid
+	// op == "modified", "accessed", "created"
+	op = op + ".timestamp"
+	q := fc.Find(bson.M{"key": key}).Sort(bson.M{op: -1})
+	if err := q.One(&res); err == nil {
+		return &res
+	}
+	return nil
+}
+
+func (fc *FactoidCollection) InfoMR(key string) *FactoidInfo {
+	mr := mgo.MapReduce{
+		Map: `function() { emit("count", {
+			a: this.accessed.count,
+			m: this.modified.count,
+			c: this.created.count,
+		})}`,
+		Reduce: `function(k,l) {
+			var sum = { accessed: 0, modified: 0, created: 0 };
+			for each (var v in l) {
+				sum.accessed += v.a;
+				sum.modified += v.m;
+				sum.created  += v.c;
+			}
+			return sum;
+		}`,
+	}
+	var res []struct{ Id int "_id"; Value FactoidInfo }
+	_, err := fc.Find(bson.M{"key": key}).MapReduce(mr, &res)
+	if err != nil || len(res) == 0 {
+		log.Printf("Info MR for '%s' failed: %v", key, err)
+		return nil
+	}
+	return &res[0].Value
+}
+
 
 func ParseValue(v string) (ft FactoidType, fv string) {
 	// Assume v is a normal factoid

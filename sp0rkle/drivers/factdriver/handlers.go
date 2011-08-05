@@ -12,6 +12,7 @@ import (
 	"sp0rkle/base"
 	"strings"
 	"strconv"
+	"time"
 )
 
 type FactoidHandler func(*bot.Sp0rkle, *factoidDriver, *base.Line)
@@ -33,6 +34,7 @@ func (fd *factoidDriver) RegisterHandlers(r event.EventRegistry) {
 	r.AddHandler("fd_chance", FDHandler(fd_chance))
 	r.AddHandler("fd_literal", FDHandler(fd_literal))
 	r.AddHandler("fd_search", FDHandler(fd_search))
+	r.AddHandler("fd_info", FDHandler(fd_info))
 }
 
 func fd_privmsg(bot *bot.Sp0rkle, line *base.Line) {
@@ -85,6 +87,12 @@ func fd_privmsg(bot *bot.Sp0rkle, line *base.Line) {
 		nl := line.Copy()
 		nl.Args[1] = nl.Args[1][12:]
 		bot.Dispatch("fd_search", fd, nl)
+
+	// Factoid info: 'fact info key' => some information about key
+	case strings.HasPrefix(l, "fact info "):
+		nl := line.Copy()
+		nl.Args[1] = nl.Args[1][10:]
+		bot.Dispatch("fd_info", fd, nl)
 
 	// If we get to here, none of the other FD command possibilities
 	// have matched, so try a lookup...
@@ -202,6 +210,42 @@ func fd_delete(bot *bot.Sp0rkle, fd *factoidDriver, line *base.Line) {
 			"%s: Whatever that was, I've already forgotten it.", line.Nick))
 	}
 	fd.lastseen = ""
+}
+
+func fd_info(bot *bot.Sp0rkle, fd *factoidDriver, line *base.Line) {
+	key := ToKey(line.Args[1], false)
+	count := fd.GetCount(key);
+	if count == 0 {
+		bot.Conn.Privmsg(line.Args[0], fmt.Sprintf(
+			"%s: I don't know anything about '%s'.",
+			line.Nick, key))
+		return
+	}
+	msgs := []string{
+		fmt.Sprintf("%s: I know %d things about '%s'.", line.Nick, count, key),
+	}
+	if created := fd.GetLast("created", key); created != nil {
+		c := created.Created
+		msgs = append(msgs, fmt.Sprintf(
+			"A factoid for '%s' was last created on %s by %s,",
+			key, c.Timestamp.Format(time.ANSIC), c.Nick))
+	}
+	if modified := fd.GetLast("modified", key); modified != nil {
+		m := modified.Modified
+		msgs = append(msgs, fmt.Sprintf("modified on %s by %s,",
+			m.Timestamp.Format(time.ANSIC), m.Nick))
+	}
+	if accessed := fd.GetLast("accessed", key); accessed != nil {
+		a := accessed.Accessed
+		msgs = append(msgs, fmt.Sprintf("and accessed on %s by %s.",
+			a.Timestamp.Format(time.ANSIC), a.Nick))
+	}
+	if info := fd.InfoMR(key); info != nil {
+		msgs = append(msgs, fmt.Sprintf(
+			"'%s' has been modified %d times and accessed %d times.",
+			key, info.Modified, info.Accessed))
+	}
+	bot.Conn.Privmsg(line.Args[0], strings.Join(msgs, " "))
 }
 
 func fd_literal(bot *bot.Sp0rkle, fd *factoidDriver, line *base.Line) {
