@@ -80,7 +80,7 @@ func fd_privmsg(bot *bot.Sp0rkle, line *base.Line) {
 		nl.Args[1] = nl.Args[1][8:]
 		bot.Dispatch("fd_literal", fd, nl)
 
-	// Factoid search: 'fact search' => list of possible key matches
+	// Factoid search: 'fact search regexp' => list of possible key matches
 	case strings.HasPrefix(l, "fact search "):
 		nl := line.Copy()
 		nl.Args[1] = nl.Args[1][12:]
@@ -227,7 +227,7 @@ func fd_literal(bot *bot.Sp0rkle, fd *factoidDriver, line *base.Line) {
 	f := func() os.Error {
 		if fact != nil {
 			bot.Conn.Privmsg(line.Args[0], fmt.Sprintf(
-				"%s: %s", line.Nick, fact.Value))
+				"%s: [%3.0f%%] %s", line.Nick, fact.Chance*100, fact.Value))
 		}
 		return nil
 	}
