@@ -55,20 +55,20 @@ func fd_privmsg(bot *bot.Sp0rkle, line *base.Line) {
 	case strings.Index(l, ":is") != -1:
 		bot.Dispatch("fd_add", fd, line)
 
-	// Factoid delete: 'forget|delete that' => deletes fd.lastseen
+	// Factoid delete: 'forget|delete that' => deletes fd.lastseen[chan]
 	case strings.HasPrefix(l, "forget that"):
 		fallthrough
 	case strings.HasPrefix(l, "delete that"):
 		bot.Dispatch("fd_delete", fd, line)
 
-	// Factoid replace: 'replace that with' => updates fd.lastseen
+	// Factoid replace: 'replace that with' => updates fd.lastseen[chan]
 	case strings.HasPrefix(l, "replace that with "):
 		// chop off the "known" bit to leave just the replacement
 		nl := line.Copy()
 		nl.Args[1] = nl.Args[1][18:]
 		bot.Dispatch("fd_replace", fd, line)
 
-	// Factoid chance: 'chance of that is' => sets chance of fd.lastseen
+	// Factoid chance: 'chance of that is' => sets chance of fd.lastseen[chan]
 	case strings.HasPrefix(l, "chance of that is "):
 		// chop off the "known" bit to leave just the replacement
 		nl := line.Copy()
@@ -167,8 +167,10 @@ func fd_chance(bot *bot.Sp0rkle, fd *factoidDriver, line *base.Line) {
 		return
 	}
 
+	// Retrieve last seen ObjectId, replace with ""
+	ls := fd.Lastseen(line.Args[0], "")
 	// ok, we're good to update the chance.
-	if fact := fd.GetById(fd.lastseen); fact != nil {
+	if fact := fd.GetById(ls); fact != nil {
 		// Store the old chance, update with the new
 		old := fact.Chance
 		fact.Chance = chance
@@ -177,7 +179,7 @@ func fd_chance(bot *bot.Sp0rkle, fd *factoidDriver, line *base.Line) {
 		c := db.StorableChan{line.Args[0]}
 		fact.Modify(n, c)
 		// And store the new factoid data
-		if err := fd.Update(bson.M{"_id": fd.lastseen}, fact); err == nil {
+		if err := fd.Update(bson.M{"_id": ls}, fact); err == nil {
 			bot.Conn.Privmsg(line.Args[0], fmt.Sprintf(
 				"%s: '%s' was at %.0f%% chance, now is at %.0f%%.",
 				line.Nick, fact.Key, old*100, chance*100))
@@ -190,13 +192,13 @@ func fd_chance(bot *bot.Sp0rkle, fd *factoidDriver, line *base.Line) {
 		bot.Conn.Privmsg(line.Args[0], fmt.Sprintf(
 			"%s: Whatever that was, I've already forgotten it.", line.Nick))
 	}
-	fd.lastseen = ""
 }
 
 func fd_delete(bot *bot.Sp0rkle, fd *factoidDriver, line *base.Line) {
 	// Get fresh state on the last seen factoid.
-	if fact := fd.GetById(fd.lastseen); fact != nil {
-		if err := fd.Remove(bson.M{"_id": fd.lastseen}); err == nil {
+	ls := fd.Lastseen(line.Args[0], "")
+	if fact := fd.GetById(ls); fact != nil {
+		if err := fd.Remove(bson.M{"_id": ls}); err == nil {
 			bot.Conn.Privmsg(line.Args[0], fmt.Sprintf(
 				"%s: I forgot that '%s' was '%s'.",
 				line.Nick, fact.Key, fact.Value))
@@ -209,7 +211,6 @@ func fd_delete(bot *bot.Sp0rkle, fd *factoidDriver, line *base.Line) {
 		bot.Conn.Privmsg(line.Args[0], fmt.Sprintf(
 			"%s: Whatever that was, I've already forgotten it.", line.Nick))
 	}
-	fd.lastseen = ""
 }
 
 func fd_info(bot *bot.Sp0rkle, fd *factoidDriver, line *base.Line) {
@@ -321,7 +322,7 @@ func fd_lookup(bot *bot.Sp0rkle, fd *factoidDriver, line *base.Line) {
 	}
 	if rand.Float32() < chance {
 		// Store this as the last seen factoid
-		fd.lastseen = fact.Id
+		fd.Lastseen(line.Args[0], fact.Id)
 		// Update the Accessed field
 		n := db.StorableNick{line.Nick, line.Ident, line.Host}
 		c := db.StorableChan{line.Args[0]}
@@ -345,7 +346,8 @@ func fd_lookup(bot *bot.Sp0rkle, fd *factoidDriver, line *base.Line) {
 }
 
 func fd_replace(bot *bot.Sp0rkle, fd *factoidDriver, line *base.Line) {
-	if fact := fd.GetById(fd.lastseen); fact != nil {
+	ls := fd.Lastseen(line.Args[0], "")
+	if fact := fd.GetById(ls); fact != nil {
 		// Store the old factoid value
 		old := fact.Value
 		// Replace the value with the new one
@@ -355,7 +357,7 @@ func fd_replace(bot *bot.Sp0rkle, fd *factoidDriver, line *base.Line) {
 		c := db.StorableChan{line.Args[0]}
 		fact.Modify(n, c)
 		// And store the new factoid data
-		if err := fd.Update(bson.M{"_id": fd.lastseen}, fact); err == nil {
+		if err := fd.Update(bson.M{"_id": ls}, fact); err == nil {
 			bot.Conn.Privmsg(line.Args[0], fmt.Sprintf(
 				"%s: '%s' was '%s', now is '%s'.",
 				line.Nick, fact.Key, old, fact.Value))
@@ -368,7 +370,6 @@ func fd_replace(bot *bot.Sp0rkle, fd *factoidDriver, line *base.Line) {
 		bot.Conn.Privmsg(line.Args[0], fmt.Sprintf(
 			"%s: Whatever that was, I've already forgotten it.", line.Nick))
 	}
-	fd.lastseen = ""
 }
 
 func fd_search(bot *bot.Sp0rkle, fd *factoidDriver, line *base.Line) {
