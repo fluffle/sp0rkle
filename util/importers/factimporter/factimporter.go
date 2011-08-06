@@ -89,7 +89,8 @@ func parseMultipleValues(v string) []string {
 
 // Parse a single factoid value, stripping <me>/<reply>
 func parseValue(k, r, v string) (ft factoids.FactoidType, fv string) {
-	ft, fv = factoids.ParseValue(strings.TrimSpace(v))
+	v = strings.TrimSpace(v)
+	ft, fv = factoids.ParseValue(v)
 	if ft == factoids.F_FACT && fv == v {
 		// If fv == v, ParseValue hasn't stripped off a <reply>, so this is
 		// just a normal factoid whose value is actually "key relation value"
