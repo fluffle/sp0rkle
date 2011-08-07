@@ -95,9 +95,6 @@ Drivers
 *Factoids
   // Mostly done, in lib/factoids and sp0rkle/drivers/factdriver
   // Still TODO
-  - Factoid search: fact search X => list of keys containing X
-  - Factoid info: fact info X => stats about factoid X
-  - Factoid stats: fact stats => stats about all factoids
   - Store fd.lastseen on a per-channel basis
   - Permissions system:
     + each factoid has "owner" == creator initially
