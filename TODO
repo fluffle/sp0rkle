@@ -46,6 +46,9 @@ Drivers
   - Storing url contents locally in ~sp0rkle/pub_html on 'save that', and
     providing a link to the stored content. Avoid storing 4chan content ;-)
 
+  - soundcloud
+    follow particular bands/users to announce when they post new tracks
+    (would require API use since they don't expose simple RSS feeds)
 
 *Remind
   //Remind me, (or someone) about something at a certain point in the future
