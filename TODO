@@ -42,10 +42,6 @@ Drivers
 
   - google?
   - ftse or other share indexen?
-  - auto-tinyurl or similar for long urls
-  *
-  - Storing url contents locally in ~sp0rkle/pub_html on 'save that', and
-    providing a link to the stored content. Avoid storing 4chan content ;-)
 
   - soundcloud
     follow particular bands/users to announce when they post new tracks
@@ -86,7 +82,12 @@ Drivers
 
 *urlsearch
   //Keep a track of urls that are said and allow them to be searched (using regex)
-  urlsearch github.com
+  - command: urlsearch|urlfind github.com
+  - notify channel of url contents (image file info, HTML <title> tag, etc.)
+  - notify channel "first posted by XX (date)" if seen before
+  - auto-tinyurl or similar for long urls
+  - Store url contents locally in ~sp0rkle/pub_html on 'save that' (if image),
+    and provide a link to the stored content. Avoid storing 4chan content ;-)
 
 *Quote
   //quote DB
