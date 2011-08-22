@@ -53,6 +53,7 @@ Drivers
   remind $person $msg in $period_of_time
   remind list
   remind (del,delete,forget) X
+  repeating reminders -- daily, weekly, monthly. no shorter than hourly ;-)
 *Tell
   //Tell person X when they next appear online
   tell steve where's the laptop?
