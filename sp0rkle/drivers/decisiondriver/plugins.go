@@ -97,43 +97,39 @@ func rand_decider(val string, r *rand.Rand) string {
 		}
 		pe := strings.Index(val[ps:], ">")
 		if pe == -1 {
-			// WTF!?
+			// No closing '>', so abort
 			break
 		}
 		pe += ps
 		// Mid is where the plugin args start.
 		mid := ps + 15
-		fmt.Printf("A: '%s'\n", val[mid:pe])
-		options := strings.SplitN(val[mid:pe]," ", -1)
+		fmt.Printf("\n\nA: '%s'\n", val[mid:pe])
+		// options := strings.SplitN(val[mid:pe]," ", -1)
+		options := choices(val[mid:pe])
 		rnd := r.Intn(len(options))
 		fmt.Printf("length: %d, rnd: %d\n",len(options), rnd)
 		chosenone := options[rnd]
-
-		// If there's a dash before the space or the plugin ends, we have a
-		// range lo-hi, rather than just 0-hi.
+		fmt.Printf("chosen: %s\n",chosenone)
 		val = val[:ps] + chosenone  + val[pe+1:]
-		if i > 5{
-			break
-		}
 	}
-
-
 	return val
 }
 
-/*
+
 func choices(val string) []string{
-	if string.IndexAny("'\"", val){
-		if strings.Index(val[mid:pe], "\"") {
-			fmt.Printf("\n")
+	if strings.IndexAny(val, "\"") != -1{
+		//d := strings.IndexAny(val, "\"'")
+		if strings.Count(val, "\"") % 2 == 1{
+			return []string{"Unbalanced quotes"}
 		}
+		return strings.Split(val,"\"")
+
+//		}
 	}else{
+		fmt.Printf("Splitting on whitespace\n")
 		//String doesn't contains ' or ", so is just a list of words
-		return strings.Split(val," ", -1)
-
-
+		return strings.SplitN(val," ", -1)
 	}
-	return "BROKEN"
-
+	return []string{"BROKEN", val}
 }
-*/
+
