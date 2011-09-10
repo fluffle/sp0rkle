@@ -36,20 +36,22 @@ func TestDecide(t *testing.T) {
 	tests := []string{
 		"<plugin=decide singlevalue>",
 		"<plugin=decide AAA BBB CCC>",
-		"<plugin=decide DDD | EEE>",
-		"<plugin=decide spam | spam and sausage | eggs | ham | spam eggs and spam>",
+//		"<plugin=decide DDD | EEE>",
+//		"<plugin=decide DDD | EEE>",
+//		"<plugin=decide spam | spam and sausage | eggs | ham | spam eggs and spam>",
 		"<plugin=decide \"spam\" \"spam and sausage\" \"eggs\" \"ham\" \"spam spam spam spam eggs and spam\">",
 		"<plugin=decide \"cheese\" \"ham>",
 		"<plugin=decide 'cheese' 'carrots' 'sausage'>",
-		"<plugin=decide decide foo bar \"something with spaces in it\">",
+		"<plugin=decide \"foo bar\" \"foo's bar\" \"something with spaces in it\">",
 	}
 	expected := []string{
-		"error: see help for details",
+		"singlevalue", //if their is only one option, accept that
 		"AAA",
-		"EEE",
-		"sausage",
-		"spam",
-		"Error: unmatched quotes",
+//		"EEE",
+//		"AAA",
+//		"sausage",
+		"spam and sausage",
+		"Unbalanced quotes",
 		"sausage",
 		"something with spaces in it",
 	}
