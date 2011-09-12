@@ -109,6 +109,7 @@ func rand_decider(val string, r *rand.Rand) string {
 		rnd := r.Intn(len(options))
 		fmt.Printf("length: %d, rnd: %d\n",len(options), rnd)
 		chosenone := options[rnd]
+		fmt.Printf("%s\n",strings.Join(options,"|"))
 		fmt.Printf("chosen: %s\n",chosenone)
 		val = val[:ps] + chosenone  + val[pe+1:]
 	}
@@ -122,6 +123,7 @@ func choices(val string) []string{
 		if strings.Count(val, "\"") % 2 == 1{
 			return []string{"Unbalanced quotes"}
 		}
+		fmt.Printf("FOO\n")
 		return strings.Split(val,"\"")
 
 //		}
@@ -130,6 +132,7 @@ func choices(val string) []string{
 		//String doesn't contains ' or ", so is just a list of words
 		return strings.SplitN(val," ", -1)
 	}
+	fmt.Printf("FAILED\n")
 	return []string{"BROKEN", val}
 }
 

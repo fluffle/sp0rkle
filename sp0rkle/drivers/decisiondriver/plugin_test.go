@@ -43,6 +43,7 @@ func TestDecide(t *testing.T) {
 		"<plugin=decide \"cheese\" \"ham>",
 		"<plugin=decide 'cheese' 'carrots' 'sausage'>",
 		"<plugin=decide \"foo bar\" \"foo's bar\" \"something with spaces in it\">",
+		"<plugin=decide \"foobar\" \"bar\" \"cheese\">",
 	}
 	expected := []string{
 		"singlevalue", //if their is only one option, accept that
@@ -54,6 +55,7 @@ func TestDecide(t *testing.T) {
 		"Unbalanced quotes",
 		"sausage",
 		"something with spaces in it",
+		"cheese",
 	}
 	for i, s := range tests {
 		ret := rand_decider(s, mytestrand)
