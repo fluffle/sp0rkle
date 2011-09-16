@@ -120,13 +120,19 @@ func rand_decider(val string, r *rand.Rand) string {
 func choices(val string) []string{
 	if strings.IndexAny(val, "\"") != -1{
 		//d := strings.IndexAny(val, "\"'")
+		//delim := val[d]
+		//fmt.Printf("d: %d\ndelim: %q\n", d, delim)
 		if strings.Count(val, "\"") % 2 == 1{
 			return []string{"Unbalanced quotes"}
 		}
 		fmt.Printf("FOO\n")
-		return strings.Split(val,"\"")
+		tmp := strings.Split(val,"\"")
+		var ret []string
+		for i := 1; i < len(tmp) ; i += 2{
+			ret = append(ret, tmp[i])
+		}
+		return ret
 
-//		}
 	}else{
 		fmt.Printf("Splitting on whitespace\n")
 		//String doesn't contains ' or ", so is just a list of words

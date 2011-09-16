@@ -53,8 +53,8 @@ func TestDecide(t *testing.T) {
 //		"sausage",
 		"spam and sausage",
 		"Unbalanced quotes",
-		"sausage",
-		"something with spaces in it",
+		"carrots",
+		"foo's bar",
 		"cheese",
 	}
 	for i, s := range tests {
