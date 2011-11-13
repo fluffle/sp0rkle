@@ -2,8 +2,10 @@ bin/
 _obj/
 _test/
 Facts.db
+Quotes.db
 *.[568]
 *.swp
 
 sp0rkle/sp0rkle
 util/importers/factimporter/factimporter
+util/importers/quoteimporter/quoteimporter
