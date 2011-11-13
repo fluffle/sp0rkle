@@ -3,7 +3,7 @@ package decisiondriver
 // A simple driver to implement decisions based on random numbers. No, not 4.
 
 import (
-	"github.com/fluffle/goirc/event"
+	"github.com/fluffle/goevent/event"
 	"lib/util"
 	"rand"
 	"sp0rkle/base"

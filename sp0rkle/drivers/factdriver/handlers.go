@@ -2,7 +2,7 @@ package factdriver
 
 import (
 	"fmt"
-	"github.com/fluffle/goirc/event"
+	"github.com/fluffle/goevent/event"
 	"launchpad.net/gobson/bson"
 	"lib/db"
 	"lib/factoids"
@@ -25,16 +25,16 @@ func FDHandler(f FactoidHandler) event.Handler {
 }
 
 func (fd *factoidDriver) RegisterHandlers(r event.EventRegistry) {
-	r.AddHandler("bot_privmsg", bot.NewHandler(fd_privmsg))
-	r.AddHandler("bot_action", bot.NewHandler(fd_action))
-	r.AddHandler("fd_lookup", FDHandler(fd_lookup))
-	r.AddHandler("fd_add", FDHandler(fd_add))
-	r.AddHandler("fd_delete", FDHandler(fd_delete))
-	r.AddHandler("fd_replace", FDHandler(fd_replace))
-	r.AddHandler("fd_chance", FDHandler(fd_chance))
-	r.AddHandler("fd_literal", FDHandler(fd_literal))
-	r.AddHandler("fd_search", FDHandler(fd_search))
-	r.AddHandler("fd_info", FDHandler(fd_info))
+	r.AddHandler(bot.NewHandler(fd_privmsg), "bot_privmsg")
+	r.AddHandler(bot.NewHandler(fd_action), "bot_action")
+	r.AddHandler(FDHandler(fd_lookup), "fd_lookup")
+	r.AddHandler(FDHandler(fd_add), "fd_add")
+	r.AddHandler(FDHandler(fd_delete), "fd_delete")
+	r.AddHandler(FDHandler(fd_replace), "fd_replace")
+	r.AddHandler(FDHandler(fd_chance), "fd_chance")
+	r.AddHandler(FDHandler(fd_literal), "fd_literal")
+	r.AddHandler(FDHandler(fd_search), "fd_search")
+	r.AddHandler(FDHandler(fd_info), "fd_info")
 }
 
 func fd_privmsg(bot *bot.Sp0rkle, line *base.Line) {

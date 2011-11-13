@@ -5,6 +5,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"github.com/fluffle/golog/logging"
 	"github.com/kuroneko/gosqlite3"
 	"launchpad.net/gobson/bson"
 	"lib/db"
@@ -150,6 +151,7 @@ func toString(s interface{}) string {
 
 func main() {
 	flag.Parse()
+	log := logging.NewFromFlags()
 
 	// Let's go find some mongo.
 	mdb, err := db.Connect("localhost")
@@ -158,11 +160,7 @@ func main() {
 		return
 	}
 	defer mdb.Session.Close()
-	fc, err := factoids.Collection(mdb)
-	if err != nil {
-		fmt.Printf("Oh no: %v", err)
-		return
-	}
+	fc := factoids.Collection(mdb, log)
 
 	// A communication channel of Factoids.
 	facts := make(chan *factoids.Factoid)

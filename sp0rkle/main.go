@@ -4,10 +4,10 @@ package main
 
 import (
 	"flag"
-	"fmt"
+	"github.com/fluffle/goevent/event"
 	"github.com/fluffle/goirc/client"
+	"github.com/fluffle/golog/logging"
 	"lib/db"
-	"log"
 	"sp0rkle/bot"
 	"sp0rkle/drivers/decisiondriver"
 	"sp0rkle/drivers/factdriver"
@@ -21,56 +21,50 @@ var nick *string = flag.String("nick", "sp0rklf",
 	"Name of bot, defaults to 'sp0rklf'")
 var channel *string = flag.String("channel", "#sp0rklf",
 	"Channel to join, defaults to '#sp0rklf'")
-var debug *bool = flag.Bool("debug", false, "Turn on IRC client debug.")
 
 
 func main() {
 	flag.Parse()
+	log := logging.NewFromFlags()
+	reg := event.NewRegistry()
 
 	if *host == "" {
-		log.Fatalln("need a --host, retard")
+		log.Fatal("need a --host, retard")
 	}
-
-	// Initialise bot state
-	bot := bot.Bot()
-	bot.AddChannel(*channel)
 
 	// Connect to mongo
 	db, err := db.Connect("localhost")
 	if err != nil {
-		log.Fatalf("mongo dial failed: %v\n", err)
+		log.Fatal("mongo dial failed: %v\n", err)
 	}
 	defer db.Session.Close()
 
+	// Initialise the factoid driver (which currently acts as a plugin mgr too).
+	fd := factdriver.FactoidDriver(db, log)
+
+	// Configure IRC client
+	irc := client.Client(*nick, "boing", "not really sp0rkle", reg, log)
+	irc.SSL = *ssl
+
+	// Initialise bot state
+	bot := bot.Bot(irc, fd, log)
+	bot.AddChannel(*channel)
+
 	// Add drivers
 	bot.AddDriver(bot)
-	fd := factdriver.FactoidDriver(db)
 	bot.AddDriver(fd)
 	bot.AddDriver(decisiondriver.DecisionDriver())
 
-	// Configure IRC client
-	irc := client.New(*nick, "boing", "not really sp0rkle")
-	irc.SSL = *ssl
-	irc.Debug = *debug
-	irc.State = bot
+	// Register everything
+	bot.RegisterAll()
 
-	// Save pointer to connection in bot, and register handlers.
-	bot.Conn = irc
-	bot.RegisterAll(irc.Registry, fd)
-
+	// Connect loop.
 	hp := strings.Join([]string{*host, *port}, ":")
-	if err := irc.Connect(hp); err != nil {
-		fmt.Printf("Connection error: %s", err)
-		return
-	}
-
 	quit := false
 	for !quit {
-		select {
-		case err := <-irc.Err:
-			log.Printf("goirc error: %s\n", err)
-		case quit = <-bot.Quit:
-			log.Println("Shutting down...")
+		if err := irc.Connect(hp); err != nil {
+			log.Fatal("Connection error: %s", err)
 		}
+		quit = <-bot.Quit
 	}
 }
