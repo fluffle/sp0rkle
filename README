@@ -28,6 +28,8 @@ export PATH="$PATH:$HOME/go/bin"
 3) Use goinstall to get dependencies.
 
 goinstall github.com/fluffle/goirc/client
+goinstall github.com/fluffle/golog/logging
+goinstall github.com/fluffle/goevent/event
 goinstall github.com/kuroneko/gosqlite3
 goinstall github.com/skelterjohn/go-gb/gb
 goinstall launchpad.net/mgo
