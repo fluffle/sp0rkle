@@ -2,9 +2,8 @@ package bot
 
 import (
 	"github.com/fluffle/goirc/client"
-	"github.com/fluffle/goirc/event"
+	"github.com/fluffle/goevent/event"
 	"lib/util"
-	"log"
 	"sp0rkle/base"
 	"strings"
 )
@@ -20,10 +19,10 @@ func (bot *Sp0rkle) RegisterHandlers(r event.EventRegistry) {
 		})
 	}
 
-	r.AddHandler("connected", client.NewHandler(bot_connected))
-	r.AddHandler("disconnected", client.NewHandler(bot_disconnected))
-	r.AddHandler("privmsg", client.NewHandler(bot_privmsg))
-	r.AddHandler("action", forward_event("action"))
+	r.AddHandler(client.NewHandler(bot_connected), "connected")
+	r.AddHandler(client.NewHandler(bot_disconnected), "disconnected")
+	r.AddHandler(client.NewHandler(bot_privmsg), "privmsg")
+	r.AddHandler(forward_event("action"), "action")
 }
 
 // Unboxer for bot handlers.
@@ -36,7 +35,7 @@ func NewHandler(f BotHandler) event.Handler {
 func bot_connected(irc *client.Conn, line *client.Line) {
 	bot := getState(irc)
 	for _, c := range bot.channels {
-		log.Printf("Joining %s on startup.\n", c)
+		bot.l.Info("Joining %s on startup.\n", c)
 		irc.Join(c)
 	}
 }
@@ -44,7 +43,7 @@ func bot_connected(irc *client.Conn, line *client.Line) {
 func bot_disconnected(irc *client.Conn, line *client.Line) {
 	bot := getState(irc)
 	bot.Quit <- true
-	log.Println("Disconnected...")
+	bot.l.Info("Disconnected...")
 }
 
 // Do some standard processing on incoming lines and dispatch a bot_privmsg

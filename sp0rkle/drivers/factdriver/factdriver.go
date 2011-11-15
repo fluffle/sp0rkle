@@ -1,11 +1,11 @@
 package factdriver
 
 import (
+	"github.com/fluffle/golog/logging"
 	"launchpad.net/gobson/bson"
 	"lib/db"
 	"lib/factoids"
 	"lib/util"
-	"log"
 	"sp0rkle/base"
 	"strings"
 )
@@ -22,17 +22,18 @@ type factoidDriver struct {
 
 	// A list of text processing plugins to apply to factoid values
 	plugins []base.Plugin
+
+	// logging object
+	l logging.Logger
 }
 
-func FactoidDriver(db *db.Database) *factoidDriver {
-	fc, err := factoids.Collection(db)
-	if err != nil {
-		log.Fatalf("factoid collection failed: %v\n", err)
-	}
+func FactoidDriver(db *db.Database, l logging.Logger) *factoidDriver {
+	fc := factoids.Collection(db, l)
 	return &factoidDriver{
 		FactoidCollection: fc,
 		lastseen:          make(map[string]bson.ObjectId),
 		plugins:           make([]base.Plugin, 0),
+		l:                 l,
 	}
 }
 

@@ -1,7 +1,7 @@
 package base
 
 import (
-	"github.com/fluffle/goirc/event"
+	"github.com/fluffle/goevent/event"
 )
 
 // Interface for a driver
