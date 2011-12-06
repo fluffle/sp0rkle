@@ -11,7 +11,5 @@ type Line struct {
 }
 
 func (line *Line) Copy() *Line {
-	nl := &Line{Line: *line.Line.Copy()}
-	nl.Addressed = line.Addressed
-	return line
+	return &Line{Line: *line.Line.Copy(), Addressed: line.Addressed}
 }
