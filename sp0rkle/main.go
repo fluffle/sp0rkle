@@ -11,6 +11,7 @@ import (
 	"sp0rkle/bot"
 	"sp0rkle/drivers/decisiondriver"
 	"sp0rkle/drivers/factdriver"
+	"sp0rkle/drivers/quotedriver"
 	"strings"
 )
 
@@ -54,6 +55,7 @@ func main() {
 	bot.AddDriver(bot)
 	bot.AddDriver(fd)
 	bot.AddDriver(decisiondriver.DecisionDriver())
+	bot.AddDriver(quotedriver.QuoteDriver(db, log))
 
 	// Register everything
 	bot.RegisterAll()
