@@ -1,7 +1,7 @@
 package quotedriver
 
 import (
-//	"fmt"
+	"fmt"
 	"github.com/fluffle/goevent/event"
 //	"launchpad.net/gobson/bson"
 //	"lib/db"
@@ -9,8 +9,8 @@ import (
 //	"rand"
 	"sp0rkle/bot"
 	"sp0rkle/base"
-//	"strings"
-//	"strconv"
+	"strings"
+	"strconv"
 //	"time"
 )
 
@@ -33,11 +33,33 @@ func qd_privmsg(bot *bot.Sp0rkle, line *base.Line) {
 	qd := bot.GetDriver(driverName).(*quoteDriver)
 	
 	if !line.Addressed {
-		bot.Dispatch("qd_lookup", qd, line)
 		return
+	}
+
+	l := strings.ToLower(line.Args[1])
+	switch {
+	// quote lookup by QID
+	case strings.HasPrefix(l, "quote #"):
+		// The remainder of the string should be a quote ID
+		nl := line.Copy()
+		nl.Args[1] = nl.Args[1][7:]
+		bot.Dispatch("qd_lookup", qd, nl)
 	}
 }
 
 func qd_lookup(bot *bot.Sp0rkle, qd *quoteDriver, line *base.Line) {
-	bot.Conn.Privmsg(line.Args[0], "Not implemented")
+	qid, err :=	strconv.Atoi(line.Args[1])
+	if err != nil {
+		bot.Conn.Privmsg(line.Args[0], fmt.Sprintf(
+			"%s: '%s' doesn't look like a quote id.", line.Nick, line.Args[1]))
+		return
+	}
+	quote := qd.GetByQID(qid)
+	if quote != nil {
+		bot.Conn.Privmsg(line.Args[0], fmt.Sprintf(
+			"#%d: %s", quote.QID, quote.Quote))
+	} else {
+		bot.Conn.Privmsg(line.Args[0], fmt.Sprintf(
+			"%s: No quote found for id %d", line.Nick, qid))
+	}
 }
