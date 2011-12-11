@@ -50,17 +50,17 @@ func TestDecide(t *testing.T) {
 		"AAA",
 		"EEE",
 		"GGG",
-		"sausage",
-		"spam and sausage",
+		"spam eggs and spam",
+		"spam spam spam spam eggs and spam",
 		"Unbalanced quotes",
-		"carrots",
+		"cheese",
 		"foo's bar",
 		"cheese",
 	}
 	for i, s := range tests {
 		ret := rand_decider(s, mytestrand)
 		if ret != expected[i] {
-			t.Errorf("Test: %s\nExpected: %s\nGot: %s\n\n",s,expected[i], ret)
+			t.Errorf("Test: %s\nExpected: [%s]\nGot: [%s]\n\n",s,expected[i], ret)
 		}
 	}
 }

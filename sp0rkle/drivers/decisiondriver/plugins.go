@@ -108,7 +108,7 @@ func rand_decider(val string, r *rand.Rand) string {
 		options := choices(val[mid:pe])
 		rnd := r.Intn(len(options))
 		fmt.Printf("length: %d, rnd: %d\n",len(options), rnd)
-		chosenone := options[rnd]
+		chosenone := strings.TrimSpace(options[rnd])
 		fmt.Printf("%s\n",strings.Join(options,"|"))
 		fmt.Printf("chosen: %s\n",chosenone)
 		val = val[:ps] + chosenone  + val[pe+1:]
@@ -118,23 +118,33 @@ func rand_decider(val string, r *rand.Rand) string {
 
 
 func choices(val string) []string{
-	if strings.IndexAny(val, "\"") != -1{
-		//d := strings.IndexAny(val, "\"'")
-		//delim := val[d]
-		//fmt.Printf("d: %d\ndelim: %q\n", d, delim)
-		if strings.Count(val, "\"") % 2 == 1{
+	if strings.IndexAny(val, "\"'") != -1{
+		d := strings.IndexAny(val, "\"'")
+    var delim string
+		delim = string(val[d])
+		fmt.Printf("d: %d\ndelim: %q\n", d, delim)
+		if strings.Count(val, delim) % 2 == 1{
 			return []string{"Unbalanced quotes"}
 		}
 		fmt.Printf("FOO\n")
-		tmp := strings.Split(val,"\"")
+		tmp := strings.Split(val,delim)
 		var ret []string
 		for i := 1; i < len(tmp) ; i += 2{
 			ret = append(ret, tmp[i])
 		}
 		return ret
 
-	}else{
-		fmt.Printf("Splitting on whitespace\n")
+	} else if strings.IndexAny(val, "|") != -1{
+     fmt.Printf("Splitting on |\n")
+     fmt.Printf("FOO\n")
+     tmp := strings.Split(val,"|")
+     var ret []string
+     for i := 1; i < len(tmp) ; i ++{
+       ret = append(ret, tmp[i])
+     }
+     return ret
+  } else {
+	fmt.Printf("Splitting on whitespace\n")
 		//String doesn't contains ' or ", so is just a list of words
 		return strings.SplitN(val," ", -1)
 	}
