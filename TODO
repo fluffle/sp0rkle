@@ -90,17 +90,24 @@ Drivers
   - Store url contents locally in ~sp0rkle/pub_html on 'save that' (if image),
     and provide a link to the stored content. Avoid storing 4chan content ;-)
 
-*Quote
-  //quote DB
-  q(uote )add $quote
-  quote $search_term
-  quote $ID
-  q(uote )del $quote_id
+*Quotes
+  // Started, in lib/quotes and sp0rkle/drivers/quotedriver
+  // Still TODO: plenty ;-)
+  - Add quotes: q(uote )?add $quote
+  - Delete quotes: q(uote )?del $quote_id
+  - Quote rate-limiting per nick in channels (to stop ben spamming)
+  - Multi-line quote add for copypasta win?
+    + q(uote )?begin
+    + record all lines said by Nick
+    + q(uote )?end
+  - Multi-line quote storage? (means parsing logic in quoteimporter)
+  - Quote stats (use access counts)
+  - Quote plugin so factoids with <plugin=quote> work
+  - Help, unit tests, etc.
 
 *Factoids
   // Mostly done, in lib/factoids and sp0rkle/drivers/factdriver
   // Still TODO
-  - Store fd.lastseen on a per-channel basis
   - Permissions system:
     + each factoid has "owner" == creator initially
     + owner can set factoid read-only, prevents others modifying/deleting

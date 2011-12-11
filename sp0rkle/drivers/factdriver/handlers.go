@@ -324,6 +324,7 @@ func fd_lookup(bot *bot.Sp0rkle, fd *factoidDriver, line *base.Line) {
 		// Store this as the last seen factoid
 		fd.Lastseen(line.Args[0], fact.Id)
 		// Update the Accessed field
+		// TODO(fluffle): fd should take care of updating Accessed internally
 		n := db.StorableNick{line.Nick, line.Ident, line.Host}
 		c := db.StorableChan{line.Args[0]}
 		fact.Access(n, c)
