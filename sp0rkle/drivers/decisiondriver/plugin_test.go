@@ -36,9 +36,9 @@ func TestDecide(t *testing.T) {
 	tests := []string{
 		"<plugin=decide singlevalue>",
 		"<plugin=decide AAA BBB CCC>",
-//		"<plugin=decide DDD | EEE>",
-//		"<plugin=decide DDD | EEE>",
-//		"<plugin=decide spam | spam and sausage | eggs | ham | spam eggs and spam>",
+		"<plugin=decide DDD | EEE>",
+		"<plugin=decide FFF | GGG>",
+		"<plugin=decide spam | spam and sausage | eggs | ham | spam eggs and spam>",
 		"<plugin=decide \"spam\" \"spam and sausage\" \"eggs\" \"ham\" \"spam spam spam spam eggs and spam\">",
 		"<plugin=decide \"cheese\" \"ham>",
 		"<plugin=decide 'cheese' 'carrots' 'sausage'>",
@@ -48,9 +48,9 @@ func TestDecide(t *testing.T) {
 	expected := []string{
 		"singlevalue", //if their is only one option, accept that
 		"AAA",
-//		"EEE",
-//		"AAA",
-//		"sausage",
+		"EEE",
+		"GGG",
+		"sausage",
 		"spam and sausage",
 		"Unbalanced quotes",
 		"carrots",
