@@ -89,7 +89,6 @@ func rand_decider(val string, r *rand.Rand) string {
 	i := 0
 	for {
 		i ++
-		// TODO(bob-smith): The following block could be refactored out
 		// Work out the indices of the plugin start and end.
 		ps := strings.Index(val, "<plugin=decide ")
 		if ps == -1 {
@@ -103,14 +102,10 @@ func rand_decider(val string, r *rand.Rand) string {
 		pe += ps
 		// Mid is where the plugin args start.
 		mid := ps + 15
-		fmt.Printf("\n\nA: '%s'\n", val[mid:pe])
 		// options := strings.SplitN(val[mid:pe]," ", -1)
 		options := choices(val[mid:pe])
 		rnd := r.Intn(len(options))
-		fmt.Printf("length: %d, rnd: %d\n",len(options), rnd)
 		chosenone := strings.TrimSpace(options[rnd])
-		fmt.Printf("%s\n",strings.Join(options,"|"))
-		fmt.Printf("chosen: %s\n",chosenone)
 		val = val[:ps] + chosenone  + val[pe+1:]
 	}
 	return val
@@ -118,37 +113,28 @@ func rand_decider(val string, r *rand.Rand) string {
 
 
 func choices(val string) []string{
-	if strings.IndexAny(val, "\"'") != -1{
-		d := strings.IndexAny(val, "\"'")
+	if strings.IndexAny(val, "\"'|") != -1{
+		d := strings.IndexAny(val, "\"'|")
     var delim string
 		delim = string(val[d])
-		fmt.Printf("d: %d\ndelim: %q\n", d, delim)
-		if strings.Count(val, delim) % 2 == 1{
-			return []string{"Unbalanced quotes"}
+		// If we are splitting string on ' or "
+		// make sure we have an even number
+		if strings.IndexAny(delim, "\"'") != -1 {
+			if strings.Count(val, delim) % 2 == 1{
+				return []string{"Unbalanced quotes"}
+			}
 		}
-		fmt.Printf("FOO\n")
 		tmp := strings.Split(val,delim)
 		var ret []string
 		for i := 1; i < len(tmp) ; i += 2{
 			ret = append(ret, tmp[i])
 		}
 		return ret
-
-	} else if strings.IndexAny(val, "|") != -1{
-     fmt.Printf("Splitting on |\n")
-     fmt.Printf("FOO\n")
-     tmp := strings.Split(val,"|")
-     var ret []string
-     for i := 1; i < len(tmp) ; i ++{
-       ret = append(ret, tmp[i])
-     }
-     return ret
   } else {
-	fmt.Printf("Splitting on whitespace\n")
-		//String doesn't contains ' or ", so is just a list of words
+		//String doesn't contains and seperator chars, so is just a list of words
 		return strings.SplitN(val," ", -1)
 	}
-	fmt.Printf("FAILED\n")
-	return []string{"BROKEN", val}
+
+	return []string{"Invalid syntax", val}
 }
 

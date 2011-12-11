@@ -50,7 +50,7 @@ func TestDecide(t *testing.T) {
 		"AAA",
 		"EEE",
 		"GGG",
-		"spam eggs and spam",
+		"ham",
 		"spam spam spam spam eggs and spam",
 		"Unbalanced quotes",
 		"cheese",
