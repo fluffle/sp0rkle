@@ -32,7 +32,8 @@ func main() {
 
 	if *host == "" {
 		//Don't call log.Fatal as we don't want a backtrace in this case
-		log.Error("need a --host")
+		log.Error("--host option required. \nOptions are:\n")
+		flag.PrintDefaults()
 		os.Exit(1)
 	}
 
