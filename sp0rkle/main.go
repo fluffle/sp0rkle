@@ -13,6 +13,7 @@ import (
 	"sp0rkle/drivers/factdriver"
 	"sp0rkle/drivers/quotedriver"
 	"strings"
+	"os"
 )
 
 var host *string = flag.String("host", "", "IRC server to connect to.")
@@ -30,7 +31,9 @@ func main() {
 	reg := event.NewRegistry()
 
 	if *host == "" {
-		log.Fatal("need a --host, retard")
+		//Don't call log.Fatal as we don't want a backtrace in this case
+		log.Error("need a --host")
+		os.Exit(1)
 	}
 
 	// Connect to mongo
