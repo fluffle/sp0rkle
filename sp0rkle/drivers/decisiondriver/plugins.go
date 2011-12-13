@@ -89,7 +89,7 @@ func dd_decider(dd *decisionDriver, val string, line *base.Line) string {
 func rand_decider(val string, r *rand.Rand) string {
 	i := 0
 	for {
-		i ++
+		i++
 		// Work out the indices of the plugin start and end.
 		ps := strings.Index(val, "<plugin=decide ")
 		if ps == -1 {
@@ -107,35 +107,33 @@ func rand_decider(val string, r *rand.Rand) string {
 		options := choices(val[mid:pe])
 		rnd := r.Intn(len(options))
 		chosenone := strings.TrimSpace(options[rnd])
-		val = val[:ps] + chosenone  + val[pe+1:]
+		val = val[:ps] + chosenone + val[pe+1:]
 	}
 	return val
 }
 
-
-func choices(val string) []string{
-	if strings.IndexAny(val, "\"'|") != -1{
+func choices(val string) []string {
+	if strings.IndexAny(val, "\"'|") != -1 {
 		d := strings.IndexAny(val, "\"'|")
-    var delim string
+		var delim string
 		delim = string(val[d])
 		// If we are splitting string on ' or "
 		// make sure we have an even number
 		if strings.IndexAny(delim, "\"'") != -1 {
-			if strings.Count(val, delim) % 2 == 1{
+			if strings.Count(val, delim)%2 == 1 {
 				return []string{"Unbalanced quotes"}
 			}
 		}
-		tmp := strings.Split(val,delim)
+		tmp := strings.Split(val, delim)
 		var ret []string
-		for i := 1; i < len(tmp) ; i += 2{
+		for i := 1; i < len(tmp); i += 2 {
 			ret = append(ret, tmp[i])
 		}
 		return ret
-  } else {
+	} else {
 		//String doesn't contains and seperator chars, so is just a list of words
-		return strings.SplitN(val," ", -1)
+		return strings.SplitN(val, " ", -1)
 	}
 
 	return []string{"Invalid syntax", val}
 }
-

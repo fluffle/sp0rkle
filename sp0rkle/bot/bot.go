@@ -22,7 +22,7 @@ type Sp0rkle struct {
 	PM base.PluginManager
 
 	// And a logger.
-	l  logging.Logger
+	l logging.Logger
 
 	// it's got a bunch of drivers that register event handlers
 	drivers map[string]base.Driver

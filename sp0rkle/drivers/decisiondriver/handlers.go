@@ -8,11 +8,10 @@ import (
 	"sp0rkle/base"
 )
 
-
 func (dd *decisionDriver) RegisterHandlers(r event.EventRegistry) {
 	r.AddHandler(bot.NewHandler(dd_privmsg), "bot_privmsg")
 }
 
 func dd_privmsg(bot *bot.Sp0rkle, line *base.Line) {
-	 //dd := bot.GetDriver(driverName).(*decisionDriver)
+	// dd := bot.GetDriver(driverName).(*decisionDriver)
 }

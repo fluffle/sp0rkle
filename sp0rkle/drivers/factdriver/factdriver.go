@@ -52,7 +52,7 @@ func (fd *factoidDriver) ApplyPlugins(val string, line *base.Line) string {
 	return val
 }
 
-func (fd *factoidDriver) Lastseen(ch string, id... bson.ObjectId) bson.ObjectId {
+func (fd *factoidDriver) Lastseen(ch string, id ...bson.ObjectId) bson.ObjectId {
 	if len(id) > 0 {
 		old, ok := fd.lastseen[ch]
 		fd.lastseen[ch] = id[0]

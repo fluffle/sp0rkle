@@ -41,8 +41,8 @@ func RemoveColours(s string) string {
 		if i == -1 {
 			break
 		}
-		j := i + 1  // end of colour sequence
-		c := -1     // comma position, if found
+		j := i + 1 // end of colour sequence
+		c := -1    // comma position, if found
 	L:
 		for {
 			// Who needs regex anyway.

@@ -19,7 +19,7 @@ func TestIdentifiers(t *testing.T) {
 	line := &base.Line{
 		Line: client.Line{
 			Nick: "tester", Ident: "tests", Host: "goirc.github.com",
-			Src:  "tester!tests@goirc.github.com", Cmd: "PRIVMSG",
+			Src: "tester!tests@goirc.github.com", Cmd: "PRIVMSG",
 			Raw:  ":tester!tests@goirc.github.com PRIVMSG #test :I love testing.",
 			Args: []string{"#test", "I love testing."}, Time: ts,
 		},

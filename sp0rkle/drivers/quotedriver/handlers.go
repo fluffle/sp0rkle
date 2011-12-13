@@ -4,14 +4,14 @@ import (
 	"fmt"
 	"github.com/fluffle/goevent/event"
 	"launchpad.net/gobson/bson"
-//	"lib/db"
-//	"lib/quotes"
-//	"rand"
+	//	"lib/db"
+	//	"lib/quotes"
+	//	"rand"
 	"sp0rkle/bot"
 	"sp0rkle/base"
 	"strings"
 	"strconv"
-//	"time"
+	//	"time"
 )
 
 type QuoteHandler func(*bot.Sp0rkle, *quoteDriver, *base.Line)
@@ -25,7 +25,7 @@ func QDHandler(f QuoteHandler) event.Handler {
 
 func (qd *quoteDriver) RegisterHandlers(r event.EventRegistry) {
 	r.AddHandler(bot.NewHandler(qd_privmsg), "bot_privmsg")
-//	r.AddHandler(bot.NewHandler(qd_action), "bot_action")
+	//	r.AddHandler(bot.NewHandler(qd_action), "bot_action")
 	r.AddHandler(QDHandler(qd_fetch), "qd_fetch")
 	r.AddHandler(QDHandler(qd_lookup), "qd_lookup")
 }
@@ -62,7 +62,7 @@ func qd_fetch(bot *bot.Sp0rkle, qd *quoteDriver, line *base.Line) {
 	if qd.rateLimit(line.Nick) {
 		return
 	}
-	qid, err :=	strconv.Atoi(line.Args[1])
+	qid, err := strconv.Atoi(line.Args[1])
 	if err != nil {
 		bot.Conn.Privmsg(line.Args[0], fmt.Sprintf(
 			"%s: '%s' doesn't look like a quote id.", line.Nick, line.Args[1]))

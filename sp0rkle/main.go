@@ -24,7 +24,6 @@ var nick *string = flag.String("nick", "sp0rklf",
 var channel *string = flag.String("channel", "#sp0rklf",
 	"Channel to join, defaults to '#sp0rklf'")
 
-
 func main() {
 	flag.Parse()
 	log := logging.NewFromFlags()

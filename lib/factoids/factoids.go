@@ -217,7 +217,10 @@ func (fc *FactoidCollection) InfoMR(key string) *FactoidInfo {
 			return sum;
 		}`,
 	}
-	var res []struct{ Id int "_id"; Value FactoidInfo }
+	var res []struct {
+		Id    int "_id"
+		Value FactoidInfo
+	}
 	info, err := fc.Find(lookup(key)).MapReduce(mr, &res)
 	if err != nil || len(res) == 0 {
 		fc.l.Warn("Info MR for '%s' failed: %v", key, err)
@@ -228,7 +231,6 @@ func (fc *FactoidCollection) InfoMR(key string) *FactoidInfo {
 	}
 	return &res[0].Value
 }
-
 
 func ParseValue(v string) (ft FactoidType, fv string) {
 	// Assume v is a normal factoid

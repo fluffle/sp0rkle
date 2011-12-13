@@ -34,7 +34,6 @@ func TestHasPrefixedNick(t *testing.T) {
 	}
 }
 
-
 func TestRemoveColours(t *testing.T) {
 	tests := []string{
 		"has no colours",

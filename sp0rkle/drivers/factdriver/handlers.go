@@ -215,7 +215,7 @@ func fd_delete(bot *bot.Sp0rkle, fd *factoidDriver, line *base.Line) {
 
 func fd_info(bot *bot.Sp0rkle, fd *factoidDriver, line *base.Line) {
 	key := ToKey(line.Args[1], false)
-	count := fd.GetCount(key);
+	count := fd.GetCount(key)
 	if count == 0 {
 		bot.Conn.Privmsg(line.Args[0], fmt.Sprintf(
 			"%s: I don't know anything about '%s'.",

@@ -12,8 +12,8 @@ import (
 const COLLECTION string = "quotes"
 
 type Quote struct {
-	Quote     string
-	QID       int
+	Quote string
+	QID   int
 	db.StorableNick
 	db.StorableChan
 	Accessed  int
