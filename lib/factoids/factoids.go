@@ -8,7 +8,6 @@ import (
 	"launchpad.net/mgo"
 	"lib/db"
 	"lib/util"
-	"rand"
 	"strings"
 	"time"
 )
@@ -157,7 +156,7 @@ func (fc *FactoidCollection) GetPseudoRand(key string) *Factoid {
 	}
 	var res Factoid
 	if count > 1 {
-		query = query.Skip(rand.Intn(count))
+		query = query.Skip(util.RNG.Intn(count))
 	}
 	if err = query.One(&res); err != nil {
 		fc.l.Warn("Fetching factoid for key failed: %v", err)

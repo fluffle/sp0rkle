@@ -4,21 +4,18 @@ package decisiondriver
 
 import (
 	"github.com/fluffle/goevent/event"
-	"lib/util"
-	"rand"
 	"sp0rkle/base"
 	"sp0rkle/bot"
-	"time"
 )
 
 const driverName string = "decisions"
 
 type decisionDriver struct {
-	rng *rand.Rand
+	// Nothing needed here, yet.
 }
 
 func DecisionDriver() *decisionDriver {
-	return &decisionDriver{util.NewRand(time.Nanoseconds())}
+	return &decisionDriver{}
 }
 
 type DecisionHandler func(*bot.Sp0rkle, *decisionDriver, *base.Line)
