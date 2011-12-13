@@ -32,7 +32,7 @@ func (qd *quoteDriver) RegisterHandlers(r event.EventRegistry) {
 
 func qd_privmsg(bot *bot.Sp0rkle, line *base.Line) {
 	qd := bot.GetDriver(driverName).(*quoteDriver)
-	
+
 	if !line.Addressed {
 		return
 	}
@@ -59,6 +59,9 @@ func qd_privmsg(bot *bot.Sp0rkle, line *base.Line) {
 }
 
 func qd_fetch(bot *bot.Sp0rkle, qd *quoteDriver, line *base.Line) {
+	if qd.rateLimit(line.Nick) {
+		return
+	}
 	qid, err :=	strconv.Atoi(line.Args[1])
 	if err != nil {
 		bot.Conn.Privmsg(line.Args[0], fmt.Sprintf(
@@ -76,6 +79,9 @@ func qd_fetch(bot *bot.Sp0rkle, qd *quoteDriver, line *base.Line) {
 }
 
 func qd_lookup(bot *bot.Sp0rkle, qd *quoteDriver, line *base.Line) {
+	if qd.rateLimit(line.Nick) {
+		return
+	}
 	quote := qd.GetPseudoRand(line.Args[1])
 	if quote == nil {
 		bot.Conn.Privmsg(line.Args[0], fmt.Sprintf(

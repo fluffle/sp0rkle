@@ -5,7 +5,7 @@ import (
 	"launchpad.net/gobson/bson"
 	"launchpad.net/mgo"
 	"lib/db"
-	"rand"
+	"lib/util"
 	"time"
 )
 
@@ -87,7 +87,7 @@ func (qc *QuoteCollection) GetPseudoRand(regex string) *Quote {
 	}
 	var res Quote
 	if count > 1 {
-		query = query.Skip(rand.Intn(count))
+		query = query.Skip(util.RNG.Intn(count))
 	}
 	if err = query.One(&res); err != nil {
 		qc.l.Warn("Fetch for quote lookup '%s' failed: %s", regex, err)

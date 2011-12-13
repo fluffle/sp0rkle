@@ -4,6 +4,7 @@ package decisiondriver
 
 import (
 	"fmt"
+	"lib/util"
 	"os"
 	"rand"
 	"sp0rkle/base"
@@ -26,7 +27,7 @@ func (fp *DecisionPlugin) Apply(val string, line *base.Line) string {
 }
 
 func dd_rand(dd *decisionDriver, val string, line *base.Line) string {
-	return rand_replacer(val, dd.rng)
+	return rand_replacer(val, util.RNG)
 }
 
 // Split this out so we can inject a deterministic rand.Rand for testing.
