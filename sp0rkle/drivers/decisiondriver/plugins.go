@@ -82,7 +82,7 @@ func rand_replacer(val string, r *rand.Rand) string {
 }
 
 func dd_decider(dd *decisionDriver, val string, line *base.Line) string {
-	return rand_decider(val, dd.rng)
+	return rand_decider(val, util.RNG)
 }
 
 // Split this out so we can inject a deterministic rand.Rand for testing.
