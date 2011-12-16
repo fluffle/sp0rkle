@@ -6,6 +6,7 @@ import (
 	"launchpad.net/gobson/bson"
 	//	"lib/db"
 	//	"lib/quotes"
+	"lib/util"
 	//	"rand"
 	"sp0rkle/bot"
 	"sp0rkle/base"
@@ -37,24 +38,20 @@ func qd_privmsg(bot *bot.Sp0rkle, line *base.Line) {
 		return
 	}
 
-	l := strings.ToLower(line.Args[1])
+	nl := line.Copy()
 	switch {
-	// Quote lookup: quote | quote #QID | quote regex
-	case strings.HasPrefix(l, "quote"):
-		nl := line.Copy()
-		handler := "qd_lookup"
-		if len(l) < 6 {
-			// The line is just "quote" so look up a random quote
-			nl.Args[1] = ""
-		} else if l[7] == '#' {
-			// The remainder of the string should be a quote ID
-			nl.Args[1] = nl.Args[1][7:]
-			handler = "qd_fetch"
-		} else {
-			// The remainder of the string is a regex to lookup
-			nl.Args[1] = nl.Args[1][6:]
-		}
-		bot.Dispatch(handler, qd, nl)
+	// Quote add: qadd | quote add
+	case util.StripAnyPrefix(&nl.Args[1], []string{"quote add ", "qadd ", "add quote "}):
+		bot.Dispatch("qd_add", qd, nl)
+	// Quote lookup: quote #QID
+	case util.StripAnyPrefix(&nl.Args[1], []string{"quote #"}):
+		bot.Dispatch("qd_fetch", qd, nl)
+	// Quote lookup: quote | quote regex
+	// This needs to come after the other cases as it will strip just "quote "
+	case util.StripAnyPrefix(&nl.Args[1], []string{"quote "}):
+		fallthrough
+	case strings.ToLower(nl.Args[1]) == "quote":
+		bot.Dispatch("qd_lookup", qd, nl)
 	}
 }
 

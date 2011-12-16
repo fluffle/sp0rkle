@@ -94,6 +94,39 @@ func RemovePrefixes(s string) string {
 	return s
 }
 
+// Apply a set of strings tests to a source string s
+func _any(f func(string, string) bool, s string, l []string) bool {
+	for _, i := range l {
+		if f(s, i) {
+			return true
+		}
+	}
+	return false
+}
+
+func HasAnyPrefix(s string, prefixes []string) bool {
+	return _any(strings.HasPrefix, s, prefixes)
+}
+
+func ContainsAny(s string, indexes []string) bool {
+	return _any(strings.Contains, s, indexes)
+}
+
+// Strips off the first found prefix from the string pointer,
+// returning true if found, false (with no stripping) otherwise.
+// NOTE: Does prefix comparisons against strings.ToLower(*s)!
+func StripAnyPrefix(s *string, prefixes []string) bool {
+	// Can't use _any as we're playing with pointers.
+	l := strings.ToLower(*s)
+	for _, p := range prefixes {
+		if strings.HasPrefix(l, p) {
+			*s = (*s)[len(p):]
+			return true
+		}
+	}
+	return false
+}
+
 // Does this string look like a URL to you?
 // This should be fairly conservative, I hope:
 //   s starts with http:// or https:// and contains no spaces
@@ -101,4 +134,5 @@ func LooksURLish(s string) bool {
 	return ((strings.HasPrefix(s, "http://") ||
 		strings.HasPrefix(s, "https://")) &&
 		strings.Index(s, " ") == -1)
+
 }
