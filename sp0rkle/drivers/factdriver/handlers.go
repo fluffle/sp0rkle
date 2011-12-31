@@ -28,14 +28,14 @@ func FDHandler(f FactoidHandler) event.Handler {
 func (fd *factoidDriver) RegisterHandlers(r event.EventRegistry) {
 	r.AddHandler(bot.NewHandler(fd_privmsg), "bot_privmsg")
 	r.AddHandler(bot.NewHandler(fd_action), "bot_action")
-	r.AddHandler(FDHandler(fd_lookup), "fd_lookup")
 	r.AddHandler(FDHandler(fd_add), "fd_add")
-	r.AddHandler(FDHandler(fd_delete), "fd_delete")
-	r.AddHandler(FDHandler(fd_replace), "fd_replace")
 	r.AddHandler(FDHandler(fd_chance), "fd_chance")
-	r.AddHandler(FDHandler(fd_literal), "fd_literal")
-	r.AddHandler(FDHandler(fd_search), "fd_search")
+	r.AddHandler(FDHandler(fd_delete), "fd_delete")
 	r.AddHandler(FDHandler(fd_info), "fd_info")
+	r.AddHandler(FDHandler(fd_literal), "fd_literal")
+	r.AddHandler(FDHandler(fd_lookup), "fd_lookup")
+	r.AddHandler(FDHandler(fd_replace), "fd_replace")
+	r.AddHandler(FDHandler(fd_search), "fd_search")
 }
 
 func fd_privmsg(bot *bot.Sp0rkle, line *base.Line) {
@@ -358,23 +358,24 @@ func fd_replace(bot *bot.Sp0rkle, fd *factoidDriver, line *base.Line) {
 }
 
 func fd_search(bot *bot.Sp0rkle, fd *factoidDriver, line *base.Line) {
-	if keys := fd.GetKeysMatching(line.Args[1]); keys == nil || len(keys) == 0 {
+	keys := fd.GetKeysMatching(line.Args[1])
+	if keys == nil || len(keys) == 0 {
 		bot.Conn.Privmsg(line.Args[0], fmt.Sprintf(
 			"%s: I couldn't think of anything matching '%s'.",
 			line.Nick, line.Args[0]))
+		return
+	}
+	// RESULTS.
+	count := len(keys)
+	if count > 10 {
+		res := strings.Join(keys[:10], "', '")
+		bot.Conn.Privmsg(line.Args[0], fmt.Sprintf(
+			"%s: I found %d keys matching '%s', here's the first 10: '%s'.",
+			line.Nick, count, line.Args[1], res))
 	} else {
-		// RESULTS.
-		count := len(keys)
-		if count > 10 {
-			res := strings.Join(keys[:10], "', '")
-			bot.Conn.Privmsg(line.Args[0], fmt.Sprintf(
-				"%s: I found %d keys matching '%s', here's the first 10: '%s'.",
-				line.Nick, count, line.Args[1], res))
-		} else {
-			res := strings.Join(keys, "', '")
-			bot.Conn.Privmsg(line.Args[0], fmt.Sprintf(
-				"%s: I found %d keys matching '%s', here they are: '%s'.",
-				line.Nick, count, line.Args[1], res))
-		}
+		res := strings.Join(keys, "', '")
+		bot.Conn.Privmsg(line.Args[0], fmt.Sprintf(
+			"%s: I found %d keys matching '%s', here they are: '%s'.",
+			line.Nick, count, line.Args[1], res))
 	}
 }

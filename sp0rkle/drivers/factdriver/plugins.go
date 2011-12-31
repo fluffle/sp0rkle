@@ -22,8 +22,7 @@ func (fp *FactoidPlugin) Apply(val string, line *base.Line) string {
 
 // Replicate perlfu's $<stuff> identifiers
 func fd_identifiers(fd *factoidDriver, val string, line *base.Line) string {
-	ts := time.LocalTime()
-	return id_replacer(val, line, ts)
+	return id_replacer(val, line, time.LocalTime())
 }
 
 // Split this out so we can inject a deterministic time for testing.
