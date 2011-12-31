@@ -6,6 +6,7 @@ import (
 	"launchpad.net/gobson/bson"
 	"lib/db"
 	"lib/factoids"
+	"lib/util"
 	"os"
 	"rand"
 	"sp0rkle/bot"
@@ -46,52 +47,35 @@ func fd_privmsg(bot *bot.Sp0rkle, line *base.Line) {
 		return
 	}
 
-	l := strings.ToLower(line.Args[1])
+	nl := line.Copy()
 	// Test for various possible courses of action.
 	switch {
 	// Factoid add: 'key := value' or 'key :is value'
-	case strings.Index(l, ":=") != -1:
-		fallthrough
-	case strings.Index(l, ":is") != -1:
-		bot.Dispatch("fd_add", fd, line)
+	case util.ContainsAny(nl.Args[1], []string{":=", ":is"}):
+		bot.Dispatch("fd_add", fd, nl)
 
 	// Factoid delete: 'forget|delete that' => deletes fd.lastseen[chan]
-	case strings.HasPrefix(l, "forget that"):
-		fallthrough
-	case strings.HasPrefix(l, "delete that"):
-		bot.Dispatch("fd_delete", fd, line)
+	case util.HasAnyPrefix(nl.Args[1], []string{"forget that", "delete that"}):
+		bot.Dispatch("fd_delete", fd, nl)
 
 	// Factoid replace: 'replace that with' => updates fd.lastseen[chan]
-	case strings.HasPrefix(l, "replace that with "):
-		// chop off the "known" bit to leave just the replacement
-		nl := line.Copy()
-		nl.Args[1] = nl.Args[1][18:]
-		bot.Dispatch("fd_replace", fd, line)
+	case util.StripAnyPrefix(&nl.Args[1], []string{"replace that with "}):
+		bot.Dispatch("fd_replace", fd, nl)
 
 	// Factoid chance: 'chance of that is' => sets chance of fd.lastseen[chan]
-	case strings.HasPrefix(l, "chance of that is "):
-		// chop off the "known" bit to leave just the replacement
-		nl := line.Copy()
-		nl.Args[1] = nl.Args[1][18:]
+	case util.StripAnyPrefix(&nl.Args[1], []string{"chance of that is "}):
 		bot.Dispatch("fd_chance", fd, nl)
 
 	// Factoid literal: 'literal key' => info about factoid
-	case strings.HasPrefix(l, "literal "):
-		// chop off the "known" bit to leave just the key
-		nl := line.Copy()
-		nl.Args[1] = nl.Args[1][8:]
+	case util.StripAnyPrefix(&nl.Args[1], []string{"literal "}):
 		bot.Dispatch("fd_literal", fd, nl)
 
 	// Factoid search: 'fact search regexp' => list of possible key matches
-	case strings.HasPrefix(l, "fact search "):
-		nl := line.Copy()
-		nl.Args[1] = nl.Args[1][12:]
+	case util.StripAnyPrefix(&nl.Args[1], []string{"fact search "}):
 		bot.Dispatch("fd_search", fd, nl)
 
 	// Factoid info: 'fact info key' => some information about key
-	case strings.HasPrefix(l, "fact info"):
-		nl := line.Copy()
-		nl.Args[1] = nl.Args[1][9:]
+	case util.StripAnyPrefix(&nl.Args[1], []string{"fact info "}):
 		bot.Dispatch("fd_info", fd, nl)
 
 	// If we get to here, none of the other FD command possibilities

@@ -104,12 +104,16 @@ func _any(f func(string, string) bool, s string, l []string) bool {
 	return false
 }
 
+// Returns true if string begins with any of prefixes.
+// NOTE: Does prefix comparisons against strings.ToLower(*s)!
 func HasAnyPrefix(s string, prefixes []string) bool {
-	return _any(strings.HasPrefix, s, prefixes)
+	return _any(strings.HasPrefix, strings.ToLower(s), prefixes)
 }
 
+// Returns true if string contains any of indexes.
+// NOTE: Does index searches against strings.ToLower(*s)!
 func ContainsAny(s string, indexes []string) bool {
-	return _any(strings.Contains, s, indexes)
+	return _any(strings.Contains, strings.ToLower(s), indexes)
 }
 
 // Strips off the first found prefix from the string pointer,
