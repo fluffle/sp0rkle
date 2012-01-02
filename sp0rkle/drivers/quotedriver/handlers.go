@@ -56,10 +56,11 @@ func qd_privmsg(bot *bot.Sp0rkle, line *base.Line) {
 	case util.StripAnyPrefix(&nl.Args[1], []string{"quote #"}):
 		bot.Dispatch("qd_fetch", qd, nl)
 	// Quote lookup: quote | quote regex
+	case strings.ToLower(nl.Args[1]) == "quote":
+		nl.Args[1] = ""
+		fallthrough
 	// This needs to come after the other cases as it will strip just "quote "
 	case util.StripAnyPrefix(&nl.Args[1], []string{"quote "}):
-		fallthrough
-	case strings.ToLower(nl.Args[1]) == "quote":
 		bot.Dispatch("qd_lookup", qd, nl)
 	}
 }
