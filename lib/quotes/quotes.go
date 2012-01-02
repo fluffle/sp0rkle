@@ -53,7 +53,6 @@ func Collection(dbh *db.Database, l logging.Logger) *QuoteCollection {
 	}
 
 	var res Quote
-	// TODO(fluffle): When not on train investigate possibiliy of $max here.
 	if err := qc.Find(bson.M{}).Sort(bson.M{"qid": -1}).One(&res); err == nil {
 		qc.maxQID = int32(res.QID)
 	}

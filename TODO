@@ -92,17 +92,13 @@ Drivers
 
 *Quotes
   // Started, in lib/quotes and sp0rkle/drivers/quotedriver
-  // Still TODO: plenty ;-)
-  - Add quotes: q(uote )?add $quote
-  - Delete quotes: q(uote )?del $quote_id
-  - Quote rate-limiting per nick in channels (to stop ben spamming)
+  // Still TODO: some...
   - Multi-line quote add for copypasta win?
     + q(uote )?begin
     + record all lines said by Nick
     + q(uote )?end
   - Multi-line quote storage? (means parsing logic in quoteimporter)
   - Quote stats (use access counts)
-  - Quote plugin so factoids with <plugin=quote> work
   - Help, unit tests, etc.
 
 *Factoids
