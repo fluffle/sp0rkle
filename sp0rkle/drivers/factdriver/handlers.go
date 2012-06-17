@@ -118,7 +118,7 @@ func fd_add(bot *bot.Sp0rkle, fd *factoidDriver, line *base.Line) {
 
 func fd_chance(bot *bot.Sp0rkle, fd *factoidDriver, line *base.Line) {
 	str := strings.TrimSpace(line.Args[1])
-	var chance float32
+	var chance float64
 
 	if strings.HasSuffix(str, "%") {
 		// Handle 'chance of that is \d+%'
@@ -128,7 +128,7 @@ func fd_chance(bot *bot.Sp0rkle, fd *factoidDriver, line *base.Line) {
 				line.Nick, str))
 			return
 		} else {
-			chance = float32(i) / 100
+			chance = float64(i) / 100
 		}
 	} else {
 		// Assume the chance is a floating point number.
@@ -303,7 +303,7 @@ func fd_lookup(bot *bot.Sp0rkle, fd *factoidDriver, line *base.Line) {
 		// To avoid making this too spammy, forcibly limit the chance to 40%.
 		chance = 0.4
 	}
-	if rand.Float32() < chance {
+	if rand.Float64() < chance {
 		// Store this as the last seen factoid
 		fd.Lastseen(line.Args[0], fact.Id)
 		// Update the Accessed field

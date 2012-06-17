@@ -16,6 +16,8 @@ import (
 var file *string = flag.String("db", "Quotes.db",
 	"SQLite database to import quotes from.")
 
+var log logging.Logger
+
 const (
 	// The Quotes table columns are:
 	cID = iota
@@ -39,13 +41,12 @@ func parseQuote(row []interface{}, out chan *quotes.Quote) {
 
 func main() {
 	flag.Parse()
-	log := logging.NewFromFlags()
+	log = logging.NewFromFlags()
 
 	// Let's go find some mongo.
 	mdb, err := db.Connect("localhost")
 	if err != nil {
-		fmt.Printf("Oh no: %v", err)
-		return
+		log.Fatal("Oh no: %v", err)
 	}
 	defer mdb.Session.Close()
 	qc := quotes.Collection(mdb, log)
@@ -63,9 +64,9 @@ func main() {
 	db_query := func(dbh *sqlite3.Database) {
 		n, err := dbh.Execute("SELECT * FROM Quotes;", row_feeder)
 		if err == nil {
-			fmt.Printf("Read %d rows from database.\n", n)
+			log.Info("Read %d rows from database.\n", n)
 		} else {
-			fmt.Printf("DB error: %s\n", err)
+			log.Error("DB error: %s\n", err)
 		}
 	}
 
@@ -93,7 +94,7 @@ func main() {
 		// ... push each quote into mongo
 		err = qc.Insert(quote)
 		if err != nil {
-			fmt.Printf("Awww: %v\n", err)
+			log.Error("Awww: %v\n", err)
 		} else {
 			if count%1000 == 0 {
 				fmt.Printf("%d...", count)
@@ -102,5 +103,5 @@ func main() {
 		}
 	}
 	fmt.Println("done.")
-	fmt.Printf("Inserted %d quotes.\n", count)
+	log.Info("Inserted %d quotes.\n", count)
 }

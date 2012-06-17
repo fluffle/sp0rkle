@@ -28,7 +28,7 @@ func NewQuote(q string, n db.StorableNick, c db.StorableChan) *Quote {
 
 type QuoteCollection struct {
 	// Wrap mgo.Collection
-	mgo.Collection
+	*mgo.Collection
 
 	// Cache of ObjectId's for PseudoRand
 	seen map[string][]bson.ObjectId

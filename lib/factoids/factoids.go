@@ -26,7 +26,7 @@ const (
 // A factoid maps a key to a value, and keeps some stats about it
 type Factoid struct {
 	Key, Value                  string
-	Chance                      float32
+	Chance                      float64
 	Type                        FactoidType
 	Created, Modified, Accessed *FactoidStat
 	Perms                       *FactoidPerms
@@ -87,7 +87,7 @@ func (f *Factoid) Modify(n db.StorableNick, c db.StorableChan) {
 // Factoids are stored in a mongo collection of Factoid structs
 type FactoidCollection struct {
 	// We're wrapping mgo.Collection so we can provide our own methods.
-	mgo.Collection
+	*mgo.Collection
 
 	// cache of objectIds for PseudoRand
 	seen map[string][]bson.ObjectId

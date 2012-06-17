@@ -34,7 +34,7 @@ func dd_rand(dd *decisionDriver, val string, line *base.Line) string {
 // and first-class regex constructs. Doing without is fun!
 func rand_replacer(val string, r *rand.Rand) string {
 	for {
-		var lo, hi float32
+		var lo, hi float64
 		var err error
 		format := "%.0f"
 		// Work out the indices of the plugin start and end.
@@ -74,7 +74,7 @@ func rand_replacer(val string, r *rand.Rand) string {
 				hi = 0
 			}
 		}
-		rnd := r.Float32()*(hi-lo) + lo
+		rnd := r.Float64()*(hi-lo) + lo
 		val = val[:ps] + fmt.Sprintf(format, rnd) + val[pe+1:]
 	}
 	return val
