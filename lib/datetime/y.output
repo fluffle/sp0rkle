@@ -1,0 +1,412 @@
+
+state 0
+	$accept: .spec $end 
+	items: .    (11)
+
+	@  shift 4
+	.  reduce 11 (src line 71)
+
+	spec  goto 1
+	unixtime  goto 2
+	items  goto 3
+
+state 1
+	$accept:  spec.$end 
+
+	$end  accept
+	.  error
+
+
+state 2
+	spec:  unixtime.    (1)
+
+	.  reduce 1 (src line 49)
+
+
+state 3
+	spec:  items.    (2)
+	items:  items.item 
+
+	T_MONTH  shift 9
+	T_INTEGER  shift 8
+	.  reduce 2 (src line 50)
+
+	item  goto 5
+	time  goto 6
+	date  goto 7
+
+state 4
+	unixtime:  @.o_sign T_INTEGER 
+	o_sign: .    (4)
+
+	T_PLUS  shift 11
+	T_MINUS  shift 12
+	.  reduce 4 (src line 61)
+
+	o_sign  goto 10
+
+state 5
+	items:  items item.    (12)
+
+	.  reduce 12 (src line 73)
+
+
+state 6
+	item:  time.    (13)
+
+	.  reduce 13 (src line 75)
+
+
+state 7
+	item:  date.    (14)
+
+	.  reduce 14 (src line 76)
+
+
+state 8
+	time:  T_INTEGER.: T_INTEGER o_ampm_or_zone 
+	time:  T_INTEGER.: T_INTEGER : T_INTEGER o_ampm_or_zone 
+	date:  T_INTEGER.datesep T_INTEGER 
+	date:  T_INTEGER.datesep T_INTEGER datesep T_INTEGER 
+	date:  T_INTEGER.dayqual T_MONTH 
+	date:  T_INTEGER.dayqual T_MONTH T_INTEGER 
+	dayqual: .    (25)
+
+	T_MINUS  shift 16
+	:  shift 13
+	/  shift 17
+	s  shift 18
+	t  shift 21
+	n  shift 19
+	r  shift 20
+	.  reduce 25 (src line 202)
+
+	datesep  goto 14
+	dayqual  goto 15
+
+state 9
+	date:  T_MONTH.T_INTEGER dayqual 
+	date:  T_MONTH.T_INTEGER dayqual o_comma T_INTEGER 
+
+	T_INTEGER  shift 22
+	.  error
+
+
+state 10
+	unixtime:  @ o_sign.T_INTEGER 
+
+	T_INTEGER  shift 23
+	.  error
+
+
+state 11
+	o_sign:  T_PLUS.    (5)
+
+	.  reduce 5 (src line 63)
+
+
+state 12
+	o_sign:  T_MINUS.    (6)
+
+	.  reduce 6 (src line 63)
+
+
+state 13
+	time:  T_INTEGER :.T_INTEGER o_ampm_or_zone 
+	time:  T_INTEGER :.T_INTEGER : T_INTEGER o_ampm_or_zone 
+
+	T_INTEGER  shift 24
+	.  error
+
+
+state 14
+	date:  T_INTEGER datesep.T_INTEGER 
+	date:  T_INTEGER datesep.T_INTEGER datesep T_INTEGER 
+
+	T_INTEGER  shift 25
+	.  error
+
+
+state 15
+	date:  T_INTEGER dayqual.T_MONTH 
+	date:  T_INTEGER dayqual.T_MONTH T_INTEGER 
+
+	T_MONTH  shift 26
+	.  error
+
+
+state 16
+	datesep:  T_MINUS.    (23)
+
+	.  reduce 23 (src line 199)
+
+
+state 17
+	datesep:  /.    (24)
+
+	.  reduce 24 (src line 200)
+
+
+state 18
+	dayqual:  s.t 
+
+	t  shift 27
+	.  error
+
+
+state 19
+	dayqual:  n.d 
+
+	d  shift 28
+	.  error
+
+
+state 20
+	dayqual:  r.d 
+
+	d  shift 29
+	.  error
+
+
+state 21
+	dayqual:  t.h 
+
+	h  shift 30
+	.  error
+
+
+state 22
+	date:  T_MONTH T_INTEGER.dayqual 
+	date:  T_MONTH T_INTEGER.dayqual o_comma T_INTEGER 
+	dayqual: .    (25)
+
+	s  shift 18
+	t  shift 21
+	n  shift 19
+	r  shift 20
+	.  reduce 25 (src line 202)
+
+	dayqual  goto 31
+
+state 23
+	unixtime:  @ o_sign T_INTEGER.    (3)
+
+	.  reduce 3 (src line 52)
+
+
+state 24
+	time:  T_INTEGER : T_INTEGER.o_ampm_or_zone 
+	time:  T_INTEGER : T_INTEGER.: T_INTEGER o_ampm_or_zone 
+	o_ampm_or_zone: .    (17)
+
+	T_AMPM  shift 34
+	T_PLUS  shift 37
+	T_MINUS  shift 38
+	:  shift 33
+	.  reduce 17 (src line 108)
+
+	sign  goto 36
+	zone  goto 35
+	o_ampm_or_zone  goto 32
+
+state 25
+	date:  T_INTEGER datesep T_INTEGER.    (30)
+	date:  T_INTEGER datesep T_INTEGER.datesep T_INTEGER 
+
+	T_MINUS  shift 16
+	/  shift 17
+	.  reduce 30 (src line 209)
+
+	datesep  goto 39
+
+26: shift/reduce conflict (shift 40(0), red'n 32(0)) on T_INTEGER
+state 26
+	date:  T_INTEGER dayqual T_MONTH.    (32)
+	date:  T_INTEGER dayqual T_MONTH.T_INTEGER 
+
+	T_INTEGER  shift 40
+	.  reduce 32 (src line 232)
+
+
+state 27
+	dayqual:  s t.    (26)
+
+	.  reduce 26 (src line 204)
+
+
+state 28
+	dayqual:  n d.    (27)
+
+	.  reduce 27 (src line 205)
+
+
+state 29
+	dayqual:  r d.    (28)
+
+	.  reduce 28 (src line 206)
+
+
+state 30
+	dayqual:  t h.    (29)
+
+	.  reduce 29 (src line 207)
+
+
+ 31: reduce/reduce conflict  (red'ns 33 and 9) on T_INTEGER
+state 31
+	date:  T_MONTH T_INTEGER dayqual.    (33)
+	date:  T_MONTH T_INTEGER dayqual.o_comma T_INTEGER 
+	o_comma: .    (9)
+
+	T_INTEGER  reduce 9 (src line 68)
+	,  shift 42
+	.  reduce 33 (src line 237)
+
+	o_comma  goto 41
+
+state 32
+	time:  T_INTEGER : T_INTEGER o_ampm_or_zone.    (15)
+
+	.  reduce 15 (src line 94)
+
+
+state 33
+	time:  T_INTEGER : T_INTEGER :.T_INTEGER o_ampm_or_zone 
+
+	T_INTEGER  shift 43
+	.  error
+
+
+state 34
+	o_ampm_or_zone:  T_AMPM.    (18)
+	o_ampm_or_zone:  T_AMPM.zone 
+
+	T_PLUS  shift 37
+	T_MINUS  shift 38
+	.  reduce 18 (src line 114)
+
+	sign  goto 36
+	zone  goto 44
+
+state 35
+	o_ampm_or_zone:  zone.    (20)
+
+	.  reduce 20 (src line 123)
+
+
+state 36
+	zone:  sign.T_INTEGER 
+	zone:  sign.T_INTEGER : T_INTEGER 
+
+	T_INTEGER  shift 45
+	.  error
+
+
+state 37
+	sign:  T_PLUS.    (7)
+
+	.  reduce 7 (src line 65)
+
+
+state 38
+	sign:  T_MINUS.    (8)
+
+	.  reduce 8 (src line 66)
+
+
+state 39
+	date:  T_INTEGER datesep T_INTEGER datesep.T_INTEGER 
+
+	T_INTEGER  shift 46
+	.  error
+
+
+state 40
+	date:  T_INTEGER dayqual T_MONTH T_INTEGER.    (34)
+
+	.  reduce 34 (src line 246)
+
+
+state 41
+	date:  T_MONTH T_INTEGER dayqual o_comma.T_INTEGER 
+
+	T_INTEGER  shift 47
+	.  error
+
+
+state 42
+	o_comma:  ,.    (10)
+
+	.  reduce 10 (src line 69)
+
+
+state 43
+	time:  T_INTEGER : T_INTEGER : T_INTEGER.o_ampm_or_zone 
+	o_ampm_or_zone: .    (17)
+
+	T_AMPM  shift 34
+	T_PLUS  shift 37
+	T_MINUS  shift 38
+	.  reduce 17 (src line 108)
+
+	sign  goto 36
+	zone  goto 35
+	o_ampm_or_zone  goto 48
+
+state 44
+	o_ampm_or_zone:  T_AMPM zone.    (19)
+
+	.  reduce 19 (src line 118)
+
+
+state 45
+	zone:  sign T_INTEGER.    (21)
+	zone:  sign T_INTEGER.: T_INTEGER 
+
+	:  shift 49
+	.  reduce 21 (src line 128)
+
+
+state 46
+	date:  T_INTEGER datesep T_INTEGER datesep T_INTEGER.    (31)
+
+	.  reduce 31 (src line 221)
+
+
+state 47
+	date:  T_MONTH T_INTEGER dayqual o_comma T_INTEGER.    (35)
+
+	.  reduce 35 (src line 251)
+
+
+state 48
+	time:  T_INTEGER : T_INTEGER : T_INTEGER o_ampm_or_zone.    (16)
+
+	.  reduce 16 (src line 101)
+
+
+state 49
+	zone:  sign T_INTEGER :.T_INTEGER 
+
+	T_INTEGER  shift 50
+	.  error
+
+
+state 50
+	zone:  sign T_INTEGER : T_INTEGER.    (22)
+
+	.  reduce 22 (src line 134)
+
+
+18 terminals, 14 nonterminals
+36 grammar rules, 51/2000 states
+1 shift/reduce, 1 reduce/reduce conflicts reported
+63 working sets used
+memory: parser 20/30000
+8 extra closures
+44 shift entries, 2 exceptions
+17 goto entries
+3 entries saved by goto default
+Optimizer space used: output 61/30000
+61 table entries, 0 zero
+maximum spread: 18, maximum offset: 43
