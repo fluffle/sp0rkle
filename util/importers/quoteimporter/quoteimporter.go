@@ -32,7 +32,7 @@ func parseQuote(row []interface{}, out chan *quotes.Quote) {
 		StorableNick: db.StorableNick{Nick: row[cNick].(string)},
 		StorableChan: db.StorableChan{Chan: row[cChannel].(string)},
 		Accessed:     0,
-		Timestamp:    time.SecondsToLocalTime(row[cTime].(int64)),
+		Timestamp:    time.Unix(row[cTime].(int64), 0),
 		Id:           bson.NewObjectId(),
 	}
 }

@@ -18,12 +18,12 @@ type Quote struct {
 	db.StorableNick
 	db.StorableChan
 	Accessed  int
-	Timestamp *time.Time
+	Timestamp time.Time
 	Id        bson.ObjectId "_id"
 }
 
 func NewQuote(q string, n db.StorableNick, c db.StorableChan) *Quote {
-	return &Quote{q, 0, n, c, 0, time.LocalTime(), bson.NewObjectId()}
+	return &Quote{q, 0, n, c, 0, time.Now(), bson.NewObjectId()}
 }
 
 type QuoteCollection struct {
@@ -94,7 +94,7 @@ func (qc *QuoteCollection) GetPseudoRand(regex string) *Quote {
 	if count == 0 {
 		if ok {
 			// Looked for this regex before, but nothing matches now
-			qc.seen[regex] = nil, false
+			delete(qc.seen, regex)
 		}
 		return nil
 	}
@@ -118,7 +118,7 @@ func (qc *QuoteCollection) GetPseudoRand(regex string) *Quote {
 		// if the count of results is 1 and we're storing seen data for regex
 		// then we've exhausted the possible results and should wipe it
 		qc.l.Debug("Zeroing seen data for regex '%s'.", regex)
-		qc.seen[regex] = nil, false
+		delete(qc.seen, regex)
 	}
 	return &res
 }

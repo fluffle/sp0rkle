@@ -7,12 +7,11 @@ import (
 	"lib/db"
 	"lib/factoids"
 	"lib/util"
-	"os"
-	"rand"
-	"sp0rkle/bot"
+	"math/rand"
 	"sp0rkle/base"
-	"strings"
+	"sp0rkle/bot"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -133,7 +132,7 @@ func fd_chance(bot *bot.Sp0rkle, fd *factoidDriver, line *base.Line) {
 		}
 	} else {
 		// Assume the chance is a floating point number.
-		if c, err := strconv.Atof32(str); err != nil {
+		if c, err := strconv.ParseFloat(str, 32); err != nil {
 			bot.Conn.Privmsg(line.Args[0], fmt.Sprintf(
 				"%s: '%s' didn't look like a chance to me.",
 				line.Nick, str))
@@ -266,7 +265,7 @@ func fd_literal(bot *bot.Sp0rkle, fd *factoidDriver, line *base.Line) {
 	// Passing an anonymous function to For makes it a little hard to abstract
 	// away in lib/factoids. Fortunately this is something of a one-off.
 	var fact *factoids.Factoid
-	f := func() os.Error {
+	f := func() error {
 		if fact != nil {
 			bot.Conn.Privmsg(line.Args[0], fmt.Sprintf(
 				"%s: [%3.0f%%] %s", line.Nick, fact.Chance*100, fact.Value))

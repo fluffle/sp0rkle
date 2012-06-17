@@ -5,11 +5,10 @@ package decisiondriver
 import (
 	"fmt"
 	"lib/util"
-	"os"
-	"rand"
+	"math/rand"
 	"sp0rkle/base"
-	"strings"
 	"strconv"
+	"strings"
 )
 
 func (dd *decisionDriver) RegisterPlugins(pm base.PluginManager) {
@@ -36,7 +35,7 @@ func dd_rand(dd *decisionDriver, val string, line *base.Line) string {
 func rand_replacer(val string, r *rand.Rand) string {
 	for {
 		var lo, hi float32
-		var err os.Error
+		var err error
 		format := "%.0f"
 		// Work out the indices of the plugin start and end.
 		ps := strings.Index(val, "<plugin=rand ")
@@ -63,15 +62,15 @@ func rand_replacer(val string, r *rand.Rand) string {
 		// range lo-hi, rather than just 0-hi.
 		if dash := strings.Index(val[mid:sp], "-"); dash != -1 {
 			dash += mid
-			if lo, err = strconv.Atof32(val[mid:dash]); err != nil {
+			if lo, err = strconv.ParseFloat(val[mid:dash], 32); err != nil {
 				lo = 0
 			}
-			if hi, err = strconv.Atof32(val[dash+1 : sp]); err != nil {
+			if hi, err = strconv.ParseFloat(val[dash+1:sp], 32); err != nil {
 				hi = 0
 			}
 		} else {
 			lo = 0
-			if hi, err = strconv.Atof32(val[mid:sp]); err != nil {
+			if hi, err = strconv.ParseFloat(val[mid:sp], 32); err != nil {
 				hi = 0
 			}
 		}

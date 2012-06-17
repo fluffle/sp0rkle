@@ -2,10 +2,7 @@ package db
 
 // Wraps an mgo connection and db object for convenience
 
-import (
-	"launchpad.net/mgo"
-	"os"
-)
+import "launchpad.net/mgo"
 
 const DATABASE string = "sp0rkle"
 
@@ -19,7 +16,7 @@ type Database struct {
 }
 
 // Wraps connecting to mongo and selecting the "sp0rkle" database.
-func Connect(resource string) (*Database, os.Error) {
+func Connect(resource string) (*Database, error) {
 	sess, err := mgo.Mongo(resource)
 	if err != nil {
 		return nil, err

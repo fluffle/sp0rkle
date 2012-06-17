@@ -36,7 +36,7 @@ type Factoid struct {
 // Represent info about things that happened to the factoid
 type FactoidStat struct {
 	// When <thing> happened
-	Timestamp *time.Time
+	Timestamp time.Time
 	// Who did <thing>
 	db.StorableNick
 	// Where they did <thing>
@@ -58,7 +58,7 @@ type FactoidInfo struct {
 
 // Helper to make the work of putting together a completely new *Factoid easier
 func NewFactoid(key, value string, n db.StorableNick, c db.StorableChan) *Factoid {
-	ts := time.LocalTime()
+	ts := time.Now()
 	ft, fv := ParseValue(value)
 	return &Factoid{
 		Key: key, Value: fv, Type: ft, Chance: 1.0,
@@ -71,14 +71,14 @@ func NewFactoid(key, value string, n db.StorableNick, c db.StorableChan) *Factoi
 }
 
 func (f *Factoid) Access(n db.StorableNick, c db.StorableChan) {
-	f.Accessed.Timestamp = time.LocalTime()
+	f.Accessed.Timestamp = time.Now()
 	f.Accessed.StorableNick = n
 	f.Accessed.StorableChan = c
 	f.Accessed.Count++
 }
 
 func (f *Factoid) Modify(n db.StorableNick, c db.StorableChan) {
-	f.Modified.Timestamp = time.LocalTime()
+	f.Modified.Timestamp = time.Now()
 	f.Modified.StorableNick = n
 	f.Modified.StorableChan = c
 	f.Modified.Count++
@@ -150,7 +150,7 @@ func (fc *FactoidCollection) GetPseudoRand(key string) *Factoid {
 	if count == 0 {
 		if ok {
 			// we've seen this before, but people have deleted it since.
-			fc.seen[key] = nil, false
+			delete(fc.seen, key)
 		}
 		return nil
 	}
@@ -174,7 +174,7 @@ func (fc *FactoidCollection) GetPseudoRand(key string) *Factoid {
 		// if the count of results is 1 and we're storing seen data for key
 		// then we've exhausted the possible results and should wipe it
 		fc.l.Debug("Zeroing seen data for key '%s'.", key)
-		fc.seen[key] = nil, false
+		delete(fc.seen, key)
 	}
 	return &res
 }

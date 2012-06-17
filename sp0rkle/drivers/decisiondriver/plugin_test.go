@@ -2,7 +2,7 @@ package decisiondriver
 
 import (
 	"lib/util"
-	"rand"
+	"math/rand"
 	"reflect"
 	"testing"
 )

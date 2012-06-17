@@ -1,13 +1,13 @@
 package util
 
 import (
-	"rand"
+	"math/rand"
 	"sync"
 	"time"
 )
 
 // A random number generator seeded with something less predictable than 1
-var RNG *rand.Rand = NewRand(time.Nanoseconds())
+var RNG *rand.Rand = NewRand(time.Now())
 
 // Gratuitously stolen from pkg/rand, cos they aren't usable externally.
 type lockedSource struct {

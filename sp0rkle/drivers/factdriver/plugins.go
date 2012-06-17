@@ -22,11 +22,11 @@ func (fp *FactoidPlugin) Apply(val string, line *base.Line) string {
 
 // Replicate perlfu's $<stuff> identifiers
 func fd_identifiers(fd *factoidDriver, val string, line *base.Line) string {
-	return id_replacer(val, line, time.LocalTime())
+	return id_replacer(val, line, time.Now())
 }
 
 // Split this out so we can inject a deterministic time for testing.
-func id_replacer(val string, line *base.Line, ts *time.Time) string {
+func id_replacer(val string, line *base.Line, ts time.Time) string {
 	val = strings.Replace(val, "$nick", line.Nick, -1)
 	val = strings.Replace(val, "$chan", line.Args[0], -1)
 	val = strings.Replace(val, "$username", line.Ident, -1)

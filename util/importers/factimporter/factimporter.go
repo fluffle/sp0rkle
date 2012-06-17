@@ -102,7 +102,7 @@ func parseValue(k, r, v string) (ft factoids.FactoidType, fv string) {
 }
 
 // Parse the Created field with a type switch, cos it varies :-/
-func parseTimestamp(ts interface{}) *time.Time {
+func parseTimestamp(ts interface{}) time.Time {
 	var tm int64
 	switch ts.(type) {
 	case float64:
@@ -110,11 +110,11 @@ func parseTimestamp(ts interface{}) *time.Time {
 	case int64:
 		tm = ts.(int64)
 	case string:
-		tm, _ = strconv.Atoi64(ts.(string))
+		tm, _ = strconv.ParseInt(ts.(string), 10, 64)
 	default:
 		return nil
 	}
-	return time.SecondsToLocalTime(tm)
+	return time.Unix(tm, 0)
 }
 
 // Ditto for the Access field.
@@ -139,10 +139,10 @@ func toString(s interface{}) string {
 		if float64(int(s.(float64))) == s.(float64) {
 			return strconv.Itoa(int(s.(float64)))
 		} else {
-			return strconv.Ftoa64(s.(float64), 'f', -1)
+			return strconv.FormatFloat(s.(float64), 'f', -1, 64)
 		}
 	case int64:
-		return strconv.Itoa64(s.(int64))
+		return strconv.FormatInt(s.(int64), 10)
 	case string:
 		return s.(string)
 	}

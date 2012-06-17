@@ -49,13 +49,13 @@ func (qd *quoteDriver) rateLimit(nick string) bool {
 		qd.limits[nick] = lim
 	}
 	// limit to 1 quote every 15 seconds, burst to 4 quotes
-	elapsed := time.Nanoseconds() - lim.lastsent
+	elapsed := time.Now().Sub(lim.lastsent)
 	if lim.badness += 15*second - elapsed; lim.badness < 0 {
 		lim.badness = 0
 	}
 	if lim.badness > 60*second {
 		return true
 	}
-	lim.lastsent = time.Nanoseconds()
+	lim.lastsent = time.Now()
 	return false
 }
