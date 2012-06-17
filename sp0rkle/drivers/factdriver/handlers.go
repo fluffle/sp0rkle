@@ -8,7 +8,7 @@ import (
 	"github.com/fluffle/sp0rkle/lib/util"
 	"github.com/fluffle/sp0rkle/sp0rkle/base"
 	"github.com/fluffle/sp0rkle/sp0rkle/bot"
-	"launchpad.net/gobson/bson"
+	"launchpad.net/mgo/bson"
 	"math/rand"
 	"strconv"
 	"strings"
