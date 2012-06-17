@@ -38,12 +38,12 @@ func qd_plugin_lookup(qd *quoteDriver, val string, line *base.Line) string {
 			quote = qd.GetPseudoRand("")
 		case val[ps+14] == '#':
 			// <plugin=quote #QID>
-			if qid, err := strconv.Atoi(val[ps+15:ps+pe]); err == nil {
+			if qid, err := strconv.Atoi(val[ps+15 : ps+pe]); err == nil {
 				quote = qd.GetByQID(qid)
 			}
 		default:
 			// we have " some key to look up" between ps+14 and ps+pe
-			quote = qd.GetPseudoRand(val[ps+14:ps+pe])
+			quote = qd.GetPseudoRand(val[ps+14 : ps+pe])
 		}
 		if quote == nil {
 			continue

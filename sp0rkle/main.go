@@ -12,8 +12,8 @@ import (
 	"github.com/fluffle/sp0rkle/sp0rkle/drivers/decisiondriver"
 	"github.com/fluffle/sp0rkle/sp0rkle/drivers/factdriver"
 	"github.com/fluffle/sp0rkle/sp0rkle/drivers/quotedriver"
-	"strings"
 	"os"
+	"strings"
 )
 
 var host *string = flag.String("host", "", "IRC server to connect to.")

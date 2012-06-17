@@ -1,8 +1,8 @@
 package bot
 
 import (
-	"github.com/fluffle/goirc/client"
 	"github.com/fluffle/goevent/event"
+	"github.com/fluffle/goirc/client"
 	"github.com/fluffle/sp0rkle/lib/util"
 	"github.com/fluffle/sp0rkle/sp0rkle/base"
 	"strings"

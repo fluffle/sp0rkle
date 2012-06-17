@@ -6,12 +6,12 @@ import (
 	"github.com/fluffle/sp0rkle/lib/db"
 	"github.com/fluffle/sp0rkle/lib/quotes"
 	"github.com/fluffle/sp0rkle/lib/util"
-	"github.com/fluffle/sp0rkle/sp0rkle/bot"
 	"github.com/fluffle/sp0rkle/sp0rkle/base"
+	"github.com/fluffle/sp0rkle/sp0rkle/bot"
 	"launchpad.net/mgo/bson"
 	//	"rand"
-	"strings"
 	"strconv"
+	"strings"
 	//	"time"
 )
 
