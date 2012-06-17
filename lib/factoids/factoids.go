@@ -4,10 +4,10 @@ package factoids
 
 import (
 	"github.com/fluffle/golog/logging"
+	"github.com/fluffle/sp0rkle/lib/db"
+	"github.com/fluffle/sp0rkle/lib/util"
 	"launchpad.net/gobson/bson"
 	"launchpad.net/mgo"
-	"lib/db"
-	"lib/util"
 	"strings"
 	"time"
 )

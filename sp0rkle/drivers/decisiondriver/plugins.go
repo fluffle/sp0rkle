@@ -4,9 +4,9 @@ package decisiondriver
 
 import (
 	"fmt"
-	"lib/util"
+	"github.com/fluffle/sp0rkle/lib/util"
+	"github.com/fluffle/sp0rkle/sp0rkle/base"
 	"math/rand"
-	"sp0rkle/base"
 	"strconv"
 	"strings"
 )

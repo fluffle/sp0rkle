@@ -2,11 +2,11 @@ package quotedriver
 
 import (
 	"github.com/fluffle/golog/logging"
+	"github.com/fluffle/sp0rkle/lib/db"
+	"github.com/fluffle/sp0rkle/lib/quotes"
+	//	"github.com/fluffle/sp0rkle/lib/util"
+	//	"github.com/fluffle/sp0rkle/sp0rkle/base"
 	//	"launchpad.net/gobson/bson"
-	"lib/db"
-	"lib/quotes"
-	//	"lib/util"
-	//	"sp0rkle/base"
 	//	"strings"
 	"time"
 )

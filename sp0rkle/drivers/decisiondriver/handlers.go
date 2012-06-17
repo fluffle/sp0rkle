@@ -4,8 +4,8 @@ package decisiondriver
 
 import (
 	"github.com/fluffle/goevent/event"
-	"sp0rkle/bot"
-	"sp0rkle/base"
+	"github.com/fluffle/sp0rkle/sp0rkle/bot"
+	"github.com/fluffle/sp0rkle/sp0rkle/base"
 )
 
 func (dd *decisionDriver) RegisterHandlers(r event.EventRegistry) {

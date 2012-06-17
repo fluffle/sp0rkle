@@ -3,8 +3,8 @@ package bot
 import (
 	"github.com/fluffle/goirc/client"
 	"github.com/fluffle/goevent/event"
-	"lib/util"
-	"sp0rkle/base"
+	"github.com/fluffle/sp0rkle/lib/util"
+	"github.com/fluffle/sp0rkle/sp0rkle/base"
 	"strings"
 )
 

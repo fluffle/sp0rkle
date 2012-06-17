@@ -6,10 +6,10 @@ import (
 	"flag"
 	"fmt"
 	"github.com/fluffle/golog/logging"
+	"github.com/fluffle/sp0rkle/lib/db"
+	"github.com/fluffle/sp0rkle/lib/quotes"
 	"github.com/kuroneko/gosqlite3"
 	"launchpad.net/gobson/bson"
-	"lib/db"
-	"lib/quotes"
 	"time"
 )
 

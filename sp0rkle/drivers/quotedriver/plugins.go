@@ -1,8 +1,8 @@
 package quotedriver
 
 import (
-	"lib/quotes"
-	"sp0rkle/base"
+	"github.com/fluffle/sp0rkle/lib/quotes"
+	"github.com/fluffle/sp0rkle/sp0rkle/base"
 	"strconv"
 	"strings"
 )
