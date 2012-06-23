@@ -11,6 +11,7 @@ import (
 	"github.com/fluffle/sp0rkle/sp0rkle/bot"
 	"github.com/fluffle/sp0rkle/sp0rkle/drivers/decisiondriver"
 	"github.com/fluffle/sp0rkle/sp0rkle/drivers/factdriver"
+	"github.com/fluffle/sp0rkle/sp0rkle/drivers/netdriver"
 	"github.com/fluffle/sp0rkle/sp0rkle/drivers/quotedriver"
 	"os"
 	"strings"
@@ -59,6 +60,7 @@ func main() {
 	bot.AddDriver(fd)
 	bot.AddDriver(decisiondriver.DecisionDriver())
 	bot.AddDriver(quotedriver.QuoteDriver(db, log))
+	bot.AddDriver(netdriver.NetDriver(log))
 
 	// Register everything
 	bot.RegisterAll()
