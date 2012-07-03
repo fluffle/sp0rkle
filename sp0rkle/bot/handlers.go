@@ -23,6 +23,12 @@ func (bot *Sp0rkle) RegisterHandlers(r event.EventRegistry) {
 	r.AddHandler(client.NewHandler(bot_disconnected), "disconnected")
 	r.AddHandler(client.NewHandler(bot_privmsg), "privmsg")
 	r.AddHandler(forward_event("action"), "action")
+	// These are mostly for the seen plugin.
+	r.AddHandler(forward_event("join"), "join")
+	r.AddHandler(forward_event("part"), "part")
+	r.AddHandler(forward_event("kick"), "kick")
+	r.AddHandler(forward_event("quit"), "quit")
+	r.AddHandler(forward_event("nick"), "nick")
 }
 
 // Unboxer for bot handlers.
