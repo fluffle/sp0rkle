@@ -31,7 +31,7 @@ Drivers
 
 
 // There are probably more useful web services with JSON apis to wrap,
-// these can probably all be in one driver to al
+// these can all go in 'netdriver'
 *WebServices
   - exchange (XE.com?)
     command: exchange, convert
@@ -76,10 +76,8 @@ Drivers
 
 
 *Seen
-  //related to <lines>, when was the last time we saw person X say something,
-  and what were the last two things they said (since last can often be pingtout)
-  Also report similar sounding nicknames (steve, steve-afk)
-  Should track lots of actions, such as "changing there nick"
+  // Keep track of people's presence on IRC.
+  // Pretty much done, for simple stuff.
 
 *urlsearch
   //Keep a track of urls that are said and allow them to be searched (using regex)
