@@ -106,7 +106,6 @@ var functionMap = map[string]function{
 	"int":   functionise1(math.Trunc), // renamed
 	"log":   functionise1(math.Log),
 	"log10": functionise1(math.Log10),
-	"log1p": functionise1(math.Log1p),
 	"log2":  functionise1(math.Log2),
 	"logb":  functionise1(math.Logb),
 	"max":   functionise2(math.Max),   // 2 args
@@ -145,7 +144,7 @@ type token struct {
 type lexer struct {
 	input string
 	start, pos, width int
-	unaryMinus bool
+	binaryMinus bool
 }
 
 // peek() returns the utf8 rune that is at lexer.pos in the input string.
@@ -156,6 +155,11 @@ func (l *lexer) peek() (r rune) {
 		return 0
 	}
 	r, l.width = utf8.DecodeRuneInString(l.input[l.pos:])
+	if r == utf8.RuneError {
+		// Treat bad unicode as EOF.
+		l.width = 0
+		return 0
+	}
 	return r
 }
 
@@ -186,21 +190,21 @@ func (l *lexer) rewind() {
 
 // number() is a higher-level function that extracts a number from the
 // input beginning at lexer.pos. A number matches the following regex:
-//     -?[0-9]+(.[0-9]+)?([eE][0-9]+)?
+//     -?[0-9]+(.[0-9]+)?([eE]-?[0-9]+)?
 func (l *lexer) number() float64 {
 	s := l.pos // l.start is reset through the multiple scans
-	if l.peek() == '-' { l.pos += l.width }   // -?
-	l.scan(unicode.IsDigit)                   // [0-9]+
-	if l.next() == "." {                      // (.
-		l.scan(unicode.IsDigit)               //   [0-9]+
-	} else {                                  //
-		l.rewind()                            //         )?
-	}                                         //
-	c := l.next()                             //
-	if c == "e" || c == "E" {                 // ([eE]
-		l.scan(unicode.IsDigit)               //      [0-9]+
-	} else {                                  //
-		l.rewind()                            //            )?
+	if l.peek() == '-' { l.pos += l.width }
+	l.scan(unicode.IsDigit)
+	if l.next() == "." {
+		l.scan(unicode.IsDigit)
+	} else {
+		l.rewind()
+	}
+	if c := l.next(); c == "e" || c == "E" {
+		if l.peek() == '-' { l.pos += l.width }
+		l.scan(unicode.IsDigit)
+	} else {
+		l.rewind()
 	}
 	l.start = s
 	n, err := strconv.ParseFloat(l.input[s:l.pos], 64)
@@ -230,10 +234,21 @@ func (l *lexer) token() (tok *token) {
 	case r == '-':
 		// could be a prefix - as in -12. This is only valid
 		// if the last token was an operator (6 - 4) vs (6 - -4)
-		if l.unaryMinus {
-			tok = &token{T_NUM, "", l.number()}
-		} else {
+		l.next()
+		if l.binaryMinus {
 			tok = &token{T_OP, l.next(), 0}
+		} else if unicode.IsLetter(l.peek()) {
+			// With many apologies, this seemed to be the best place
+			// to hack in support for negative constants like "-pi"...
+			str := l.scan(unicode.IsLetter)
+			if num, ok := ConstMap[str]; ok {
+				tok = &token{T_NUM, "", -num}
+			} else {
+				tok = &token{T_NFI, "-"+str, 0}
+			}
+		} else {
+			l.rewind()
+			tok = &token{T_NUM, "", l.number()}
 		}
 	case r == '*':
 		// ** is often the power operator
@@ -248,25 +263,35 @@ func (l *lexer) token() (tok *token) {
 		str := l.scan(unicode.IsLetter)
 		if _, ok := functionMap[str]; ok {
 		// since we know our defined functions, let's just check
+			// we need special case checking for atan2, log2, and
+			// log10, because IsLetter doesn't match the 2 / 10...
+			if c := l.next(); c == "2" {
+				str += "2"
+			} else if c == "1" && l.peek() == '0' {
+				l.next()
+				str += "10"
+			} else {
+				l.rewind()
+			}
 			tok = &token{T_FUNC, str, 0}
 		} else if num, ok := ConstMap[str]; ok {
 		// since we know our defined constants, ...
 			tok = &token{T_NUM, "", num}
 		} else {
-			// keeping this simple here, error handling for unknown strings
-			// can be done further up in the parser
+			// keeping this simple here, error handling for
+			// unknown strings can be done up in the parser
 			tok = &token{T_NFI, str, 0}
 		}
-	case unicode.IsNumber(r):
+	case unicode.IsDigit(r):
 		tok = &token{T_NUM, "", l.number()}
 	default:
 		tok = &token{T_NFI, l.next(), 0}
 	}
 	switch tok.kind {
 	case T_OP, T_LPAR, T_COMMA:
-		l.unaryMinus = true
+		l.binaryMinus = false
 	default:
-		l.unaryMinus = false
+		l.binaryMinus = true
 	}
 	return
 }
