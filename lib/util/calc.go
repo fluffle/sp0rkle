@@ -343,40 +343,31 @@ func (ts *tokenStack) getNums(n int) ([]*token, error) {
 	return nums, nil
 }
 
-// The parser itself contains a pointer to a lexer and a single tokenStack
-// which stores the mid-point rpn representation between shunt() and calc().
-//     ...
-// Why, exactly, i'm not sure. p.ops isn't even treated like a stack, more
-// a FIFO between the two. Use a channel instead? A simple []*token?
-type parser struct {
-	l *lexer
-	ops *tokenStack
-}
-
 // shunt() implements a version of Dijkstra's Shunting-Yard algorithm:
 //     http://en.wikipedia.org/wiki/Shunting-yard_algorithm
-func (p *parser) shunt() error {
-	stack := ts(len(p.l.input))
+func shunt(l *lexer) (*tokenStack, error) {
+	stack := ts(len(l.input))
+	ops := ts(len(l.input))
 	// This is abusing the "numval" field of T_FUNC tokens to check
 	// they have been given the correct number of arguments. This
 	// should hopefully avoid a number of incorrect calc results.
 	argcs := ts(5)
 SHUNT:
 	for {
-		tok := p.l.token()
+		tok := l.token()
 		switch tok.kind {
 		case T_EOF:
 			break SHUNT
 		case T_NFI:
-			return fmt.Errorf("Unrecognised '%#v' in expression", tok)
+			return nil, fmt.Errorf("Unrecognised '%#v' in expression", tok)
 		case T_NUM:
-			p.ops.push(tok)
+			ops.push(tok)
 		case T_OP:
 			for {
 				top, err := stack.pop()
 				if err != nil { break }
 				if top.kind == T_OP && precedence(tok.strval, top.strval) {
-					p.ops.push(top)
+					ops.push(top)
 				} else {
 					stack.push(top)
 					break
@@ -391,21 +382,21 @@ SHUNT:
 		case T_RPAR:
 			for {
 				top, err := stack.pop()
-				if err != nil { return err }
+				if err != nil { return nil, err }
 				if top.kind == T_LPAR {
 					break
 				}
-				p.ops.push(top)
+				ops.push(top)
 			}
 			if top, err := stack.pop(); err == nil {
 				if top.kind == T_FUNC {
-					p.ops.push(top)
+					ops.push(top)
 					if f, err := argcs.pop(); err == nil {
 						f.numval++
 						fmt.Printf("func %s: expected %d, got %f\n",
 							f.strval, functionMap[f.strval].argc, f.numval)
 						if int(f.numval) != functionMap[f.strval].argc {
-							return fmt.Errorf("Incorrect number of arguments" +
+							return nil, fmt.Errorf("Incorrect number of arguments" +
 								" for function '%s'.", f.strval)
 						}
 					}
@@ -419,30 +410,30 @@ SHUNT:
 			}
 			for {
 				top, err := stack.pop()
-				if err != nil { return err }
+				if err != nil { return nil, err }
 				if top.kind == T_LPAR {
 					stack.push(top)
 					break
 				}
-				p.ops.push(top)
+				ops.push(top)
 			}
 		}
 	}
 	for len(*stack) > 0 {
 		tok, _ := stack.pop()
 		if tok.kind == T_LPAR {
-			return fmt.Errorf("stack overflow")
+			return nil, fmt.Errorf("stack overflow")
 		}
-		p.ops.push(tok)
+		ops.push(tok)
 	}
-	return nil
+	return ops, nil
 }
 
 // calc() takes the rpn token list and applies the functions and
 // operators to the numbers to get a result.
-func (p *parser) calc() (float64, error) {
-	stack := ts(len(p.l.input))
-	for _, tok := range *p.ops {
+func calc(ops *tokenStack) (float64, error) {
+	stack := ts(len(*ops))
+	for _, tok := range *ops {
 		switch tok.kind {
 		// only NUM, OP, FUNC should have made it this far
 		case T_NUM:
@@ -471,19 +462,15 @@ func (p *parser) calc() (float64, error) {
 
 // Calc("some arbitrary maths string") -> (answer or zero, nil or error)
 func Calc(input string) (float64, error) {
-	p := &parser{
-		l: &lexer{input: input},
-		ops: ts(len(input)),
-	}
 	// Dijkstra's shunting-yard algorithm to RPN input
-	if err := p.shunt(); err != nil {
+	ops, err := shunt(&lexer{input: input});
+	if  err != nil {
 		return 0, err
 	}
 	fmt.Printf("Shunted. Operation list:\n")
-	for i, v := range *p.ops {
+	for i, v := range *ops {
 		fmt.Printf("%2d: %#v\n", i, v)
 	}
 	// Perform RPN calculation
-	return p.calc()
+	return calc(ops)
 }
-
