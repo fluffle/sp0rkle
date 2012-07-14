@@ -258,7 +258,3 @@ func TestTokenMinus(t *testing.T) {
 		}
 	}
 }
-
-// Parser tests
-
-

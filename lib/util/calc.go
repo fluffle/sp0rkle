@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"math"
 	"strconv"
+	"strings"
 	"unicode"
 	"unicode/utf8"
 )
@@ -134,11 +135,33 @@ const (
 	T_RPAR                 // a right parenthesis )
 	T_COMMA                // a comma ,
 )
+var kindMap = map[tokenKind]string{
+	T_EOF:   "EOF",
+	T_NFI:   "NFI",
+	T_NUM:   "NUM",
+	T_OP:    "OP",
+	T_FUNC:  "FUNC",
+	T_LPAR:  "LPAR",
+	T_RPAR:  "RPAR",
+	T_COMMA: "COMMA",
+}
 
 type token struct {
 	kind tokenKind
 	strval string
 	numval float64
+}
+
+func (t token) String() string {
+	switch t.kind {
+	case T_EOF, T_LPAR, T_RPAR, T_COMMA:
+		return kindMap[t.kind]
+	case T_NFI, T_OP, T_FUNC:
+		return fmt.Sprintf("%s{%s}", kindMap[t.kind], t.strval)
+	case T_NUM:
+		return fmt.Sprintf("%s{%g}", kindMap[t.kind], t.numval)
+	}
+	return ""
 }
 
 type lexer struct {
@@ -296,8 +319,16 @@ func (l *lexer) token() (tok *token) {
 	return
 }
 
+func (l *lexer) tokens() *tokenStack {
+	ts := ts(len(l.input))
+	for tok := l.token(); tok.kind != T_EOF; tok = l.token() {
+		ts.push(tok)
+	}
+	return ts
+}
+
 //------------------------------------------------------------------------------
-// The Parser
+// The "Parser"
 
 // To perform both the shunting-yard infix->rpn conversion and the subsequent
 // calculation, we need a stack to push and pop from. A slice of token pointers.
@@ -307,6 +338,14 @@ type tokenStack []*token
 func ts(size int) *tokenStack {
 	ts := tokenStack(make([]*token, 0, size))
 	return &ts
+}
+
+func (ts *tokenStack) String() string {
+	s := make([]string, len(*ts))
+	for i, tok := range(*ts) {
+		s[i] = fmt.Sprintf("%2d: %s", i, tok)
+	}
+	return strings.Join(s, "\n")
 }
 
 // push() adds an item to the stack
@@ -345,19 +384,15 @@ func (ts *tokenStack) getNums(n int) ([]*token, error) {
 
 // shunt() implements a version of Dijkstra's Shunting-Yard algorithm:
 //     http://en.wikipedia.org/wiki/Shunting-yard_algorithm
-func shunt(l *lexer) (*tokenStack, error) {
-	stack := ts(len(l.input))
-	ops := ts(len(l.input))
+func shunt(input *tokenStack) (*tokenStack, error) {
+	stack := ts(len(*input))
+	ops := ts(len(*input))
 	// This is abusing the "numval" field of T_FUNC tokens to check
 	// they have been given the correct number of arguments. This
 	// should hopefully avoid a number of incorrect calc results.
 	argcs := ts(5)
-SHUNT:
-	for {
-		tok := l.token()
+	for _, tok := range *input {
 		switch tok.kind {
-		case T_EOF:
-			break SHUNT
 		case T_NFI:
 			return nil, fmt.Errorf("Unrecognised '%#v' in expression", tok)
 		case T_NUM:
@@ -462,14 +497,11 @@ func calc(ops *tokenStack) (float64, error) {
 
 // Calc("some arbitrary maths string") -> (answer or zero, nil or error)
 func Calc(input string) (float64, error) {
+	l := &lexer{input: input}
 	// Dijkstra's shunting-yard algorithm to RPN input
-	ops, err := shunt(&lexer{input: input});
+	ops, err := shunt(l.tokens());
 	if  err != nil {
 		return 0, err
-	}
-	fmt.Printf("Shunted. Operation list:\n")
-	for i, v := range *ops {
-		fmt.Printf("%2d: %#v\n", i, v)
 	}
 	// Perform RPN calculation
 	return calc(ops)
