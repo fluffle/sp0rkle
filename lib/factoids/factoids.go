@@ -6,8 +6,8 @@ import (
 	"github.com/fluffle/golog/logging"
 	"github.com/fluffle/sp0rkle/lib/db"
 	"github.com/fluffle/sp0rkle/lib/util"
-	"launchpad.net/mgo"
-	"launchpad.net/mgo/bson"
+	"labix.org/v2/mgo"
+	"labix.org/v2/mgo/bson"
 	"strings"
 	"time"
 )

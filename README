@@ -34,7 +34,7 @@ mkdir -p $GOPATH/{src,pkg,bin}
 
 go get github.com/fluffle/goirc/client
 go get github.com/kuroneko/gosqlite3
-go get launchpad.net/mgo
+go get labix.org/v2/mgo
 
 4) Clone sp0rkle's code from github.
 

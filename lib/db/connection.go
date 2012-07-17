@@ -2,7 +2,7 @@ package db
 
 // Wraps an mgo connection and db object for convenience
 
-import "launchpad.net/mgo"
+import "labix.org/v2/mgo"
 
 const DATABASE string = "sp0rkle"
 

@@ -9,7 +9,7 @@ import (
 	"github.com/fluffle/sp0rkle/lib/db"
 	"github.com/fluffle/sp0rkle/lib/factoids"
 	"github.com/kuroneko/gosqlite3"
-	"launchpad.net/mgo/bson"
+	"labix.org/v2/mgo/bson"
 	"strconv"
 	"strings"
 	"time"

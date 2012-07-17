@@ -6,7 +6,7 @@ import (
 	"github.com/fluffle/sp0rkle/lib/factoids"
 	"github.com/fluffle/sp0rkle/lib/util"
 	"github.com/fluffle/sp0rkle/sp0rkle/base"
-	"launchpad.net/mgo/bson"
+	"labix.org/v2/mgo/bson"
 	"strings"
 )
 
