@@ -193,7 +193,7 @@ func (fc *FactoidCollection) GetLast(op, key string) *Factoid {
 	var res Factoid
 	// op == "modified", "accessed", "created"
 	op = op + ".timestamp"
-	q := fc.Find(lookup(key)).Sort(bson.M{op: -1})
+	q := fc.Find(lookup(key)).Sort("-op")
 	if err := q.One(&res); err == nil {
 		return &res
 	}
@@ -201,7 +201,7 @@ func (fc *FactoidCollection) GetLast(op, key string) *Factoid {
 }
 
 func (fc *FactoidCollection) InfoMR(key string) *FactoidInfo {
-	mr := mgo.MapReduce{
+	mr := &mgo.MapReduce{
 		Map: `function() { emit("count", {
 			accessed: this.accessed.count,
 			modified: this.modified.count,

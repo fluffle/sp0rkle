@@ -53,7 +53,7 @@ func Collection(dbh *db.Database, l logging.Logger) *QuoteCollection {
 	}
 
 	var res Quote
-	if err := qc.Find(bson.M{}).Sort(bson.M{"qid": -1}).One(&res); err == nil {
+	if err := qc.Find(bson.M{}).Sort("-qid").One(&res); err == nil {
 		qc.maxQID = int32(res.QID)
 	}
 	return qc

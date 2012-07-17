@@ -1,4 +1,4 @@
-package seen 
+package seen
 
 import (
 	"fmt"
@@ -86,7 +86,7 @@ func Collection(dbh *db.Database, l logging.Logger) *SeenCollection {
 	if err != nil {
 		l.Error("Couldn't create index on sp0rkle.seen: %v", err)
 	}
-	err = sc.EnsureIndexKey([]string{"key"})
+	err = sc.EnsureIndexKey("key")
 	if err != nil {
 		l.Error("Couldn't create index on sp0rkle.seen: %v", err)
 	}
