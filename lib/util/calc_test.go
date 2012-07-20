@@ -9,7 +9,7 @@ import (
 )
 
 func TestCalc(t *testing.T) {
-	tests := []struct{
+	tests := []struct {
 		i string
 		o float64
 		e bool
@@ -17,7 +17,7 @@ func TestCalc(t *testing.T) {
 		{"min(3+4, 2*(1+2))", 6, false},
 		{"2+4", 6, false},
 		{"answer", 42, false},
-		{"pi*e", math.Pi*math.E, false},
+		{"pi*e", math.Pi * math.E, false},
 		{"2+", 0, true},
 	}
 	for i, tc := range tests {
@@ -26,7 +26,7 @@ func TestCalc(t *testing.T) {
 			t.Errorf("Bad Calc error state for %d (err=%v)", i, err)
 		}
 		// Stupid approximate floats.
-		if r - tc.o >= 1e-12 {
+		if r-tc.o >= 1e-12 {
 			t.Errorf("Bad Calc result for %d, expected: %g, got: %g", i, tc.o, r)
 		}
 	}
@@ -35,14 +35,14 @@ func TestCalc(t *testing.T) {
 func makets(data ...float64) *tokenStack {
 	ts := ts(len(data))
 	for _, n := range data {
-		ts.push(&token{T_NUM,"", n})
+		ts.push(&token{T_NUM, "", n})
 	}
 	return ts
 }
 
 func TestFunctionisers(t *testing.T) {
-	f1 := func(x float64) float64 { return 0.5*x }
-	f2 := func(x,y float64) float64 { return 2*x/y }
+	f1 := func(x float64) float64 { return 0.5 * x }
+	f2 := func(x, y float64) float64 { return 2 * x / y }
 
 	ff1 := functionise1(f1)
 	ff2 := functionise2(f2)
@@ -60,13 +60,13 @@ func TestFunctionisers(t *testing.T) {
 	}
 
 	// Same for f2
-	for i, v := range [][]float64{{2,4}, {1e6,2.9e4}, {6.75,48.1}, {math.Pi,math.E}} {
+	for i, v := range [][]float64{{2, 4}, {1e6, 2.9e4}, {6.75, 48.1}, {math.Pi, math.E}} {
 		ts := makets(v...)
 		if err := ff2.exec(ts); err != nil {
 			t.Errorf("f2(%d): Unexpected error result from function.", i)
 		} else if tok, err := ts.pop(); err != nil {
 			t.Errorf("f2(%d): Stack not updated correctly with result", i)
-		} else if exp := f2(v[0],v[1]); tok.numval != exp {
+		} else if exp := f2(v[0], v[1]); tok.numval != exp {
 			t.Errorf("f2(%d): Func result differed: %f != %f", i, tok.numval, exp)
 		}
 	}
@@ -85,7 +85,7 @@ func TestFunctionisers(t *testing.T) {
 	}
 
 	// Lastly, check they're not breaking the stack
-	fourts := makets(1,2,3,4)
+	fourts := makets(1, 2, 3, 4)
 	ff1.exec(fourts) // should pop 4, push 2
 	if len(*fourts) != 4 || (*fourts)[3].numval != 2 || (*fourts)[2].numval != 3 {
 		t.Errorf("ff1 changed stack size unexpectedly")
@@ -152,10 +152,10 @@ func TestLexerLowLevelFuncs(t *testing.T) {
 }
 
 func TestNumber(t *testing.T) {
-	tests := []struct{
-		i string   // input
-		o float64  // output
-		p int      // expected value of lexer.pos afterwards
+	tests := []struct {
+		i string  // input
+		o float64 // output
+		p int     // expected value of lexer.pos afterwards
 	}{
 		// GOOD CASES
 		{"0", 0, 1},
@@ -171,11 +171,11 @@ func TestNumber(t *testing.T) {
 		{"NaN", 0, 0},     // should result in ParseFloat("")
 		{"a123.45", 0, 0}, //   ""
 		// UGLY CASES
-		{"0xf00", 0, 1},   // Hex not supported yet
-		{"0b010", 0, 1},   // Binary not supported yet
-		{"1foo", 1, 1},    // Stops at first non-digit
-		{"०१२", 0, 9},     // 012 in devanagari digits
-		{"໘໔໓", 0, 9},     // 843 in lao digits
+		{"0xf00", 0, 1}, // Hex not supported yet
+		{"0b010", 0, 1}, // Binary not supported yet
+		{"1foo", 1, 1},  // Stops at first non-digit
+		{"०१२", 0, 9},   // 012 in devanagari digits
+		{"໘໔໓", 0, 9},   // 843 in lao digits
 		// I guess those poor devanagari etc. are SOL ;-(
 	}
 
@@ -191,33 +191,33 @@ func TestNumber(t *testing.T) {
 }
 
 type tt struct {
-	i string     // input
-	k tokenKind  // token.kind
-	s string     // token.strval
-	n float64    // token.numval
+	i string    // input
+	k tokenKind // token.kind
+	s string    // token.strval
+	n float64   // token.numval
 }
 
 func TestToken(t *testing.T) {
 	tests := []tt{
-		{"",        T_EOF,   "",      0},
-		{"       ", T_EOF,   "",      0},
-		{"+",       T_OP,    "+",     0},
-// We can't test '-' as a standalone operator because the lexer
-// assumes that it's the unary minus at the beginning of a number.
-//		{"-",       T_OP,    "-",     0},
-		{"*",       T_OP,    "*",     0},
-		{"/",       T_OP,    "/",     0},
-		{"**",      T_OP,    "**",    0},
-		{"^",       T_OP,    "^",     0},
-		{"%",       T_OP,    "%",     0},
-		{"(",       T_LPAR,  "(",     0},
-		{")",       T_RPAR,  ")",     0},
-		{",",       T_COMMA, ",",     0},
-		{"1234.5",  T_NUM,   "",      1234.5},
-		{"-1234.5", T_NUM,   "",      -1234.5},
-		{"pie",     T_NFI,   "pie",   0},
-		{"-pie",    T_NFI,   "-pie",  0},
-		{"&",       T_NFI,   "&",     0},
+		{"", T_EOF, "", 0},
+		{"       ", T_EOF, "", 0},
+		{"+", T_OP, "+", 0},
+		// We can't test '-' as a standalone operator because the lexer
+		// assumes that it's the unary minus at the beginning of a number.
+		//		{"-",       T_OP,    "-",     0},
+		{"*", T_OP, "*", 0},
+		{"/", T_OP, "/", 0},
+		{"**", T_OP, "**", 0},
+		{"^", T_OP, "^", 0},
+		{"%", T_OP, "%", 0},
+		{"(", T_LPAR, "(", 0},
+		{")", T_RPAR, ")", 0},
+		{",", T_COMMA, ",", 0},
+		{"1234.5", T_NUM, "", 1234.5},
+		{"-1234.5", T_NUM, "", -1234.5},
+		{"pie", T_NFI, "pie", 0},
+		{"-pie", T_NFI, "-pie", 0},
+		{"&", T_NFI, "&", 0},
 	}
 	// Test all the fucntions are correctly recognised
 	for fun, _ := range functionMap {
@@ -249,7 +249,7 @@ func TestToken(t *testing.T) {
 
 func TestTokenMinus(t *testing.T) {
 	// Special minus testing
-	tests := []struct{
+	tests := []struct {
 		i string // input
 		n int    // expect only the nth token to be a minus
 	}{
@@ -278,7 +278,9 @@ func TestTokenMinus(t *testing.T) {
 
 // for testing.
 func (ts *tokenStack) serialise() string {
-	if ts == nil { return "" }
+	if ts == nil {
+		return ""
+	}
 	s := make([]string, len(*ts))
 	for i, t := range *ts {
 		if t.kind == T_NUM {
@@ -310,12 +312,12 @@ func TestTokens(t *testing.T) {
 
 func TestShunt(t *testing.T) {
 	// This tests that a set of inputs produces the expected outputs
-	tests := []struct{
+	tests := []struct {
 		i string
 		o string
 		e bool
 	}{
-		{"2+4","24+", false},
+		{"2+4", "24+", false},
 		{"(2+4)*6", "24+6*", false},
 		{"2+4*6", "246*+", false},
 		{"2+3+4+5+6+7+8*9", "23+4+5+6+7+89*+", false},
@@ -341,12 +343,12 @@ func TestShunt(t *testing.T) {
 }
 
 func TestShuntStep(t *testing.T) {
-	tests := []struct{
-		tok *token
+	tests := []struct {
+		tok    *token
 		si, so string
 		ai, ao string
 		oi, oo string
-		e bool
+		e      bool
 	}{
 		// An unrecognised token should result in an error and no mutations.
 		{&token{T_NFI, "!", 0},
@@ -424,7 +426,7 @@ func TestShuntStep(t *testing.T) {
 		// - Pop the left parenthesis from the stack, but not to output queue.
 		// - If the token at the top of the stack is a function token,
 		//   pop it onto the output queue.
-        // - If the stack runs out without finding a left parenthesis,
+		// - If the stack runs out without finding a left parenthesis,
 		//   then there are mismatched parentheses.
 		//
 		// NOTE: with the testing setup here it is not possible to test the

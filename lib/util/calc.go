@@ -15,9 +15,9 @@ import (
 // ConstMap defines constants that can be used in expressions
 // passed to Calc(). It's exposed so others can be added dynamically.
 var ConstMap = map[string]float64{
-	"e": math.E,
-	"pi": math.Pi,
-	"phi": math.Phi,
+	"e":      math.E,
+	"pi":     math.Pi,
+	"phi":    math.Phi,
 	"answer": 42,
 }
 
@@ -27,8 +27,8 @@ var ConstMap = map[string]float64{
 //       associative are added, change precedence() below accordingly.
 var precedenceMap = map[string]int{
 	"**": 3, "^": 3,
-	"*":  2, "/": 2, "%": 2,
-	"+":  1, "-": 1,
+	"*": 2, "/": 2, "%": 2,
+	"+": 1, "-": 1,
 }
 
 // Return true -- and thus pop the stack in shunt() -- if op1 is left-
@@ -50,10 +50,12 @@ type function struct {
 // structs for the calculator to use. Function function function function
 // function function function function mushrooooom mushrooooom.
 // Almost all the interesting math functions are f(x) -> z
-func functionise1(f func(float64)float64) function {
+func functionise1(f func(float64) float64) function {
 	return function{1, func(ts *tokenStack) error {
 		n, err := ts.getNums(1)
-		if err != nil { return err }
+		if err != nil {
+			return err
+		}
 		ts.push(&token{T_NUM, "", f(n[0].numval)})
 		return nil
 	}}
@@ -62,10 +64,12 @@ func functionise1(f func(float64)float64) function {
 // But a lot of the operators are f(x,y) -> z, and so we need two curries.
 //     ...
 // MMMmmmmmm. Curry.
-func functionise2(f func(float64,float64)float64) function {
+func functionise2(f func(float64, float64) float64) function {
 	return function{2, func(ts *tokenStack) error {
 		n, err := ts.getNums(2)
-		if err != nil { return err }
+		if err != nil {
+			return err
+		}
 		ts.push(&token{T_NUM, "", f(n[0].numval, n[1].numval)})
 		return nil
 	}}
@@ -77,11 +81,11 @@ func functionise2(f func(float64,float64)float64) function {
 var operatorMap = map[string]function{
 	"**": functionise2(math.Pow),
 	"^":  functionise2(math.Pow),
-	"*":  functionise2(func(x,y float64)float64{return x*y}),
-	"/":  functionise2(func(x,y float64)float64{return x/y}),
+	"*":  functionise2(func(x, y float64) float64 { return x * y }),
+	"/":  functionise2(func(x, y float64) float64 { return x / y }),
 	"%":  functionise2(math.Mod),
-	"+":  functionise2(func(x,y float64)float64{return x+y}),
-	"-":  functionise2(func(x,y float64)float64{return x-y}),
+	"+":  functionise2(func(x, y float64) float64 { return x + y }),
+	"-":  functionise2(func(x, y float64) float64 { return x - y }),
 }
 
 // functionMap defines the set of functions that can be used in expressions
@@ -109,8 +113,8 @@ var functionMap = map[string]function{
 	"log10": functionise1(math.Log10),
 	"log2":  functionise1(math.Log2),
 	"logb":  functionise1(math.Logb),
-	"max":   functionise2(math.Max),   // 2 args
-	"min":   functionise2(math.Min),   // 2 args
+	"max":   functionise2(math.Max), // 2 args
+	"min":   functionise2(math.Min), // 2 args
 	"sin":   functionise1(math.Sin),
 	"sinh":  functionise1(math.Sinh),
 	"sqrt":  functionise1(math.Sqrt),
@@ -125,16 +129,18 @@ var functionMap = map[string]function{
 
 // The lexer produces tokens of these kinds:
 type tokenKind int
+
 const (
-	T_EOF tokenKind = iota // end-of-file
-	T_NFI                  // no fucking idea what this input is ;-)
-	T_NUM                  // a number (fills numval)
-	T_OP                   // an operator
-	T_FUNC                 // a function
-	T_LPAR                 // a left parenthesis (
-	T_RPAR                 // a right parenthesis )
-	T_COMMA                // a comma ,
+	T_EOF   tokenKind = iota // end-of-file
+	T_NFI                    // no fucking idea what this input is ;-)
+	T_NUM                    // a number (fills numval)
+	T_OP                     // an operator
+	T_FUNC                   // a function
+	T_LPAR                   // a left parenthesis (
+	T_RPAR                   // a right parenthesis )
+	T_COMMA                  // a comma ,
 )
+
 var kindMap = map[tokenKind]string{
 	T_EOF:   "EOF",
 	T_NFI:   "NFI",
@@ -147,7 +153,7 @@ var kindMap = map[tokenKind]string{
 }
 
 type token struct {
-	kind tokenKind
+	kind   tokenKind
 	strval string
 	numval float64
 }
@@ -165,9 +171,9 @@ func (t token) String() string {
 }
 
 type lexer struct {
-	input string
+	input             string
 	start, pos, width int
-	binaryMinus bool
+	binaryMinus       bool
 }
 
 // peek() returns the utf8 rune that is at lexer.pos in the input string.
@@ -216,7 +222,9 @@ func (l *lexer) rewind() {
 //     -?[0-9]+(.[0-9]+)?([eE]-?[0-9]+)?
 func (l *lexer) number() float64 {
 	s := l.pos // l.start is reset through the multiple scans
-	if l.peek() == '-' { l.pos += l.width }
+	if l.peek() == '-' {
+		l.pos += l.width
+	}
 	l.scan(unicode.IsDigit)
 	if l.next() == "." {
 		l.scan(unicode.IsDigit)
@@ -224,7 +232,9 @@ func (l *lexer) number() float64 {
 		l.rewind()
 	}
 	if c := l.next(); c == "e" || c == "E" {
-		if l.peek() == '-' { l.pos += l.width }
+		if l.peek() == '-' {
+			l.pos += l.width
+		}
 		l.scan(unicode.IsDigit)
 	} else {
 		l.rewind()
@@ -267,7 +277,7 @@ func (l *lexer) token() (tok *token) {
 			if num, ok := ConstMap[str]; ok {
 				tok = &token{T_NUM, "", -num}
 			} else {
-				tok = &token{T_NFI, "-"+str, 0}
+				tok = &token{T_NFI, "-" + str, 0}
 			}
 		} else {
 			l.rewind()
@@ -285,7 +295,7 @@ func (l *lexer) token() (tok *token) {
 		// could be a constant or a defined function
 		str := l.scan(unicode.IsLetter)
 		if _, ok := functionMap[str]; ok {
-		// since we know our defined functions, let's just check
+			// since we know our defined functions, let's just check
 			// we need special case checking for atan2, log2, and
 			// log10, because IsLetter doesn't match the 2 / 10...
 			if c := l.next(); c == "2" {
@@ -298,7 +308,7 @@ func (l *lexer) token() (tok *token) {
 			}
 			tok = &token{T_FUNC, str, 0}
 		} else if num, ok := ConstMap[str]; ok {
-		// since we know our defined constants, ...
+			// since we know our defined constants, ...
 			tok = &token{T_NUM, "", num}
 		} else {
 			// keeping this simple here, error handling for
@@ -342,7 +352,7 @@ func ts(size int) *tokenStack {
 
 func (ts *tokenStack) String() string {
 	s := make([]string, len(*ts))
-	for i, tok := range(*ts) {
+	for i, tok := range *ts {
 		s[i] = fmt.Sprintf("%2d: %s", i, tok)
 	}
 	return strings.Join(s, "\n")
@@ -416,7 +426,9 @@ func shuntStep(tok *token, stack, argcs, output *tokenStack) error {
 	case T_OP:
 		for {
 			top, err := stack.pop()
-			if err != nil { break }
+			if err != nil {
+				break
+			}
 			if top.kind == T_OP && precedence(tok.strval, top.strval) {
 				output.push(top)
 			} else {
@@ -433,8 +445,12 @@ func shuntStep(tok *token, stack, argcs, output *tokenStack) error {
 	case T_RPAR:
 		for {
 			top, err := stack.pop()
-			if err != nil { return err }
-			if top.kind == T_LPAR { break }
+			if err != nil {
+				return err
+			}
+			if top.kind == T_LPAR {
+				break
+			}
 			output.push(top)
 		}
 		if top, err := stack.pop(); err == nil {
@@ -443,7 +459,7 @@ func shuntStep(tok *token, stack, argcs, output *tokenStack) error {
 				if f, err := argcs.pop(); err == nil {
 					f.numval++
 					if int(f.numval) != functionMap[f.strval].argc {
-						return fmt.Errorf("Incorrect number of arguments" +
+						return fmt.Errorf("Incorrect number of arguments"+
 							" for function '%s'.", f.strval)
 					}
 				}
@@ -457,7 +473,9 @@ func shuntStep(tok *token, stack, argcs, output *tokenStack) error {
 		}
 		for {
 			top, err := stack.pop()
-			if err != nil { return err }
+			if err != nil {
+				return err
+			}
 			if top.kind == T_LPAR {
 				stack.push(top)
 				break
@@ -480,11 +498,15 @@ func calc(ops *tokenStack) (float64, error) {
 		case T_OP:
 			op := operatorMap[tok.strval]
 			err := op.exec(stack)
-			if err != nil { return 0, err }
+			if err != nil {
+				return 0, err
+			}
 		case T_FUNC:
 			f := functionMap[tok.strval]
 			err := f.exec(stack)
-			if err != nil { return 0, err }
+			if err != nil {
+				return 0, err
+			}
 		default:
 			return 0, fmt.Errorf("token %#v in calc", tok)
 		}
@@ -503,8 +525,8 @@ func calc(ops *tokenStack) (float64, error) {
 func Calc(input string) (float64, error) {
 	l := &lexer{input: input}
 	// Dijkstra's shunting-yard algorithm to RPN input
-	ops, err := shunt(l.tokens());
-	if  err != nil {
+	ops, err := shunt(l.tokens())
+	if err != nil {
 		return 0, err
 	}
 	// Perform RPN calculation
