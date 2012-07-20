@@ -1,6 +1,7 @@
 package util
 
 import (
+	"fmt"
 	"math"
 	"strings"
 	"testing"
@@ -8,12 +9,26 @@ import (
 )
 
 func TestCalc(t *testing.T) {
-	res, err := Calc("2+2")
-	if err != nil {
-		t.Errorf("Unexpected error: %s", err)
+	tests := []struct{
+		i string
+		o float64
+		e bool
+	}{
+		{"min(3+4, 2*(1+2))", 6, false},
+		{"2+4", 6, false},
+		{"answer", 42, false},
+		{"pi*e", math.Pi*math.E, false},
+		{"2+", 0, true},
 	}
-	if res != 4 {
-		t.Errorf("2+2 is apparently %f", res)
+	for i, tc := range tests {
+		r, err := Calc(tc.i)
+		if (err == nil) == tc.e {
+			t.Errorf("Bad Calc error state for %d (err=%v)", i, err)
+		}
+		// Stupid approximate floats.
+		if r - tc.o >= 1e-12 {
+			t.Errorf("Bad Calc result for %d, expected: %g, got: %g", i, tc.o, r)
+		}
 	}
 }
 
@@ -241,6 +256,7 @@ func TestTokenMinus(t *testing.T) {
 		{"-e - -3", 2},
 		{"atan2(3, -2) - 1", 7},
 		{"cos(-pi-2)", 4},
+		{"5*6-7", 4},
 	}
 	for i, tc := range tests {
 		l := &lexer{input: tc.i}
@@ -251,10 +267,296 @@ func TestTokenMinus(t *testing.T) {
 				t.Errorf("token(%d) '%s' unexpected - operator at token %d",
 					i, tc.i, j)
 			}
-			if j == tc.n && tok.kind != T_OP && tok.strval != "-" {
+			if j == tc.n && (tok.kind != T_OP ||
+				(tok.kind == T_OP && tok.strval != "-")) {
 				t.Errorf("token(%d) '%s' unexpected %#v token",
 					i, tc.i, tok)
 			}
 		}
+	}
+}
+
+// for testing.
+func (ts *tokenStack) serialise() string {
+	if ts == nil { return "" }
+	s := make([]string, len(*ts))
+	for i, t := range *ts {
+		if t.kind == T_NUM {
+			s[i] = fmt.Sprintf("%g", t.numval)
+		} else {
+			s[i] = t.strval
+		}
+	}
+	return strings.Join(s, "")
+}
+
+func TestTokens(t *testing.T) {
+	tests := []string{
+		"2+4",
+		"(2*2+6^3)",
+		"cos(4/3)*atan2(1,2)",
+		"(1+((2+(3+(4*(5*6-7)+8)*9))*10))",
+		"&D(foo)", // lots of T_NFI
+	}
+	for i, tc := range tests {
+		ts := (&lexer{input: tc}).tokens()
+		if s := ts.serialise(); s != tc {
+			t.Errorf("Unexpected string output for %d, expected: %s, got: %s",
+				i, tc, s)
+			t.Errorf("%s", ts)
+		}
+	}
+}
+
+func TestShunt(t *testing.T) {
+	// This tests that a set of inputs produces the expected outputs
+	tests := []struct{
+		i string
+		o string
+		e bool
+	}{
+		{"2+4","24+", false},
+		{"(2+4)*6", "24+6*", false},
+		{"2+4*6", "246*+", false},
+		{"2+3+4+5+6+7+8*9", "23+4+5+6+7+89*+", false},
+		{"2+3*4^5", "2345^*+", false},
+		{"tan(answer)", "42tan", false},
+		{"(1+((2+(3+(4*(5*6-7)+8)*9))*10))", "123456*7-*8+9*++10*+", false},
+		{"1*atan2((2+3)*4,5*(6+7))+8", "123+4*567+*atan2*8+", false},
+		{"(2+4", "", true},
+		{"2+4)", "", true},
+		{"cos(,)", "", true},
+		{"cos()", "cos", false}, // not a parse error at shunt time
+	}
+	for i, tc := range tests {
+		ts, err := shunt((&lexer{input: tc.i}).tokens())
+		if (err == nil) == tc.e {
+			t.Errorf("Bad shunt error state for %d (err=%v).", i, err)
+		}
+		if s := ts.serialise(); s != tc.o {
+			t.Errorf("Bad shunted output for %d, expected: %s, got: %s",
+				i, tc.o, s)
+		}
+	}
+}
+
+func TestShuntStep(t *testing.T) {
+	tests := []struct{
+		tok *token
+		si, so string
+		ai, ao string
+		oi, oo string
+		e bool
+	}{
+		// An unrecognised token should result in an error and no mutations.
+		{&token{T_NFI, "!", 0},
+			"+cos", "+cos",
+			"cos", "cos",
+			"12", "12",
+			true},
+
+		// If the token is a number, then add it to the output queue. 
+		{&token{T_NUM, "", 5},
+			"+cos", "+cos",
+			"cos", "cos",
+			"12", "125",
+			false},
+
+		// If the token is an operator, op1, then:
+		// - While there is an operator token, op2, at the top of the stack,
+		//   and its precedence is less than or equal to that of op2:
+		//   NOTE: short-circuit here because no right-associative operators!
+		//   - Pop op2 off the stack, onto the output queue;
+		// - Finally, push op1 onto the stack.
+		// First -- no operator at top of stack. Just push to stack.
+		{&token{T_OP, "^", 0},
+			"+cos", "+cos^",
+			"cos", "cos",
+			"12", "12",
+			false},
+		// Second -- two operators at top of stack, first equal, second higher.
+		// - Pop both operators to output (tok precedence <= stack precedence),
+		//   then push token operator to stack.
+		{&token{T_OP, "+", 0},
+			"+cos+*", "+cos+",
+			"cos", "cos",
+			"12", "12*+",
+			false},
+		// Third -- two operators at top of stack, first lower, second equal.
+		// - Pop second operator to output, then push token operator to stack.
+		{&token{T_OP, "*", 0},
+			"+cos+*", "+cos+*",
+			"cos", "cos",
+			"12", "12*",
+			false},
+		// Fourth -- two operators at top of stack, first higher, second lower.
+		// - Push token operator to stack (tok precedence > stack precedence).
+		{&token{T_OP, "*", 0},
+			"+cos^+", "+cos^+*",
+			"cos", "cos",
+			"12", "12",
+			false},
+		// Fifth -- nothing on stack. Just push to stack.
+		{&token{T_OP, "*", 0},
+			"", "*",
+			"", "",
+			"12", "12",
+			false},
+
+		// If the token is a function token, then push it onto the stack.
+		// Also, push it onto the argcs stack for argument count checking.
+		{&token{T_FUNC, "sin", 0},
+			"+cos", "+cossin",
+			"cos", "cossin",
+			"12", "12",
+			false},
+
+		// If the token is a left parenthesis, then push it onto the stack.
+		{&token{T_LPAR, "(", 0},
+			"+cos", "+cos(",
+			"cos", "cos",
+			"12", "12",
+			false},
+
+		// If the token is a right parenthesis:
+		// - Until the token at the top of the stack is a left parenthesis,
+		//     pop operators off the stack onto the output queue.
+		// - Pop the left parenthesis from the stack, but not to output queue.
+		// - If the token at the top of the stack is a function token,
+		//   pop it onto the output queue.
+        // - If the stack runs out without finding a left parenthesis,
+		//   then there are mismatched parentheses.
+		//
+		// NOTE: with the testing setup here it is not possible to test the
+		//       argument counting feature. It is tested separately later.
+		// First -- two ops before ( on stack, pop both and drop (.
+		{&token{T_RPAR, ")", 0},
+			"+(*/", "+",
+			"", "",
+			"12", "12/*",
+			false},
+		// Second -- op before (, func after, pop both and drop (.
+		{&token{T_RPAR, ")", 0},
+			"+cos(/", "+",
+			"", "", // NOTE: leave argcs empty to avoid breakage
+			"12", "12/cos",
+			false},
+		// Third -- missing (, pop until stack underflow, return error.
+		{&token{T_RPAR, ")", 0},
+			"+cos/*", "",
+			"", "",
+			"12", "12*/cos+",
+			true},
+
+		// If the token is a function argument separator (e.g., a comma):
+		// - Until the token at the top of the stack is a left parenthesis,
+		//   pop operators off the stack onto the output queue. If no left 
+		//   parentheses are encountered, either the separator was misplaced
+		//   or parentheses were mismatched.
+		//
+		// NOTE: again here it's not possible to test argument counting.
+		// First -- two ops before ( on stack, pop both and keep (.
+		{&token{T_COMMA, ",", 0},
+			"+(*/", "+(",
+			"", "",
+			"12", "12/*",
+			false},
+		// Second, missing (, pop until stack underflow, return error.
+		{&token{T_COMMA, ",", 0},
+			"+cos/*", "",
+			"", "",
+			"12", "12*/cos+",
+			true},
+	}
+
+	for i, tc := range tests {
+		// Initialise state from inputs
+		s := (&lexer{input: tc.si}).tokens()
+		a := (&lexer{input: tc.ai}).tokens()
+		o := (&lexer{input: tc.oi}).tokens()
+
+		err := shuntStep(tc.tok, s, a, o)
+		if (err == nil) == tc.e {
+			t.Errorf("Bad step error state for %d (err=%v)", i, err)
+		}
+		if so := s.serialise(); so != tc.so {
+			t.Errorf("Bad step stack output for %d, expected: %s, got: %s",
+				i, tc.so, so)
+		}
+		if ao := a.serialise(); ao != tc.ao {
+			t.Errorf("Bad step argcs output for %d, expected: %s, got: %s",
+				i, tc.ao, ao)
+		}
+		if oo := o.serialise(); oo != tc.oo {
+			t.Errorf("Bad step output output for %d, expected: %s, got: %s",
+				i, tc.oo, oo)
+		}
+	}
+}
+
+func TestShuntStepArgCounting(t *testing.T) {
+	// Argument counting (ab)uses the numval field in T_FUNC tokens
+	// to count the number of arguments seen for a specific function.
+	// Since this information is obscured by ts.serialise() we have to
+	// jump through some hoops to check it's working properly.
+
+	// Initial state, parsed 1+cos(2
+	s := (&lexer{input: "+cos("}).tokens()
+	a := (&lexer{input: "cos"}).tokens()
+	ftok := (*a)[0]
+	o := (&lexer{input: "12"}).tokens()
+
+	// Correct syntax: T_RPAR
+	// Results in 2x stack pop and argcs pop
+	err := shuntStep(&token{T_RPAR, ")", 0}, s, a, o)
+	// We know that T_RPAR works correctly for the stack and output already.
+	if err != nil {
+		t.Errorf("Bad step error state for arg count 1, (err=%v)", err)
+	}
+	if ao := a.serialise(); ao != "" {
+		t.Errorf("Bad step argcs output for arg count 1, expected: '', got: %s",
+			ao)
+	}
+	if ftok.numval != 1 {
+		t.Errorf("Arg count 1 not correctly incremented to 1.")
+	}
+
+	// RESET!
+	s = (&lexer{input: "+cos("}).tokens()
+	a = (&lexer{input: "cos"}).tokens()
+	ftok = (*a)[0]
+	o = (&lexer{input: "12"}).tokens()
+
+	// Bad syntax: T_COMMA, T_RPAR
+	err = shuntStep(&token{T_COMMA, ",", 0}, s, a, o)
+	// The comma itself shouldn't have resulted in any error ...
+	if err != nil {
+		t.Errorf("Bad step error state for arg count 2, (err=%v)", err)
+	}
+	//  ... but it should have incremented the arg count.
+	if ftok.numval != 1 {
+		t.Errorf("Arg count 2 not correctly incremented to 1.")
+	}
+	err = shuntStep(&token{T_RPAR, ")", 0}, s, a, o)
+	if err == nil {
+		t.Errorf("Bad step error state for arg count 3, (err=%v)", err)
+	}
+	if ftok.numval != 2 {
+		t.Errorf("Arg count 3 not correctly incremented to 2.")
+	}
+
+	// RESET a different way
+	s = (&lexer{input: "+atan2("}).tokens()
+	a = (&lexer{input: "atan2"}).tokens()
+	ftok = (*a)[0]
+	o = (&lexer{input: "12"}).tokens()
+
+	// Bad syntax: T_RPAR (expecting 2 arguments)
+	err = shuntStep(&token{T_RPAR, ")", 0}, s, a, o)
+	if err == nil {
+		t.Errorf("Bad step error state for arg count 4, (err=%v)", err)
+	}
+	if ftok.numval != 1 {
+		t.Errorf("Arg count 4 not correctly incremented to 1.")
 	}
 }

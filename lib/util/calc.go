@@ -259,7 +259,7 @@ func (l *lexer) token() (tok *token) {
 		// if the last token was an operator (6 - 4) vs (6 - -4)
 		l.next()
 		if l.binaryMinus {
-			tok = &token{T_OP, l.next(), 0}
+			tok = &token{T_OP, "-", 0}
 		} else if unicode.IsLetter(l.peek()) {
 			// With many apologies, this seemed to be the best place
 			// to hack in support for negative constants like "-pi"...
@@ -386,72 +386,14 @@ func (ts *tokenStack) getNums(n int) ([]*token, error) {
 //     http://en.wikipedia.org/wiki/Shunting-yard_algorithm
 func shunt(input *tokenStack) (*tokenStack, error) {
 	stack := ts(len(*input))
-	ops := ts(len(*input))
+	output := ts(len(*input))
 	// This is abusing the "numval" field of T_FUNC tokens to check
 	// they have been given the correct number of arguments. This
 	// should hopefully avoid a number of incorrect calc results.
 	argcs := ts(5)
 	for _, tok := range *input {
-		switch tok.kind {
-		case T_NFI:
-			return nil, fmt.Errorf("Unrecognised '%#v' in expression", tok)
-		case T_NUM:
-			ops.push(tok)
-		case T_OP:
-			for {
-				top, err := stack.pop()
-				if err != nil { break }
-				if top.kind == T_OP && precedence(tok.strval, top.strval) {
-					ops.push(top)
-				} else {
-					stack.push(top)
-					break
-				}
-			}
-			stack.push(tok)
-		case T_FUNC:
-			stack.push(tok)
-			argcs.push(tok)
-		case T_LPAR:
-			stack.push(tok)
-		case T_RPAR:
-			for {
-				top, err := stack.pop()
-				if err != nil { return nil, err }
-				if top.kind == T_LPAR {
-					break
-				}
-				ops.push(top)
-			}
-			if top, err := stack.pop(); err == nil {
-				if top.kind == T_FUNC {
-					ops.push(top)
-					if f, err := argcs.pop(); err == nil {
-						f.numval++
-						fmt.Printf("func %s: expected %d, got %f\n",
-							f.strval, functionMap[f.strval].argc, f.numval)
-						if int(f.numval) != functionMap[f.strval].argc {
-							return nil, fmt.Errorf("Incorrect number of arguments" +
-								" for function '%s'.", f.strval)
-						}
-					}
-				} else {
-					stack.push(top)
-				}
-			}
-		case T_COMMA:
-			if l := len(*argcs); l > 0 {
-				(*argcs)[l-1].numval++
-			}
-			for {
-				top, err := stack.pop()
-				if err != nil { return nil, err }
-				if top.kind == T_LPAR {
-					stack.push(top)
-					break
-				}
-				ops.push(top)
-			}
+		if err := shuntStep(tok, stack, argcs, output); err != nil {
+			return nil, err
 		}
 	}
 	for len(*stack) > 0 {
@@ -459,9 +401,71 @@ func shunt(input *tokenStack) (*tokenStack, error) {
 		if tok.kind == T_LPAR {
 			return nil, fmt.Errorf("stack overflow")
 		}
-		ops.push(tok)
+		output.push(tok)
 	}
-	return ops, nil
+	return output, nil
+}
+
+// shuntStep breaks out a single shunt to make it easier to test
+func shuntStep(tok *token, stack, argcs, output *tokenStack) error {
+	switch tok.kind {
+	case T_NFI:
+		return fmt.Errorf("Unrecognised '%#v' in expression", tok)
+	case T_NUM:
+		output.push(tok)
+	case T_OP:
+		for {
+			top, err := stack.pop()
+			if err != nil { break }
+			if top.kind == T_OP && precedence(tok.strval, top.strval) {
+				output.push(top)
+			} else {
+				stack.push(top)
+				break
+			}
+		}
+		stack.push(tok)
+	case T_FUNC:
+		stack.push(tok)
+		argcs.push(tok)
+	case T_LPAR:
+		stack.push(tok)
+	case T_RPAR:
+		for {
+			top, err := stack.pop()
+			if err != nil { return err }
+			if top.kind == T_LPAR { break }
+			output.push(top)
+		}
+		if top, err := stack.pop(); err == nil {
+			if top.kind == T_FUNC {
+				output.push(top)
+				if f, err := argcs.pop(); err == nil {
+					f.numval++
+					if int(f.numval) != functionMap[f.strval].argc {
+						return fmt.Errorf("Incorrect number of arguments" +
+							" for function '%s'.", f.strval)
+					}
+				}
+			} else {
+				stack.push(top)
+			}
+		}
+	case T_COMMA:
+		if l := len(*argcs); l > 0 {
+			(*argcs)[l-1].numval++
+		}
+		for {
+			top, err := stack.pop()
+			if err != nil { return err }
+			if top.kind == T_LPAR {
+				stack.push(top)
+				break
+			}
+			output.push(top)
+		}
+	}
+	return nil
 }
 
 // calc() takes the rpn token list and applies the functions and
