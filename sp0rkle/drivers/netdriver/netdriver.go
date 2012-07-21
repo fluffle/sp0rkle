@@ -17,7 +17,7 @@ type netDriver struct {
 
 func NetDriver(l logging.Logger) *netDriver {
 	nd := &netDriver{make(map[string]netService), l}
-	nd.services["calc"] = IGoogleCalcService(l)
+//	nd.services["calc"] = IGoogleCalcService(l)
 	return nd
 }
 

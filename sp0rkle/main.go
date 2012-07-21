@@ -9,6 +9,7 @@ import (
 	"github.com/fluffle/golog/logging"
 	"github.com/fluffle/sp0rkle/lib/db"
 	"github.com/fluffle/sp0rkle/sp0rkle/bot"
+	"github.com/fluffle/sp0rkle/sp0rkle/drivers/calcdriver"
 	"github.com/fluffle/sp0rkle/sp0rkle/drivers/decisiondriver"
 	"github.com/fluffle/sp0rkle/sp0rkle/drivers/factdriver"
 	"github.com/fluffle/sp0rkle/sp0rkle/drivers/netdriver"
@@ -59,6 +60,7 @@ func main() {
 	// Add drivers
 	bot.AddDriver(bot)
 	bot.AddDriver(fd)
+	bot.AddDriver(calcdriver.CalcDriver(log))
 	bot.AddDriver(decisiondriver.DecisionDriver())
 	bot.AddDriver(quotedriver.QuoteDriver(db, log))
 	bot.AddDriver(netdriver.NetDriver(log))
