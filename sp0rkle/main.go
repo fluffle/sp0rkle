@@ -92,7 +92,7 @@ func main() {
 		// called, so disconnect from mongodb first for politeness' sake.
 		db.Session.Close()
 		// If sp0rkle was run from PATH, we need to do that lookup manually.
-		fq, _ = exec.LookPath(os.Args[0])
+		fq, _ := exec.LookPath(os.Args[0])
 		args := make([]string, len(os.Args))
 		copy(args, os.Args)
 		args[0] = fq
