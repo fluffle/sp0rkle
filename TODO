@@ -15,20 +15,7 @@ Drivers
   factoid plugins for decide and rand
 
 *Calculate
-  #Wrapper round google calc, as well as some specific lookups
-  // Not sure about using google -- HTML scraping *sucks*
-  // Should be able to write a pretty good calc parser in ragel :-)
-  // Maybe use mongo for persistent constant storage and allow new consts
-  // to be defined by users
-  command: calc(ulate)
-  5 + 2
-  convert_chr => ascii character -> decimal repr of uint8
-  convert_ord => decimal repr of uint8 -> ascii character
-  convert_base => base 10to16 <decimal> -> <hex> for bases 2..62
-  calc_len => length <string> -> string length
-  calc_netmask => netmask ip.add.re.ss/cidr | netmask ip.add.re.ss ne.t.ma.sk
-    -> $ip/$cidr is in the range $bot-$top and has the netmask $netmask
-
+  - All of the old functionality ported over
 
 // There are probably more useful web services with JSON apis to wrap,
 // these can all go in 'netdriver'
