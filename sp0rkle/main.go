@@ -87,9 +87,10 @@ func main() {
 		}
 		quit = <-bot.Quit
 	}
-	// We're either shutting down or re-executing, so disconnect from mongo.
-	db.Close()
 	if bot.ReExec() {
+		// Calling syscall.Exec probably means deferred functions won't get
+		// called, so disconnect from mongodb first for politeness' sake.
+		db.Session.Close()
 		// If sp0rkle was run from PATH, we need to do that lookup manually.
 		os.Args[0], _ = exec.LookupPath(os.Args[0])
 		log.Warn("Re-executing sp0rkle with args '%v'.", os.Args)
