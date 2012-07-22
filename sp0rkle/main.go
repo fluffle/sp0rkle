@@ -93,11 +93,8 @@ func main() {
 		db.Session.Close()
 		// If sp0rkle was run from PATH, we need to do that lookup manually.
 		fq, _ := exec.LookPath(os.Args[0])
-		args := make([]string, len(os.Args))
-		copy(args, os.Args)
-		args[0] = fq
-		log.Warn("Re-executing sp0rkle with args '%v'.", args)
-		err := syscall.Exec("sp0rkle", args, os.Environ())
+		log.Warn("Re-executing sp0rkle with args '%v'.", os.Args)
+		err := syscall.Exec(fq, os.Args, os.Environ())
 		if err != nil {
 			// hmmmmmm
 			log.Fatal("Couldn't re-exec sp0rkle: %v", err)
