@@ -92,7 +92,10 @@ func main() {
 		// called, so disconnect from mongodb first for politeness' sake.
 		db.Session.Close()
 		// If sp0rkle was run from PATH, we need to do that lookup manually.
-		os.Args[0], _ = exec.LookPath(os.Args[0])
+		fq, _ = exec.LookPath(os.Args[0])
+		args := make([]string, len(os.Args))
+		copy(args, os.Args)
+		args[0] = fq
 		log.Warn("Re-executing sp0rkle with args '%v'.", os.Args)
 		err := syscall.Exec("sp0rkle", os.Args, os.Environ())
 		if err != nil {
