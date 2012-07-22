@@ -17,15 +17,20 @@ import (
 	"github.com/fluffle/sp0rkle/sp0rkle/drivers/seendriver"
 	"os"
 	"strings"
+	"syscall"
 )
 
-var host *string = flag.String("host", "", "IRC server to connect to.")
-var port *string = flag.String("port", "6667", "Port to connect to.")
-var ssl *bool = flag.Bool("ssl", false, "Use SSL when connecting.")
-var nick *string = flag.String("nick", "sp0rklf",
-	"Name of bot, defaults to 'sp0rklf'")
-var channel *string = flag.String("channel", "#sp0rklf",
-	"Channel to join, defaults to '#sp0rklf'")
+var (
+	host *string = flag.String("host", "", "IRC server to connect to.")
+	port *string = flag.String("port", "6667", "Port to connect to.")
+	ssl *bool = flag.Bool("ssl", false, "Use SSL when connecting.")
+	nick *string = flag.String("nick", "sp0rklf",
+		"Name of bot, defaults to 'sp0rklf'")
+	channels *string = flag.String("channels", "#sp0rklf",
+		"Comma-separated list of channels to join, defaults to '#sp0rklf'")
+	rebuilder *string = flag.String("rebuilder", "",
+		"Nick[:password] to accept rebuild command from.")
+)
 
 func main() {
 	flag.Parse()
@@ -55,7 +60,10 @@ func main() {
 
 	// Initialise bot state
 	bot := bot.Bot(irc, fd, log)
-	bot.AddChannel(*channel)
+	bot.AddChannels(strings.Split(*channels, ","))
+	if *rebuilder != "" {
+		bot.Rebuilder(*rebuilder)
+	}
 
 	// Add drivers
 	bot.AddDriver(bot)
@@ -77,5 +85,13 @@ func main() {
 			log.Fatal("Connection error: %s", err)
 		}
 		quit = <-bot.Quit
+	}
+	if bot.ReExec() {
+		log.Warn("Re-executing sp0rkle with args '%v'.", os.Args)
+		err := syscall.Exec("sp0rkle", os.Args, os.Environ())
+		if err != nil {
+			// hmmmmmm
+			log.Fatal("Couldn't re-exec sp0rkle: %v", err)
+		}
 	}
 }

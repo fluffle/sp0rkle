@@ -5,6 +5,7 @@ import (
 	"github.com/fluffle/goirc/client"
 	"github.com/fluffle/golog/logging"
 	"github.com/fluffle/sp0rkle/sp0rkle/base"
+	"strings"
 )
 
 // The bot is called sp0rkle...
@@ -30,7 +31,11 @@ type Sp0rkle struct {
 	// channel to join on start up
 	channels []string
 
+	// nick and password for rebuild command
+	rbnick, rbpw string
+
 	// and we need to kill it occasionally.
+	reexec, quit bool
 	Quit chan bool
 }
 
@@ -80,6 +85,18 @@ func (bot *Sp0rkle) GetDriver(name string) base.Driver {
 	return bot.drivers[name]
 }
 
-func (bot *Sp0rkle) AddChannel(c string) {
-	bot.channels = append(bot.channels, c)
+func (bot *Sp0rkle) AddChannels(c []string) {
+	bot.channels = append(bot.channels, c...)
+}
+
+func (bot *Sp0rkle) Rebuilder(rb string) {
+	s := strings.Split(rb, ":")
+	if len(s) > 1 {
+		bot.rbpw = s[1]
+	}
+	bot.rbnick = s[0]
+}
+
+func (bot *Sp0rkle) ReExec() bool {
+	return bot.reexec
 }

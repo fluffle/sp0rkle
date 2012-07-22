@@ -1,10 +1,12 @@
 package bot
 
 import (
+	"fmt"
 	"github.com/fluffle/goevent/event"
 	"github.com/fluffle/goirc/client"
 	"github.com/fluffle/sp0rkle/lib/util"
 	"github.com/fluffle/sp0rkle/sp0rkle/base"
+	"os/exec"
 	"strings"
 )
 
@@ -29,6 +31,11 @@ func (bot *Sp0rkle) RegisterHandlers(r event.EventRegistry) {
 	r.AddHandler(forward_event("kick"), "kick")
 	r.AddHandler(forward_event("quit"), "quit")
 	r.AddHandler(forward_event("nick"), "nick")
+
+	// This is a special handler that triggers a rebuild and re-exec
+	r.AddHandler(client.NewHandler(bot_rebuild), "notice")
+	// This is a special handler that triggers a shutdown and disconnect
+	r.AddHandler(client.NewHandler(bot_shutdown), "notice")
 }
 
 // Unboxer for bot handlers.
@@ -48,7 +55,7 @@ func bot_connected(irc *client.Conn, line *client.Line) {
 
 func bot_disconnected(irc *client.Conn, line *client.Line) {
 	bot := getState(irc)
-	bot.Quit <- true
+	bot.Quit <- bot.quit
 	bot.l.Info("Disconnected...")
 }
 
@@ -77,4 +84,35 @@ func bot_privmsg(irc *client.Conn, line *client.Line) {
 // Retrieve the bot from irc.State.
 func getState(irc *client.Conn) *Sp0rkle {
 	return irc.State.(*Sp0rkle)
+}
+
+func bot_rebuild(irc *client.Conn, line *client.Line) {
+	bot := getState(irc)
+	if bot.rbnick == "" || bot.rbnick != line.Nick { return }
+	if !strings.HasPrefix(line.Args[1], "rebuild") { return }
+	if bot.rbpw != "" && line.Args[1] != "rebuild "+bot.rbpw { return }
+
+	// Ok, we should be good to rebuild now.
+	irc.Notice(line.Nick, "Beginning rebuild")
+	cmd := exec.Command("go", "get", "-u", "github.com/fluffle/sp0rkle/sp0rkle")
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		irc.Notice(line.Nick, fmt.Sprintf("Rebuild failed: %s", err))
+		for _, l := range strings.Split(string(out), "\n") {
+			irc.Notice(line.Nick, l)
+		}
+		return
+	}
+	bot.quit = true
+	bot.reexec = true
+	bot.Conn.Quit("Restarting with new build.")
+}
+
+func bot_shutdown(irc *client.Conn, line *client.Line) {
+	bot := getState(irc)
+	if bot.rbnick == "" || bot.rbnick != line.Nick { return }
+	if !strings.HasPrefix(line.Args[1], "shutdown") { return }
+	if bot.rbpw != "" && line.Args[1] != "shutdown "+bot.rbpw { return }
+	bot.quit = true
+	bot.Conn.Quit("Shutting down.")
 }
