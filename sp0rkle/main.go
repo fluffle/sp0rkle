@@ -16,6 +16,7 @@ import (
 	"github.com/fluffle/sp0rkle/sp0rkle/drivers/quotedriver"
 	"github.com/fluffle/sp0rkle/sp0rkle/drivers/seendriver"
 	"os"
+	"os/exec"
 	"strings"
 	"syscall"
 )
@@ -86,7 +87,11 @@ func main() {
 		}
 		quit = <-bot.Quit
 	}
+	// We're either shutting down or re-executing, so disconnect from mongo.
+	db.Close()
 	if bot.ReExec() {
+		// If sp0rkle was run from PATH, we need to do that lookup manually.
+		os.Args[0], _ = exec.LookupPath(os.Args[0])
 		log.Warn("Re-executing sp0rkle with args '%v'.", os.Args)
 		err := syscall.Exec("sp0rkle", os.Args, os.Environ())
 		if err != nil {
