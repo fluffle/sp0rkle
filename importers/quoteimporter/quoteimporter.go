@@ -6,15 +6,17 @@ import (
 	"flag"
 	"fmt"
 	"github.com/fluffle/golog/logging"
+	"github.com/fluffle/sp0rkle/lib/db"
+	"github.com/fluffle/sp0rkle/lib/quotes"
 	"github.com/kuroneko/gosqlite3"
-	"launchpad.net/gobson/bson"
-	"lib/db"
-	"lib/quotes"
+	"labix.org/v2/mgo/bson"
 	"time"
 )
 
 var file *string = flag.String("db", "Quotes.db",
 	"SQLite database to import quotes from.")
+
+var log logging.Logger
 
 const (
 	// The Quotes table columns are:
@@ -32,20 +34,19 @@ func parseQuote(row []interface{}, out chan *quotes.Quote) {
 		StorableNick: db.StorableNick{Nick: row[cNick].(string)},
 		StorableChan: db.StorableChan{Chan: row[cChannel].(string)},
 		Accessed:     0,
-		Timestamp:    time.SecondsToLocalTime(row[cTime].(int64)),
+		Timestamp:    time.Unix(row[cTime].(int64), 0),
 		Id:           bson.NewObjectId(),
 	}
 }
 
 func main() {
 	flag.Parse()
-	log := logging.NewFromFlags()
+	log = logging.NewFromFlags()
 
 	// Let's go find some mongo.
 	mdb, err := db.Connect("localhost")
 	if err != nil {
-		fmt.Printf("Oh no: %v", err)
-		return
+		log.Fatal("Oh no: %v", err)
 	}
 	defer mdb.Session.Close()
 	qc := quotes.Collection(mdb, log)
@@ -63,9 +64,9 @@ func main() {
 	db_query := func(dbh *sqlite3.Database) {
 		n, err := dbh.Execute("SELECT * FROM Quotes;", row_feeder)
 		if err == nil {
-			fmt.Printf("Read %d rows from database.\n", n)
+			log.Info("Read %d rows from database.\n", n)
 		} else {
-			fmt.Printf("DB error: %s\n", err)
+			log.Error("DB error: %s\n", err)
 		}
 	}
 
@@ -93,7 +94,7 @@ func main() {
 		// ... push each quote into mongo
 		err = qc.Insert(quote)
 		if err != nil {
-			fmt.Printf("Awww: %v\n", err)
+			log.Error("Awww: %v\n", err)
 		} else {
 			if count%1000 == 0 {
 				fmt.Printf("%d...", count)
@@ -102,5 +103,5 @@ func main() {
 		}
 	}
 	fmt.Println("done.")
-	fmt.Printf("Inserted %d quotes.\n", count)
+	log.Info("Inserted %d quotes.\n", count)
 }

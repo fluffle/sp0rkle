@@ -2,16 +2,13 @@ package db
 
 // Wraps an mgo connection and db object for convenience
 
-import (
-	"launchpad.net/mgo"
-	"os"
-)
+import "labix.org/v2/mgo"
 
 const DATABASE string = "sp0rkle"
 
 type Database struct {
 	// We're wrapping mgo.Database here so we can provide our own methods.
-	mgo.Database
+	*mgo.Database
 
 	// But unlike mgo.Database, it'd be useful to keep an internal session
 	// reference around, so we can close things out later.
@@ -19,8 +16,8 @@ type Database struct {
 }
 
 // Wraps connecting to mongo and selecting the "sp0rkle" database.
-func Connect(resource string) (*Database, os.Error) {
-	sess, err := mgo.Mongo(resource)
+func Connect(resource string) (*Database, error) {
+	sess, err := mgo.Dial(resource)
 	if err != nil {
 		return nil, err
 	}

@@ -6,10 +6,10 @@ import (
 	"flag"
 	"fmt"
 	"github.com/fluffle/golog/logging"
+	"github.com/fluffle/sp0rkle/lib/db"
+	"github.com/fluffle/sp0rkle/lib/factoids"
 	"github.com/kuroneko/gosqlite3"
-	"launchpad.net/gobson/bson"
-	"lib/db"
-	"lib/factoids"
+	"labix.org/v2/mgo/bson"
 	"strconv"
 	"strings"
 	"time"
@@ -17,6 +17,8 @@ import (
 
 var file *string = flag.String("db", "Facts.db",
 	"SQLite database to import factoids from.")
+
+var log logging.Logger
 
 const (
 	// The Factoids table columns are:
@@ -34,12 +36,13 @@ const (
 func parseFactoid(row []interface{}, out chan *factoids.Factoid) {
 	values := parseMultipleValues(toString(row[cValue]))
 	c := &factoids.FactoidStat{
-		parseTimestamp(row[cCreated]),
-		db.StorableNick{toString(row[cCreator]), "", ""},
-		db.StorableChan{""}, 1,
+		StorableNick: db.StorableNick{toString(row[cCreator]), "", ""},
+		StorableChan: db.StorableChan{""},
+		Count: 1,
 	}
+	c.Timestamp, _ = parseTimestamp(row[cCreated])
 	m := &factoids.FactoidStat{StorableChan: db.StorableChan{""}, Count: 0}
-	if ts := parseTimestamp(row[cModified]); ts != nil {
+	if ts, ok := parseTimestamp(row[cModified]); ok {
 		m.Timestamp = ts
 		m.StorableNick = db.StorableNick{toString(row[cModifier]), "", ""}
 		m.Count = 1
@@ -102,19 +105,20 @@ func parseValue(k, r, v string) (ft factoids.FactoidType, fv string) {
 }
 
 // Parse the Created field with a type switch, cos it varies :-/
-func parseTimestamp(ts interface{}) *time.Time {
-	var tm int64
+func parseTimestamp(ts interface{}) (time.Time, bool) {
 	switch ts.(type) {
 	case float64:
-		tm = int64(ts.(float64))
+		return time.Unix(int64(ts.(float64)), 0), true
 	case int64:
-		tm = ts.(int64)
+		return time.Unix(ts.(int64), 0), true
 	case string:
-		tm, _ = strconv.Atoi64(ts.(string))
-	default:
-		return nil
+		if tm, err := strconv.ParseInt(ts.(string), 10, 64); err == nil {
+			return time.Unix(tm, 0), true
+		} else {
+			log.Warn("ParseInt error: (%s) %v", ts, err)
+		}
 	}
-	return time.SecondsToLocalTime(tm)
+	return time.Now(), false
 }
 
 // Ditto for the Access field.
@@ -139,10 +143,10 @@ func toString(s interface{}) string {
 		if float64(int(s.(float64))) == s.(float64) {
 			return strconv.Itoa(int(s.(float64)))
 		} else {
-			return strconv.Ftoa64(s.(float64), 'f', -1)
+			return strconv.FormatFloat(s.(float64), 'f', -1, 64)
 		}
 	case int64:
-		return strconv.Itoa64(s.(int64))
+		return strconv.FormatInt(s.(int64), 10)
 	case string:
 		return s.(string)
 	}
@@ -151,13 +155,12 @@ func toString(s interface{}) string {
 
 func main() {
 	flag.Parse()
-	log := logging.NewFromFlags()
+	log = logging.NewFromFlags()
 
 	// Let's go find some mongo.
 	mdb, err := db.Connect("localhost")
 	if err != nil {
-		fmt.Printf("Oh no: %v", err)
-		return
+		log.Fatal("Oh no: %v", err)
 	}
 	defer mdb.Session.Close()
 	fc := factoids.Collection(mdb, log)
@@ -175,9 +178,9 @@ func main() {
 	db_query := func(dbh *sqlite3.Database) {
 		n, err := dbh.Execute("SELECT * FROM Factoids;", row_feeder)
 		if err == nil {
-			fmt.Printf("Read %d rows from database.\n", n)
+			log.Info("Read %d rows from database.\n", n)
 		} else {
-			fmt.Printf("DB error: %s\n", err)
+			log.Error("DB error: %s\n", err)
 		}
 	}
 
@@ -205,7 +208,7 @@ func main() {
 		// ... push each fact into mongo
 		err = fc.Insert(fact)
 		if err != nil {
-			fmt.Printf("Awww: %v\n", err)
+			log.Error("Awww: %v\n", err)
 		} else {
 			if count%1000 == 0 {
 				fmt.Printf("%d...", count)
@@ -214,5 +217,5 @@ func main() {
 		}
 	}
 	fmt.Println("done.")
-	fmt.Printf("Inserted %d factoids.\n", count)
+	log.Info("Inserted %d factoids.\n", count)
 }

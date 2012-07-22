@@ -2,21 +2,20 @@ package quotedriver
 
 import (
 	"github.com/fluffle/golog/logging"
-	//	"launchpad.net/gobson/bson"
-	"lib/db"
-	"lib/quotes"
-	//	"lib/util"
-	//	"sp0rkle/base"
+	"github.com/fluffle/sp0rkle/lib/db"
+	"github.com/fluffle/sp0rkle/lib/quotes"
+	//	"github.com/fluffle/sp0rkle/lib/util"
+	//	"github.com/fluffle/sp0rkle/sp0rkle/base"
+	//	"labix.org/v2/mgo/bson"
 	//	"strings"
 	"time"
 )
 
 const driverName string = "quotes"
-const second int64 = 1e9
 
 type rateLimit struct {
-	badness  int64
-	lastsent int64
+	badness  time.Duration
+	lastsent time.Time
 }
 
 type quoteDriver struct {
@@ -49,13 +48,13 @@ func (qd *quoteDriver) rateLimit(nick string) bool {
 		qd.limits[nick] = lim
 	}
 	// limit to 1 quote every 15 seconds, burst to 4 quotes
-	elapsed := time.Nanoseconds() - lim.lastsent
-	if lim.badness += 15*second - elapsed; lim.badness < 0 {
+	elapsed := time.Now().Sub(lim.lastsent)
+	if lim.badness += 15*time.Second - elapsed; lim.badness < 0 {
 		lim.badness = 0
 	}
-	if lim.badness > 60*second {
+	if lim.badness > 60*time.Second {
 		return true
 	}
-	lim.lastsent = time.Nanoseconds()
+	lim.lastsent = time.Now()
 	return false
 }

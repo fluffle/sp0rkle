@@ -68,7 +68,7 @@ func RemoveColours(s string) string {
 }
 
 func RemoveFormatting(s string) string {
-	return strings.Map(func(c int) int {
+	return strings.Map(func(c rune) rune {
 		switch c {
 		case '\002', '\025':
 			// \002 == bold, \025 == underline

@@ -3,16 +3,15 @@ package factdriver
 import (
 	"fmt"
 	"github.com/fluffle/goevent/event"
-	"launchpad.net/gobson/bson"
-	"lib/db"
-	"lib/factoids"
-	"lib/util"
-	"os"
-	"rand"
-	"sp0rkle/bot"
-	"sp0rkle/base"
-	"strings"
+	"github.com/fluffle/sp0rkle/lib/db"
+	"github.com/fluffle/sp0rkle/lib/factoids"
+	"github.com/fluffle/sp0rkle/lib/util"
+	"github.com/fluffle/sp0rkle/sp0rkle/base"
+	"github.com/fluffle/sp0rkle/sp0rkle/bot"
+	"labix.org/v2/mgo/bson"
+	"math/rand"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -119,7 +118,7 @@ func fd_add(bot *bot.Sp0rkle, fd *factoidDriver, line *base.Line) {
 
 func fd_chance(bot *bot.Sp0rkle, fd *factoidDriver, line *base.Line) {
 	str := strings.TrimSpace(line.Args[1])
-	var chance float32
+	var chance float64
 
 	if strings.HasSuffix(str, "%") {
 		// Handle 'chance of that is \d+%'
@@ -129,11 +128,11 @@ func fd_chance(bot *bot.Sp0rkle, fd *factoidDriver, line *base.Line) {
 				line.Nick, str))
 			return
 		} else {
-			chance = float32(i) / 100
+			chance = float64(i) / 100
 		}
 	} else {
 		// Assume the chance is a floating point number.
-		if c, err := strconv.Atof32(str); err != nil {
+		if c, err := strconv.ParseFloat(str, 32); err != nil {
 			bot.Conn.Privmsg(line.Args[0], fmt.Sprintf(
 				"%s: '%s' didn't look like a chance to me.",
 				line.Nick, str))
@@ -266,7 +265,7 @@ func fd_literal(bot *bot.Sp0rkle, fd *factoidDriver, line *base.Line) {
 	// Passing an anonymous function to For makes it a little hard to abstract
 	// away in lib/factoids. Fortunately this is something of a one-off.
 	var fact *factoids.Factoid
-	f := func() os.Error {
+	f := func() error {
 		if fact != nil {
 			bot.Conn.Privmsg(line.Args[0], fmt.Sprintf(
 				"%s: [%3.0f%%] %s", line.Nick, fact.Chance*100, fact.Value))
@@ -304,7 +303,7 @@ func fd_lookup(bot *bot.Sp0rkle, fd *factoidDriver, line *base.Line) {
 		// To avoid making this too spammy, forcibly limit the chance to 40%.
 		chance = 0.4
 	}
-	if rand.Float32() < chance {
+	if rand.Float64() < chance {
 		// Store this as the last seen factoid
 		fd.Lastseen(line.Args[0], fact.Id)
 		// Update the Accessed field

@@ -4,10 +4,10 @@ package factoids
 
 import (
 	"github.com/fluffle/golog/logging"
-	"launchpad.net/gobson/bson"
-	"launchpad.net/mgo"
-	"lib/db"
-	"lib/util"
+	"github.com/fluffle/sp0rkle/lib/db"
+	"github.com/fluffle/sp0rkle/lib/util"
+	"labix.org/v2/mgo"
+	"labix.org/v2/mgo/bson"
 	"strings"
 	"time"
 )
@@ -26,7 +26,7 @@ const (
 // A factoid maps a key to a value, and keeps some stats about it
 type Factoid struct {
 	Key, Value                  string
-	Chance                      float32
+	Chance                      float64
 	Type                        FactoidType
 	Created, Modified, Accessed *FactoidStat
 	Perms                       *FactoidPerms
@@ -36,7 +36,7 @@ type Factoid struct {
 // Represent info about things that happened to the factoid
 type FactoidStat struct {
 	// When <thing> happened
-	Timestamp *time.Time
+	Timestamp time.Time
 	// Who did <thing>
 	db.StorableNick
 	// Where they did <thing>
@@ -58,7 +58,7 @@ type FactoidInfo struct {
 
 // Helper to make the work of putting together a completely new *Factoid easier
 func NewFactoid(key, value string, n db.StorableNick, c db.StorableChan) *Factoid {
-	ts := time.LocalTime()
+	ts := time.Now()
 	ft, fv := ParseValue(value)
 	return &Factoid{
 		Key: key, Value: fv, Type: ft, Chance: 1.0,
@@ -71,14 +71,14 @@ func NewFactoid(key, value string, n db.StorableNick, c db.StorableChan) *Factoi
 }
 
 func (f *Factoid) Access(n db.StorableNick, c db.StorableChan) {
-	f.Accessed.Timestamp = time.LocalTime()
+	f.Accessed.Timestamp = time.Now()
 	f.Accessed.StorableNick = n
 	f.Accessed.StorableChan = c
 	f.Accessed.Count++
 }
 
 func (f *Factoid) Modify(n db.StorableNick, c db.StorableChan) {
-	f.Modified.Timestamp = time.LocalTime()
+	f.Modified.Timestamp = time.Now()
 	f.Modified.StorableNick = n
 	f.Modified.StorableChan = c
 	f.Modified.Count++
@@ -87,7 +87,7 @@ func (f *Factoid) Modify(n db.StorableNick, c db.StorableChan) {
 // Factoids are stored in a mongo collection of Factoid structs
 type FactoidCollection struct {
 	// We're wrapping mgo.Collection so we can provide our own methods.
-	mgo.Collection
+	*mgo.Collection
 
 	// cache of objectIds for PseudoRand
 	seen map[string][]bson.ObjectId
@@ -150,7 +150,7 @@ func (fc *FactoidCollection) GetPseudoRand(key string) *Factoid {
 	if count == 0 {
 		if ok {
 			// we've seen this before, but people have deleted it since.
-			fc.seen[key] = nil, false
+			delete(fc.seen, key)
 		}
 		return nil
 	}
@@ -174,7 +174,7 @@ func (fc *FactoidCollection) GetPseudoRand(key string) *Factoid {
 		// if the count of results is 1 and we're storing seen data for key
 		// then we've exhausted the possible results and should wipe it
 		fc.l.Debug("Zeroing seen data for key '%s'.", key)
-		fc.seen[key] = nil, false
+		delete(fc.seen, key)
 	}
 	return &res
 }
@@ -193,7 +193,7 @@ func (fc *FactoidCollection) GetLast(op, key string) *Factoid {
 	var res Factoid
 	// op == "modified", "accessed", "created"
 	op = op + ".timestamp"
-	q := fc.Find(lookup(key)).Sort(bson.M{op: -1})
+	q := fc.Find(lookup(key)).Sort("-op")
 	if err := q.One(&res); err == nil {
 		return &res
 	}
@@ -201,7 +201,7 @@ func (fc *FactoidCollection) GetLast(op, key string) *Factoid {
 }
 
 func (fc *FactoidCollection) InfoMR(key string) *FactoidInfo {
-	mr := mgo.MapReduce{
+	mr := &mgo.MapReduce{
 		Map: `function() { emit("count", {
 			accessed: this.accessed.count,
 			modified: this.modified.count,

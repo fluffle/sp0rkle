@@ -2,11 +2,11 @@ package factdriver
 
 import (
 	"github.com/fluffle/golog/logging"
-	"launchpad.net/gobson/bson"
-	"lib/db"
-	"lib/factoids"
-	"lib/util"
-	"sp0rkle/base"
+	"github.com/fluffle/sp0rkle/lib/db"
+	"github.com/fluffle/sp0rkle/lib/factoids"
+	"github.com/fluffle/sp0rkle/lib/util"
+	"github.com/fluffle/sp0rkle/sp0rkle/base"
+	"labix.org/v2/mgo/bson"
 	"strings"
 )
 

@@ -3,15 +3,15 @@ package quotedriver
 import (
 	"fmt"
 	"github.com/fluffle/goevent/event"
-	"launchpad.net/gobson/bson"
-	"lib/db"
-	"lib/quotes"
-	"lib/util"
+	"github.com/fluffle/sp0rkle/lib/db"
+	"github.com/fluffle/sp0rkle/lib/quotes"
+	"github.com/fluffle/sp0rkle/lib/util"
+	"github.com/fluffle/sp0rkle/sp0rkle/base"
+	"github.com/fluffle/sp0rkle/sp0rkle/bot"
+	"labix.org/v2/mgo/bson"
 	//	"rand"
-	"sp0rkle/bot"
-	"sp0rkle/base"
-	"strings"
 	"strconv"
+	"strings"
 	//	"time"
 )
 

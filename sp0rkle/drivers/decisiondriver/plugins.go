@@ -4,12 +4,11 @@ package decisiondriver
 
 import (
 	"fmt"
-	"lib/util"
-	"os"
-	"rand"
-	"sp0rkle/base"
-	"strings"
+	"github.com/fluffle/sp0rkle/lib/util"
+	"github.com/fluffle/sp0rkle/sp0rkle/base"
+	"math/rand"
 	"strconv"
+	"strings"
 )
 
 func (dd *decisionDriver) RegisterPlugins(pm base.PluginManager) {
@@ -35,8 +34,8 @@ func dd_rand(dd *decisionDriver, val string, line *base.Line) string {
 // and first-class regex constructs. Doing without is fun!
 func rand_replacer(val string, r *rand.Rand) string {
 	for {
-		var lo, hi float32
-		var err os.Error
+		var lo, hi float64
+		var err error
 		format := "%.0f"
 		// Work out the indices of the plugin start and end.
 		ps := strings.Index(val, "<plugin=rand ")
@@ -63,19 +62,19 @@ func rand_replacer(val string, r *rand.Rand) string {
 		// range lo-hi, rather than just 0-hi.
 		if dash := strings.Index(val[mid:sp], "-"); dash != -1 {
 			dash += mid
-			if lo, err = strconv.Atof32(val[mid:dash]); err != nil {
+			if lo, err = strconv.ParseFloat(val[mid:dash], 32); err != nil {
 				lo = 0
 			}
-			if hi, err = strconv.Atof32(val[dash+1 : sp]); err != nil {
+			if hi, err = strconv.ParseFloat(val[dash+1:sp], 32); err != nil {
 				hi = 0
 			}
 		} else {
 			lo = 0
-			if hi, err = strconv.Atof32(val[mid:sp]); err != nil {
+			if hi, err = strconv.ParseFloat(val[mid:sp], 32); err != nil {
 				hi = 0
 			}
 		}
-		rnd := r.Float32()*(hi-lo) + lo
+		rnd := r.Float64()*(hi-lo) + lo
 		val = val[:ps] + fmt.Sprintf(format, rnd) + val[pe+1:]
 	}
 	return val
@@ -113,27 +112,25 @@ func rand_decider(val string, r *rand.Rand) string {
 }
 
 func choices(val string) []string {
-	if strings.IndexAny(val, "\"'|") != -1 {
-		d := strings.IndexAny(val, "\"'|")
-		var delim string
-		delim = string(val[d])
-		// If we are splitting string on ' or "
-		// make sure we have an even number
-		if strings.IndexAny(delim, "\"'") != -1 {
-			if strings.Count(val, delim)%2 == 1 {
-				return []string{"Unbalanced quotes"}
-			}
-		}
-		tmp := strings.Split(val, delim)
-		var ret []string
-		for i := 1; i < len(tmp); i += 2 {
-			ret = append(ret, tmp[i])
-		}
-		return ret
-	} else {
-		//String doesn't contains and seperator chars, so is just a list of words
-		return strings.SplitN(val, " ", -1)
+	d := strings.IndexAny(val, `"'|`)
+	if d == -1 {
+		// String doesn't contain any seperator chars,
+		// so is just a list of options to choose from
+		return strings.Split(val, " ")
 	}
-
-	return []string{"Invalid syntax", val}
+	delim := string(val[d])
+	tmp := strings.Split(val, delim)
+	if delim == "|" {
+		return tmp
+	}
+	// Make sure we have balanced quotes
+	if len(tmp) % 2 == 0 {
+		return []string{"Unbalanced quotes"}
+	}
+	// Copy out the possible choice values
+	ret := make([]string, (len(tmp)-1)/2)
+	for i, j := 1, 0; i < len(tmp); i, j = i+2, j+1 {
+		ret[j] = tmp[i]
+	}
+	return ret
 }

@@ -2,7 +2,7 @@ package factdriver
 
 import (
 	"github.com/fluffle/goirc/client"
-	"sp0rkle/base"
+	"github.com/fluffle/sp0rkle/sp0rkle/base"
 	"testing"
 	"time"
 )
@@ -15,7 +15,7 @@ func TestIdentifiers(t *testing.T) {
 		"$nick $chan $username $user $host $time $date",
 	}
 	// Static timestamp for great testing justice, no "local" time here kthx.
-	ts := time.SecondsToUTC(1234567890)
+	ts := time.Unix(1234567890, 0).UTC()
 	line := &base.Line{
 		Line: client.Line{
 			Nick: "tester", Ident: "tests", Host: "goirc.github.com",

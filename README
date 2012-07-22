@@ -23,18 +23,22 @@ cd go/src
 
 # consider putting these in ~/.bashrc too...
 export GOROOT="$HOME/go"
-export PATH="$PATH:$HOME/go/bin"
+export GOPATH="$HOME/gocode"
+export PATH="$PATH:$GOROOT/bin:$GOPATH/bin"
 
-3) Use goinstall to get dependencies.
+# ... and creating the GOPATH directory structure.
+# (read `go help gopath` for details of this)
+mkdir -p $GOPATH/{src,pkg,bin}
 
-goinstall github.com/fluffle/goirc/client
-goinstall github.com/fluffle/golog/logging
-goinstall github.com/fluffle/goevent/event
-goinstall github.com/kuroneko/gosqlite3
-goinstall github.com/skelterjohn/go-gb/gb
-goinstall launchpad.net/mgo
+3) Use the `go` tool to get dependencies.
+
+go get github.com/fluffle/goirc/client
+go get github.com/kuroneko/gosqlite3
+go get labix.org/v2/mgo
 
 4) Clone sp0rkle's code from github.
+
+cd $GOPATH/src/github.com/fluffle
 
 # Note: in order to submit patches more easily, you might want to get a github
 # account, fork the bot, and clone from your own writeable version.
@@ -47,19 +51,21 @@ git remote add -f -m master fluffle http://github.com/fluffle/sp0rkle.git
 # Otherwise, just clone from my repository:
 git clone http://github.com/fluffle/sp0rkle.git
 
-5) Import the old factoid database into mongo:
+5) Import the old databases into mongo:
 
-gb  # build things
-bin/factimporter --db=/path/to/db
+go install github.com/fluffle/sp0rkle/util/importers/factimporter
+factimporter --db=/path/to/db
+go install github.com/fluffle/sp0rkle/util/importers/quoteimporter
+quoteimporter --db=/path/to/db
 
-# If you don't know where to get the db, you shouldn't be submitting patches :-)
+# If you don't know where to get the dbs, you shouldn't be submitting patches :-)
 
 6) Code, build, commit, push :)
 
-while coding:
+while coding in $GOPATH/src/github.com/fluffle/sp0rkle/sp0rkle:
   vim <stuff>:wq
-  gb  # build
-  bin/sp0rkle --host irc.pl0rt.org --port 6697 --ssl  [--nick=mybot] [--channel='#test']  #run
+  go build
+  ./sp0rkle --host irc.pl0rt.org --port 6697 --ssl  [--nick=mybot] [--channel='#test']  #run
   ^C
 
 git add <stuff>
