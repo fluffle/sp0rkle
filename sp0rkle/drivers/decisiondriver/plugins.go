@@ -102,64 +102,35 @@ func rand_decider(val string, r *rand.Rand) string {
 		pe += ps
 		// Mid is where the plugin args start.
 		mid := ps + 15
-		if options := choices(val[mid:pe]); options != nil
-			rnd := r.Intn(len(options))
-			chosenone := strings.TrimSpace(options[rnd])
-			val = val[:ps] + chosenone + val[pe+1:]
-		} else {
-			val = val[:ps] + "<plugin error>" + val[pe+1:]
-		}
+		// options := strings.SplitN(val[mid:pe]," ", -1)
+		options := choices(val[mid:pe])
+		rnd := r.Intn(len(options))
+		chosenone := strings.TrimSpace(options[rnd])
+		val = val[:ps] + chosenone + val[pe+1:]
 	}
 	return val
 }
 
 func choices(val string) []string {
-	// We accept three different delimiter types in the input string, and we use
-	// the following heuristics to determine what type of parsing style to use.
-
-	// 1. Look for \s(["'])\S *and* \S\1\s in the input string. If we find this,
-	//    use a mixed parsing style that accepts space separated bare words and
-	//    ' or " delimited strings that may contain spaces *and* |
-	// 2. Look for an occurrence of the | character. If we find it, split on it.
-	// 3. Split on spaces.
-
-	idx := strings.IndexAny(val, `"'`)
-	// Careful to make sure that a string where the only quote is the last
-	// character doesn't cause a panic.
-	if idx == len(val)-1 || idx == -1 {
-		return simpleSplit(val)
+	d := strings.IndexAny(val, `"'|`)
+	if d == -1 {
+		// String doesn't contain any seperator chars,
+		// so is just a list of options to choose from
+		return strings.Split(val, " ")
 	}
-	// This should all be safe as `'` `"` and ` ` are all one byte in UTF-8
-	if idx == 0 || val[idx-1] != ' ' {
-		idy := strings.Index(val[idx+1:], string(val[idx]))
-		if idy == -1 {
-			// No matching quote char found, so try a simple split instead
-			return simpleSplit(val)
-		}
-		// Unicode rune after first quote
-		rx, _ := utf8.DecodeRuneInString(val[idx+1:])
-		// Unicode rune before second quote
-		ry, _ := utf8.DecodeLastRuneInString(val[:idy])
-		// 
-		if (unicode.IsLetter(rx) || unicode.IsNumber(rx)) &&
-			(unicode.IsLetter(ry) || unicode.IsNumber(ry)) &&
-			(idy == len(val)-1 || val[idy+1] == ' ') {
-			return quoteSplit(val)
-		}
+	delim := string(val[d])
+	tmp := strings.Split(val, delim)
+	if delim == "|" {
+		return tmp
 	}
-	return simpleSplit(val)
+	// Make sure we have balanced quotes
+	if len(tmp) % 2 == 0 {
+		return []string{"Unbalanced quotes"}
+	}
+	// Copy out the possible choice values
+	ret := make([]string, (len(tmp)-1)/2)
+	for i, j := 1, 0; i < len(tmp); i, j = i+2, j+1 {
+		ret[j] = tmp[i]
+	}
+	return ret
 }
-
-func simpleSplit(val string) []string {
-	if strings.Index(val, "|") != -1 {
-		// | is a simple delimiter
-		// NOTE: spaces either side of the | are taken care of by the caller
-		return strings.Split(val, "|")
-	}
-	// String doesn't contain any seperator chars,
-	// so is just a list of options to choose from
-	return strings.Split(val, " ")
-}
-
-func quoteSplit(val string) []string {
-	

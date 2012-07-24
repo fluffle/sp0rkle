@@ -5,6 +5,7 @@ import (
 	"math"
 	"strings"
 	"testing"
+	"unicode"
 )
 
 func TestCalc(t *testing.T) {
@@ -97,6 +98,98 @@ func TestFunctionisers(t *testing.T) {
 
 // Lexer tests
 
+// This takes care of exercising peek, next, scan, and rewind
+func TestLexerLowLevelFuncs(t *testing.T) {
+	// Mmm. Unicodey. 42 bytes, 22 chars.
+	l := &lexer{input: "This ïş æ 💩♽⛤ “Ŧəšţ”™."}
+
+	// First, peek.
+	if l.peek() != 'T' {
+		t.Errorf("Lexer appears to be starting in the wrong place")
+	}
+	// Advance 5 bytes to ï (\u00ef, 0xC3 0xAf)
+	l.pos += 5
+	if l.peek() != 'ï' {
+		t.Errorf("Lexer not decoding two-byte unicode chars")
+	}
+	// Advance another byte to the middle of ï
+	l.pos += 1
+	if l.peek() != 0 {
+		t.Errorf("Didn't get EOF from bad unicode")
+	}
+
+	// Advance to POO, PILE OF!
+	l.pos = strings.Index(l.input, "💩")
+	if l.peek() != '💩' {
+		t.Errorf("Lexer can't decode shit")
+	}
+
+	// For the next three chars, make sure peek() and next() are in sync
+	for i := 0; i < 3; i++ {
+		if string(l.peek()) != l.next() {
+			t.Errorf("Peek and next don't agree")
+		}
+	}
+
+	// We should be at the space before “Ŧəšţ” now.
+	if l.next() != " " {
+		t.Errorf("Lexer seems out of sync with reality")
+	}
+	l.rewind()
+	if l.next() != " " {
+		t.Errorf("Lexer still seems out of sync with reality")
+	}
+	l.next() // skip opening quote.
+
+	// Test scanning Ŧəšţ
+	if l.scan(unicode.IsLetter) != "Ŧəšţ" {
+		t.Errorf("Scanning for letters didn't retrieve string")
+	}
+	l.rewind()
+	if l.next() != "Ŧ" {
+		t.Errorf("Rewinding scan didn't put lexer in correct place")
+	}
+}
+
+func TestNumber(t *testing.T) {
+	tests := []struct {
+		i string  // input
+		o float64 // output
+		p int     // expected value of lexer.pos afterwards
+	}{
+		// GOOD CASES
+		{"0", 0, 1},
+		{"-1", -1, 2},
+		{"1.25", 1.25, 4},
+		{"-12345.6789", -12345.6789, 11},
+		{"1e6", 1e6, 3},
+		{"-1.23e45", -1.23e45, 8},
+		{"1.23e-45", 1.23e-45, 8},
+		// BAD CASES
+		{"1e999", 0, 5},   // > MaxFloat
+		{"1e-999", 0, 6},  // < MinFloat
+		{"NaN", 0, 0},     // should result in ParseFloat("")
+		{"a123.45", 0, 0}, //   ""
+		// UGLY CASES
+		{"0xf00", 0, 1}, // Hex not supported yet
+		{"0b010", 0, 1}, // Binary not supported yet
+		{"1foo", 1, 1},  // Stops at first non-digit
+		{"०१२", 0, 9},   // 012 in devanagari digits
+		{"໘໔໓", 0, 9},   // 843 in lao digits
+		// I guess those poor devanagari etc. are SOL ;-(
+	}
+
+	for i, tc := range tests {
+		l := &lexer{input: tc.i}
+		if o := l.number(); o != tc.o {
+			t.Errorf("number(%d): '%s' result %f != %f", i, tc.i, o, tc.o)
+		}
+		if l.pos != tc.p {
+			t.Errorf("number(%d): '%s' pos %d != %d", i, tc.i, l.pos, tc.p)
+		}
+	}
+}
+
 type tt struct {
 	i string    // input
 	k tokenKind // token.kind
@@ -137,7 +230,7 @@ func TestToken(t *testing.T) {
 	}
 
 	for i, tc := range tests {
-		l := calcLexer(tc.i)
+		l := &lexer{input: tc.i}
 		tok := l.token()
 		if tok.kind != tc.k {
 			t.Errorf("token(%d) '%s' kind mismatch, %d != %d",
@@ -166,7 +259,7 @@ func TestTokenMinus(t *testing.T) {
 		{"5*6-7", 4},
 	}
 	for i, tc := range tests {
-		l := calcLexer(tc.i)
+		l := &lexer{input: tc.i}
 		tok := &token{T_NUM, "", 0} // start things off ...
 		for j := 1; tok.kind != T_EOF; j++ {
 			tok = l.token()
@@ -208,7 +301,7 @@ func TestTokens(t *testing.T) {
 		"&D(foo)", // lots of T_NFI
 	}
 	for i, tc := range tests {
-		ts := calcLexer(tc).tokens()
+		ts := (&lexer{input: tc}).tokens()
 		if s := ts.serialise(); s != tc {
 			t.Errorf("Unexpected string output for %d, expected: %s, got: %s",
 				i, tc, s)
@@ -238,7 +331,7 @@ func TestShunt(t *testing.T) {
 		{"cos()", "cos", false}, // not a parse error at shunt time
 	}
 	for i, tc := range tests {
-		ts, err := shunt(calcLexer(tc.i).tokens())
+		ts, err := shunt((&lexer{input: tc.i}).tokens())
 		if (err == nil) == tc.e {
 			t.Errorf("Bad shunt error state for %d (err=%v).", i, err)
 		}
@@ -380,9 +473,9 @@ func TestShuntStep(t *testing.T) {
 
 	for i, tc := range tests {
 		// Initialise state from inputs
-		s := calcLexer(tc.si).tokens()
-		a := calcLexer(tc.ai).tokens()
-		o := calcLexer(tc.oi).tokens()
+		s := (&lexer{input: tc.si}).tokens()
+		a := (&lexer{input: tc.ai}).tokens()
+		o := (&lexer{input: tc.oi}).tokens()
 
 		err := shuntStep(tc.tok, s, a, o)
 		if (err == nil) == tc.e {
@@ -410,10 +503,10 @@ func TestShuntStepArgCounting(t *testing.T) {
 	// jump through some hoops to check it's working properly.
 
 	// Initial state, parsed 1+cos(2
-	s := calcLexer("+cos(").tokens()
-	a := calcLexer("cos").tokens()
+	s := (&lexer{input: "+cos("}).tokens()
+	a := (&lexer{input: "cos"}).tokens()
 	ftok := (*a)[0]
-	o := calcLexer("12").tokens()
+	o := (&lexer{input: "12"}).tokens()
 
 	// Correct syntax: T_RPAR
 	// Results in 2x stack pop and argcs pop
@@ -431,10 +524,10 @@ func TestShuntStepArgCounting(t *testing.T) {
 	}
 
 	// RESET!
-	s = calcLexer("+cos(").tokens()
-	a = calcLexer("cos").tokens()
+	s = (&lexer{input: "+cos("}).tokens()
+	a = (&lexer{input: "cos"}).tokens()
 	ftok = (*a)[0]
-	o = calcLexer("12").tokens()
+	o = (&lexer{input: "12"}).tokens()
 
 	// Bad syntax: T_COMMA, T_RPAR
 	err = shuntStep(&token{T_COMMA, ",", 0}, s, a, o)
@@ -455,10 +548,10 @@ func TestShuntStepArgCounting(t *testing.T) {
 	}
 
 	// RESET a different way
-	s = calcLexer("+atan2(").tokens()
-	a = calcLexer("atan2").tokens()
+	s = (&lexer{input: "+atan2("}).tokens()
+	a = (&lexer{input: "atan2"}).tokens()
 	ftok = (*a)[0]
-	o = calcLexer("12").tokens()
+	o = (&lexer{input: "12"}).tokens()
 
 	// Bad syntax: T_RPAR (expecting 2 arguments)
 	err = shuntStep(&token{T_RPAR, ")", 0}, s, a, o)
