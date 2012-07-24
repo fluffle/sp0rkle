@@ -2,11 +2,10 @@ package calc
 
 import (
 	"fmt"
+	"github.com/fluffle/sp0rkle/lib/util"
 	"math"
-	"strconv"
 	"strings"
 	"unicode"
-	"unicode/utf8"
 )
 
 //------------------------------------------------------------------------------
@@ -124,8 +123,6 @@ var functionMap = map[string]function{
 
 //------------------------------------------------------------------------------
 // The Lexer
-//
-// (admittedly, this could be combined with the parser in a single struct...)
 
 // The lexer produces tokens of these kinds:
 type tokenKind int
@@ -171,140 +168,72 @@ func (t token) String() string {
 }
 
 type lexer struct {
-	input             string
-	start, pos, width int
+	// we extend the basic lexer util to produce tokens here.
+	*util.Lexer
 	binaryMinus       bool
 }
 
-// peek() returns the utf8 rune that is at lexer.pos in the input string.
-// It does not move input.pos; repeated peek()s will return the same rune.
-func (l *lexer) peek() (r rune) {
-	if l.pos >= len(l.input) {
-		l.width = 0
-		return 0
-	}
-	r, l.width = utf8.DecodeRuneInString(l.input[l.pos:])
-	if r == utf8.RuneError {
-		// Treat bad unicode as EOF.
-		l.width = 0
-		return 0
-	}
-	return r
-}
-
-// next() returns the utf8 rune (in string form, for convenience elsewhere)
-// that is at lexer.pos in the input string, then advances lexer.pos past it.
-func (l *lexer) next() string {
-	l.start = l.pos
-	r := l.peek()
-	l.pos += l.width
-	return string(r)
-}
-
-// scan() returns the sequence of runes in the input string anchored
-// at lexer.pos that the supplied function returns true for. Usefully,
-// unicode.IsDigit et al. fit the required function signature ;-)
-func (l *lexer) scan(f func(rune) bool) string {
-	l.start = l.pos
-	for f(l.peek()) {
-		l.pos += l.width
-	}
-	return l.input[l.start:l.pos]
-}
-
-// rewind() undoes the last next() or scan() by resetting lexer.pos.
-func (l *lexer) rewind() {
-	l.pos = l.start
-}
-
-// number() is a higher-level function that extracts a number from the
-// input beginning at lexer.pos. A number matches the following regex:
-//     -?[0-9]+(.[0-9]+)?([eE]-?[0-9]+)?
-func (l *lexer) number() float64 {
-	s := l.pos // l.start is reset through the multiple scans
-	if l.peek() == '-' {
-		l.pos += l.width
-	}
-	l.scan(unicode.IsDigit)
-	if l.next() == "." {
-		l.scan(unicode.IsDigit)
-	} else {
-		l.rewind()
-	}
-	if c := l.next(); c == "e" || c == "E" {
-		if l.peek() == '-' {
-			l.pos += l.width
-		}
-		l.scan(unicode.IsDigit)
-	} else {
-		l.rewind()
-	}
-	l.start = s
-	n, err := strconv.ParseFloat(l.input[s:l.pos], 64)
-	if err != nil {
-		// This might be a bad idea in the long run.
-		return 0
-	}
-	return n
+func calcLexer(i string) *lexer {
+	return &lexer{Lexer: &util.Lexer{Input: i}}
 }
 
 // token() produces tokens from the input string for use by the parser.
 func (l *lexer) token() (tok *token) {
-	l.scan(unicode.IsSpace)
-	r := l.peek()
+	l.Scan(unicode.IsSpace)
+	r := l.Peek()
 
 	switch {
 	case r == 0:
 		tok = &token{T_EOF, "", 0}
 	case r == '+' || r == '/' || r == '%' || r == '^':
-		tok = &token{T_OP, l.next(), 0}
+		tok = &token{T_OP, l.Next(), 0}
 	case r == '(':
-		tok = &token{T_LPAR, l.next(), 0}
+		tok = &token{T_LPAR, l.Next(), 0}
 	case r == ')':
-		tok = &token{T_RPAR, l.next(), 0}
+		tok = &token{T_RPAR, l.Next(), 0}
 	case r == ',':
-		tok = &token{T_COMMA, l.next(), 0}
+		tok = &token{T_COMMA, l.Next(), 0}
 	case r == '-':
 		// could be a prefix - as in -12. This is only valid
 		// if the last token was an operator (6 - 4) vs (6 - -4)
-		l.next()
+		l.Next()
 		if l.binaryMinus {
 			tok = &token{T_OP, "-", 0}
-		} else if unicode.IsLetter(l.peek()) {
+		} else if unicode.IsLetter(l.Peek()) {
 			// With many apologies, this seemed to be the best place
 			// to hack in support for negative constants like "-pi"...
-			str := l.scan(unicode.IsLetter)
+			str := l.Scan(unicode.IsLetter)
 			if num, ok := ConstMap[str]; ok {
 				tok = &token{T_NUM, "", -num}
 			} else {
 				tok = &token{T_NFI, "-" + str, 0}
 			}
 		} else {
-			l.rewind()
-			tok = &token{T_NUM, "", l.number()}
+			l.Rewind()
+			tok = &token{T_NUM, "", l.Number()}
 		}
 	case r == '*':
 		// ** is often the power operator
-		l.next()
-		if l.peek() == '*' {
+		l.Next()
+		if l.Peek() == '*' {
 			tok = &token{T_OP, "**", 0}
 		} else {
 			tok = &token{T_OP, "*", 0}
 		}
 	case unicode.IsLetter(r):
 		// could be a constant or a defined function
-		str := l.scan(unicode.IsLetter)
+		str := l.Scan(unicode.IsLetter)
 		if _, ok := functionMap[str]; ok {
 			// since we know our defined functions, let's just check
 			// we need special case checking for atan2, log2, and
 			// log10, because IsLetter doesn't match the 2 / 10...
-			if c := l.next(); c == "2" {
+			if c := l.Next(); c == "2" {
 				str += "2"
-			} else if c == "1" && l.peek() == '0' {
-				l.next()
+			} else if c == "1" && l.Peek() == '0' {
+				l.Next()
 				str += "10"
 			} else {
-				l.rewind()
+				l.Rewind()
 			}
 			tok = &token{T_FUNC, str, 0}
 		} else if num, ok := ConstMap[str]; ok {
@@ -316,9 +245,9 @@ func (l *lexer) token() (tok *token) {
 			tok = &token{T_NFI, str, 0}
 		}
 	case unicode.IsDigit(r):
-		tok = &token{T_NUM, "", l.number()}
+		tok = &token{T_NUM, "", l.Number()}
 	default:
-		tok = &token{T_NFI, l.next(), 0}
+		tok = &token{T_NFI, l.Next(), 0}
 	}
 	switch tok.kind {
 	case T_OP, T_LPAR, T_COMMA:
@@ -330,7 +259,7 @@ func (l *lexer) token() (tok *token) {
 }
 
 func (l *lexer) tokens() *tokenStack {
-	ts := ts(len(l.input))
+	ts := ts(len(l.Lexer.Input))
 	for tok := l.token(); tok.kind != T_EOF; tok = l.token() {
 		ts.push(tok)
 	}
@@ -523,7 +452,7 @@ func calc(ops *tokenStack) (float64, error) {
 
 // Calc("some arbitrary maths string") -> (answer or zero, nil or error)
 func Calc(input string) (float64, error) {
-	l := &lexer{input: input}
+	l := calcLexer(input)
 	// Dijkstra's shunting-yard algorithm to RPN input
 	ops, err := shunt(l.tokens())
 	if err != nil {
