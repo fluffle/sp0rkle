@@ -59,6 +59,17 @@ func TestLexerLowLevelFuncs(t *testing.T) {
 	}
 }
 
+func TestScanBadEOFHandling(t *testing.T) {
+	l := &Lexer{Input: "alongstringwithnospaces"}
+	s := l.Scan(func(r rune) bool {
+		if r == ' ' { return false }
+		return true
+	})
+	if s != "alongstringwithnospaces" {
+		t.Errorf("Scan failed to handle func with no EOF detection")
+	}
+}	
+
 func TestNumber(t *testing.T) {
 	tests := []struct {
 		i string  // input

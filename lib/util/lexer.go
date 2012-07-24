@@ -40,9 +40,11 @@ func (l *Lexer) Next() string {
 // scan() returns the sequence of runes in the input string anchored
 // at lexer.pos that the supplied function returns true for. Usefully,
 // unicode.IsDigit et al. fit the required function signature ;-)
+// NOTE: if you are providing your own function, MAKE SURE IT HANDLES EOF
 func (l *Lexer) Scan(f func(rune) bool) string {
 	l.start = l.pos
 	for f(l.Peek()) {
+		if l.width == 0 { break }
 		l.pos += l.width
 	}
 	return l.Input[l.start:l.pos]
