@@ -22,7 +22,7 @@ func dd_privmsg(bot *bot.Sp0rkle, line *base.Line) {
 
 	switch {
 	case strings.HasPrefix(line.Args[1], "decide "):
-		opts := splitDelimitedString(line.Args[1][8:])
+		opts := splitDelimitedString(line.Args[1][7:])
 		chosen := strings.TrimSpace(opts[util.RNG.Intn(len(opts))])
 		bot.Conn.Privmsg(line.Args[0], fmt.Sprintf("%s: %s", line.Nick, chosen))
 	case strings.HasPrefix(line.Args[1], "rand "):
