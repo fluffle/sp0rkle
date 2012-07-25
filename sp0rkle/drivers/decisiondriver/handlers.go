@@ -27,6 +27,6 @@ func dd_privmsg(bot *bot.Sp0rkle, line *base.Line) {
 		bot.Conn.Privmsg(line.Args[0], fmt.Sprintf("%s: %s", line.Nick, chosen))
 	case strings.HasPrefix(line.Args[1], "rand "):
 		bot.Conn.Privmsg(line.Args[0], fmt.Sprintf(
-			"%s: %s", line.Nick, randomFloatAsString(line.Args[1][5:])
+			"%s: %s", line.Nick, randomFloatAsString(line.Args[1][5:], util.RNG)))
 	}
 }

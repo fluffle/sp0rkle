@@ -16,10 +16,10 @@ import (
 const driverName string = "decisions"
 
 type decisionDriver struct {
-	l *logging.Logger
+	l logging.Logger
 }
 
-func DecisionDriver(l *logging.Logger) *decisionDriver {
+func DecisionDriver(l logging.Logger) *decisionDriver {
 	return &decisionDriver{l}
 }
 

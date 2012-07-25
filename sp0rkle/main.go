@@ -70,7 +70,7 @@ func main() {
 	bot.AddDriver(bot)
 	bot.AddDriver(fd)
 	bot.AddDriver(calcdriver.CalcDriver(log))
-	bot.AddDriver(decisiondriver.DecisionDriver())
+	bot.AddDriver(decisiondriver.DecisionDriver(log))
 	bot.AddDriver(quotedriver.QuoteDriver(db, log))
 	bot.AddDriver(netdriver.NetDriver(log))
 	bot.AddDriver(seendriver.SeenDriver(db, log))
