@@ -15,26 +15,9 @@ import (
 	"time"
 )
 
-type FactoidHandler func(*bot.Sp0rkle, *factoidDriver, *base.Line)
-
-// Unboxer for FactoidDriver handlers
-func FDHandler(f FactoidHandler) event.Handler {
-	return event.NewHandler(func(ev ...interface{}) {
-		f(ev[0].(*bot.Sp0rkle), ev[1].(*factoidDriver), ev[2].(*base.Line))
-	})
-}
-
 func (fd *factoidDriver) RegisterHandlers(r event.EventRegistry) {
 	r.AddHandler(bot.NewHandler(fd_privmsg), "bot_privmsg")
 	r.AddHandler(bot.NewHandler(fd_action), "bot_action")
-	r.AddHandler(FDHandler(fd_add), "fd_add")
-	r.AddHandler(FDHandler(fd_chance), "fd_chance")
-	r.AddHandler(FDHandler(fd_delete), "fd_delete")
-	r.AddHandler(FDHandler(fd_info), "fd_info")
-	r.AddHandler(FDHandler(fd_literal), "fd_literal")
-	r.AddHandler(FDHandler(fd_lookup), "fd_lookup")
-	r.AddHandler(FDHandler(fd_replace), "fd_replace")
-	r.AddHandler(FDHandler(fd_search), "fd_search")
 }
 
 func fd_privmsg(bot *bot.Sp0rkle, line *base.Line) {
@@ -42,7 +25,7 @@ func fd_privmsg(bot *bot.Sp0rkle, line *base.Line) {
 
 	// If we're not being addressed directly, short-circuit to lookup.
 	if !line.Addressed {
-		bot.Dispatch("fd_lookup", fd, line)
+		fd_lookup(bot, fd, line)
 		return
 	}
 
@@ -51,43 +34,43 @@ func fd_privmsg(bot *bot.Sp0rkle, line *base.Line) {
 	switch {
 	// Factoid add: 'key := value' or 'key :is value'
 	case util.ContainsAny(nl.Args[1], []string{":=", ":is"}):
-		bot.Dispatch("fd_add", fd, nl)
+		fd_add(bot, fd, nl)
 
 	// Factoid delete: 'forget|delete that' => deletes fd.lastseen[chan]
 	case util.HasAnyPrefix(nl.Args[1], []string{"forget that", "delete that"}):
-		bot.Dispatch("fd_delete", fd, nl)
+		fd_delete(bot, fd, nl)
 
 	// Factoid replace: 'replace that with' => updates fd.lastseen[chan]
 	case util.StripAnyPrefix(&nl.Args[1], []string{"replace that with "}):
-		bot.Dispatch("fd_replace", fd, nl)
+		fd_replace(bot, fd, nl)
 
 	// Factoid chance: 'chance of that is' => sets chance of fd.lastseen[chan]
 	case util.StripAnyPrefix(&nl.Args[1], []string{"chance of that is "}):
-		bot.Dispatch("fd_chance", fd, nl)
+		fd_chance(bot, fd, nl)
 
 	// Factoid literal: 'literal key' => info about factoid
 	case util.StripAnyPrefix(&nl.Args[1], []string{"literal "}):
-		bot.Dispatch("fd_literal", fd, nl)
+		fd_literal(bot, fd, nl)
 
 	// Factoid search: 'fact search regexp' => list of possible key matches
 	case util.StripAnyPrefix(&nl.Args[1], []string{"fact search "}):
-		bot.Dispatch("fd_search", fd, nl)
+		fd_search(bot, fd, nl)
 
 	// Factoid info: 'fact info key' => some information about key
 	case util.StripAnyPrefix(&nl.Args[1], []string{"fact info "}):
-		bot.Dispatch("fd_info", fd, nl)
+		fd_info(bot, fd, nl)
 
 	// If we get to here, none of the other FD command possibilities
 	// have matched, so try a lookup...
 	default:
-		bot.Dispatch("fd_lookup", fd, line)
+		fd_lookup(bot, fd, nl)
 	}
 }
 
 func fd_action(bot *bot.Sp0rkle, line *base.Line) {
 	fd := bot.GetDriver(driverName).(*factoidDriver)
 	// Actions just trigger a lookup.
-	bot.Dispatch("fd_lookup", fd, line)
+	fd_lookup(bot, fd, line)
 }
 
 func fd_add(bot *bot.Sp0rkle, fd *factoidDriver, line *base.Line) {
