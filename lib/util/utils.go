@@ -3,6 +3,7 @@ package util
 // Random utility functions that are useful in various places.
 
 import (
+	"fmt"
 	"regexp"
 	"strings"
 )
@@ -139,4 +140,27 @@ func LooksURLish(s string) bool {
 		strings.HasPrefix(s, "https://")) &&
 		strings.Index(s, " ") == -1)
 
+}
+
+func ApplyPluginFunction(val, plugin string, f func(string) string) string {
+	plstart := fmt.Sprintf("<plugin=%s", plugin)
+	for {
+		// Work out the indices of the plugin start and end.
+		ps := strings.Index(val, plstart)
+		if ps == -1 {
+			break
+		}
+		pe := strings.Index(val[ps:], ">")
+		if pe == -1 {
+			// No closing '>', so abort
+			break
+		}
+		pe += ps
+		// Mid is where the plugin args start.
+		mid := ps + len(plstart)
+		// And if there *are* args we should skip the leading space
+		for val[mid] == ' ' { mid++ }
+		val = val[:ps] + f(val[mid:pe]) + val[pe+1:]
+	}
+	return val
 }

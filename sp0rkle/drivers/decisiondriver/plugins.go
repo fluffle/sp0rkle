@@ -32,56 +32,23 @@ func dd_decider(dd *decisionDriver, val string, line *base.Line) string {
 }
 
 // Split this out so we can inject a deterministic rand.Rand for testing.
-// It's at times like this I miss easy number -> string conversion
-// and first-class regex constructs. Doing without is fun!
 func rand_replacer(val string, r *rand.Rand) string {
-	for {
-		// Work out the indices of the plugin start and end.
-		ps := strings.Index(val, "<plugin=rand ")
-		if ps == -1 {
-			break
-		}
-		pe := strings.Index(val[ps:], ">")
-		if pe == -1 {
-			// WTF!?
-			break
-		}
-		pe += ps
-		// Mid is where the plugin args start.
-		mid := ps + 13
-		val = val[:ps] + randomFloatAsString(val[mid:pe], r) + val[pe+1:]
+	f := func(s string) string {
+		return randomFloatAsString(s, r)
 	}
-	return val
+	return util.ApplyPluginFunction(val, "rand", f)
 }
 
 // Split this out so we can inject a deterministic rand.Rand for testing.
 func rand_decider(val string, r *rand.Rand) string {
-	i := 0
-	for {
-		i++
-		// Work out the indices of the plugin start and end.
-		ps := strings.Index(val, "<plugin=decide ")
-		if ps == -1 {
-			break
+	f := func(s string) string {
+		if options := splitDelimitedString(s); len(options) > 0 {
+			return strings.TrimSpace(options[r.Intn(len(options))])
 		}
-		pe := strings.Index(val[ps:], ">")
-		if pe == -1 {
-			// No closing '>', so abort
-			break
-		}
-		pe += ps
-		// Mid is where the plugin args start.
-		mid := ps + 15
-		if options := splitDelimitedString(val[mid:pe]); len(options) > 0 {
-			rnd := r.Intn(len(options))
-			chosenone := strings.TrimSpace(options[rnd])
-			val = val[:ps] + chosenone + val[pe+1:]
-		} else {
-			// Previously r.Intn() was called even for errors so this makes
-			// tests pass. I'll remove it in a future commit.
-			r.Intn(4)
-			val = val[:ps] + "<plugin error>" + val[pe+1:]
-		}
+		// Previously r.Intn() was called even for errors so this makes
+		// tests pass. I'll remove it in a future commit.
+		r.Intn(4)
+		return "<plugin error>"
 	}
-	return val
+	return util.ApplyPluginFunction(val, "decide", f)
 }
