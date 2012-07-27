@@ -1,6 +1,7 @@
 package bot
 
 import (
+	"fmt"
 	"github.com/fluffle/goevent/event"
 	"github.com/fluffle/goirc/client"
 	"github.com/fluffle/golog/logging"
@@ -99,4 +100,17 @@ func (bot *Sp0rkle) Rebuilder(rb string) {
 
 func (bot *Sp0rkle) ReExec() bool {
 	return bot.reexec
+}
+
+// Currently makes the assumption that we're replying to line.Args[0] in every
+// instance. While this is normally the case, it may not be in some cases...
+// ReplyN() adds a prefix of "nick: " to the reply text,
+func (bot *Sp0rkle) ReplyN(line *base.Line, fm string, args ...interface{}) {
+	args = append([]interface{}{line.Nick}, args...)
+	bot.Reply(line, "%s: "+fm, args...)
+}
+
+// whereas Reply() does not.
+func (bot *Sp0rkle) Reply(line *base.Line, fm string, args ...interface{}) {
+	bot.Conn.Privmsg(line.Args[0], fmt.Sprintf(fm, args...))
 }

@@ -38,9 +38,8 @@ func cd_privmsg(bot *bot.Sp0rkle, line *base.Line) {
 	case strings.HasPrefix(line.Args[1], "ord "):
 		cd_ord(bot, line, line.Args[1][4:])
 	case strings.HasPrefix(line.Args[1], "length "):
-		bot.Conn.Privmsg(line.Args[0], fmt.Sprintf(
-			"%s: '%s' is %d characters long",
-			line.Args[1][7:], len(line.Args[1][7:])))
+		bot.ReplyN(line, "'%s' is %d characters long",
+			line.Args[1][7:], len(line.Args[1][7:]))
 	case strings.HasPrefix(line.Args[1], "base "):
 		s := strings.Split(line.Args[1], " ")
 		cd_base(bot, line, s[1], s[2])
@@ -49,11 +48,9 @@ func cd_privmsg(bot *bot.Sp0rkle, line *base.Line) {
 
 func cd_calc(bot *bot.Sp0rkle, line *base.Line, maths string) {
 	if num, err := calc.Calc(maths); err == nil {
-		bot.Conn.Privmsg(line.Args[0], fmt.Sprintf(
-			"%s: %s = %g", line.Nick, maths, num))
+		bot.ReplyN(line, "%s = %g", maths, num)
 	} else {
-		bot.Conn.Privmsg(line.Args[0], fmt.Sprintf(
-			"%s: %s while parsing %s", line.Nick, err, maths))
+		bot.ReplyN(line, "%s error while parsing %s", err, maths)
 	}
 }
 
@@ -70,12 +67,10 @@ func cd_netmask_range(ip net.IP, mask net.IPMask) (btm, top net.IP) {
 func cd_netmask_cidr(bot *bot.Sp0rkle, line *base.Line, cidr string) {
 	if _, nm, err := net.ParseCIDR(cidr); err == nil {
 		btm, top := cd_netmask_range(nm.IP, nm.Mask)
-		bot.Conn.Privmsg(line.Args[0], fmt.Sprintf(
-			"%s: %s is in the range %s-%s and has the netmask %s",
-			line.Nick, cidr, btm, top, net.IP(nm.Mask)))
+		bot.ReplyN(line, "%s is in the range %s-%s and has the netmask %s",
+			cidr, btm, top, net.IP(nm.Mask))
 	} else {
-		bot.Conn.Privmsg(line.Args[0], fmt.Sprintf(
-			"%s: error parsing ip/cidr %s: %s", line.Nick, cidr, err))
+		bot.ReplyN(line, "error parsing ip/cidr %s: %s", cidr, err)
 	}
 }
 
@@ -83,9 +78,7 @@ func cd_netmask(bot *bot.Sp0rkle, line *base.Line, ips, nms string) {
 	ip := net.ParseIP(ips)
 	nmip := net.ParseIP(nms)
 	if ip == nil || nmip == nil {
-		bot.Conn.Privmsg(line.Args[0], fmt.Sprintf(
-			"%s: either %s or %s couldn't be parsed as an IP",
-			line.Nick, ips, nms))
+		bot.ReplyN(line, "either %s or %s couldn't be parsed as an IP", ips, nms)
 		return
 	}
 	// this is a bit of a hack, because using ParseIP to parse
@@ -94,9 +87,7 @@ func cd_netmask(bot *bot.Sp0rkle, line *base.Line, ips, nms string) {
 	cidr, bits := nm.Size()
 	if ip.To4() != nil && nm != nil {
 		if bits != 32 {
-			bot.Conn.Privmsg(line.Args[0], fmt.Sprintf(
-				"%s: %s doesn't look like a valid IPv4 netmask",
-				line.Nick, nms))
+			bot.ReplyN(line, "%s doesn't look like a valid IPv4 netmask", nms)
 			return
 		}
 	} else {
@@ -104,39 +95,32 @@ func cd_netmask(bot *bot.Sp0rkle, line *base.Line, ips, nms string) {
 		nm = net.IPMask(nmip)
 		cidr, bits = nm.Size()
 		if bits != 128 {
-			bot.Conn.Privmsg(line.Args[0], fmt.Sprintf(
-				"%s: %s doesn't look like a valid IPv6 netmask",
-				line.Nick, nms))
+			bot.ReplyN(line, "%s doesn't look like a valid IPv6 netmask", nms)
 			return
 		}
 	}
 	btm, top := cd_netmask_range(ip, nm)
-	bot.Conn.Privmsg(line.Args[0], fmt.Sprintf(
-		"%s: %s/%d is in the range %s-%s and has the netmask %s",
-		line.Nick, ip, cidr, btm, top, nmip))
+	bot.ReplyN(line, "%s/%d is in the range %s-%s and has the netmask %s",
+		ip, cidr, btm, top, nmip)
 }
 
 func cd_chr(bot *bot.Sp0rkle, line *base.Line, chr string) {
 	// handles decimal, hex, and octal \o/
 	i, err := strconv.ParseInt(chr, 0, 0)
 	if err != nil {
-		bot.Conn.Privmsg(line.Args[0], fmt.Sprintf(
-			"%s: Couldn't parse %s as an integer: %s", line.Nick, chr, err))
+		bot.ReplyN(line, "Couldn't parse %s as an integer: %s", chr, err)
 		return
 	}
-	bot.Conn.Privmsg(line.Args[0], fmt.Sprintf(
-		"%s: chr(%s) is %c, %U, '%s'", line.Nick, chr, i, i, cd_utf8repr(rune(i))))
+	bot.ReplyN(line, "chr(%s) is %c, %U, '%s'", chr, i, i, cd_utf8repr(rune(i)))
 }
 
 func cd_ord(bot *bot.Sp0rkle, line *base.Line, ord string) {
 	r, _ := utf8.DecodeRuneInString(ord)
 	if r == utf8.RuneError {
-		bot.Conn.Privmsg(line.Args[0], fmt.Sprintf(
-			"%s: Couldn't parse a utf8 rune from %s", line.Nick, ord))
+		bot.ReplyN(line, "Couldn't parse a utf8 rune from %s", ord)
 		return
 	}
-	bot.Conn.Privmsg(line.Args[0], fmt.Sprintf(
-		"%s: ord(%c) is %d, %U, '%s'", line.Nick, r, r, r, cd_utf8repr(r)))
+	bot.ReplyN(line, "ord(%c) is %d, %U, '%s'", r, r, r, cd_utf8repr(r))
 }
 
 func cd_utf8repr(r rune) string {
@@ -152,27 +136,22 @@ func cd_utf8repr(r rune) string {
 func cd_base(bot *bot.Sp0rkle, line *base.Line, base, num string) {
 	fromto := strings.Split(base, "to")
 	if len(fromto) != 2 {
-		bot.Conn.Privmsg(line.Args[0], fmt.Sprintf(
-			"%s: Specify base as: <from base>to<to base>", line.Nick))
+		bot.ReplyN(line, "Specify base as: <from base>to<to base>")
 		return
 	}
 	from, errf := strconv.Atoi(fromto[0])
 	to, errt := strconv.Atoi(fromto[1])
 	if errf != nil || errt != nil ||
 		from < 2 || from > 36 || to < 2 || to > 36 {
-		bot.Conn.Privmsg(line.Args[0], fmt.Sprintf(
-			"%s: Either %s or %s is a bad base, must be in range 2-36",
-			line.Nick, fromto[0], fromto[1]))
+		bot.ReplyN(line, "Either %s or %s is a bad base, must be in range 2-36",
+			fromto[0], fromto[1])
 		return
 	}
 	i, err := strconv.ParseInt(num, from, 64)
 	if err != nil {
-		bot.Conn.Privmsg(line.Args[0], fmt.Sprintf(
-			"%s: Couldn't parse %s as a base %d integer",
-			line.Nick, num, from))
+		bot.ReplyN(line, "Couldn't parse %s as a base %d integer", num, from)
 		return
 	}
-	bot.Conn.Privmsg(line.Args[0], fmt.Sprintf(
-		"%s: %s in base %d is %s in base %d",
-		line.Nick, num, from, strconv.FormatInt(i, to), to))
+	bot.ReplyN(line, "%s in base %d is %s in base %d",
+		num, from, strconv.FormatInt(i, to), to)
 }

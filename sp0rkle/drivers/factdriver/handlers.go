@@ -91,11 +91,9 @@ func fd_add(bot *bot.Sp0rkle, fd *factoidDriver, line *base.Line) {
 	fact := factoids.NewFactoid(key, val, n, c)
 	if err := fd.Insert(fact); err == nil {
 		count := fd.GetCount(key)
-		bot.Conn.Privmsg(line.Args[0], fmt.Sprintf(
-			"%s: Woo, I now know %d things about '%s'.",
-			line.Nick, count, key))
+		bot.ReplyN(line, "Woo, I now know %d things about '%s'.", count, key)
 	} else {
-		bot.Conn.Privmsg(line.Args[0], fmt.Sprintf("Oh no! %s.", err))
+		bot.ReplyN(line, "Error storing factoid: %s.", err)
 	}
 }
 
@@ -106,19 +104,15 @@ func fd_chance(bot *bot.Sp0rkle, fd *factoidDriver, line *base.Line) {
 	if strings.HasSuffix(str, "%") {
 		// Handle 'chance of that is \d+%'
 		if i, err := strconv.Atoi(str[:len(str)-1]); err != nil {
-			bot.Conn.Privmsg(line.Args[0], fmt.Sprintf(
-				"%s: '%s' didn't look like a % chance to me.",
-				line.Nick, str))
+			bot.ReplyN(line, "'%s' didn't look like a % chance to me.", str)
 			return
 		} else {
 			chance = float64(i) / 100
 		}
 	} else {
 		// Assume the chance is a floating point number.
-		if c, err := strconv.ParseFloat(str, 32); err != nil {
-			bot.Conn.Privmsg(line.Args[0], fmt.Sprintf(
-				"%s: '%s' didn't look like a chance to me.",
-				line.Nick, str))
+		if c, err := strconv.ParseFloat(str, 64); err != nil {
+			bot.ReplyN(line, "'%s' didn't look like a chance to me.", str)
 			return
 		} else {
 			chance = c
@@ -127,9 +121,7 @@ func fd_chance(bot *bot.Sp0rkle, fd *factoidDriver, line *base.Line) {
 
 	// Make sure the chance we've parsed lies in (0.0,1.0]
 	if chance > 1.0 || chance <= 0.0 {
-		bot.Conn.Privmsg(line.Args[0], fmt.Sprintf(
-			"%s: '%s' was outside possible chance ranges.",
-			line.Nick, str))
+		bot.ReplyN(line, "'%s' was outside possible chance ranges.", str)
 		return
 	}
 
@@ -146,17 +138,13 @@ func fd_chance(bot *bot.Sp0rkle, fd *factoidDriver, line *base.Line) {
 		fact.Modify(n, c)
 		// And store the new factoid data
 		if err := fd.Update(bson.M{"_id": ls}, fact); err == nil {
-			bot.Conn.Privmsg(line.Args[0], fmt.Sprintf(
-				"%s: '%s' was at %.0f%% chance, now is at %.0f%%.",
-				line.Nick, fact.Key, old*100, chance*100))
+			bot.ReplyN(line, "'%s' was at %.0f%% chance, now is at %.0f%%.",
+				fact.Key, old*100, chance*100)
 		} else {
-			bot.Conn.Privmsg(line.Args[0], fmt.Sprintf(
-				"%s: I failed to replace '%s': %s",
-				line.Nick, fact.Key, err))
+			bot.ReplyN(line, "I failed to replace '%s': %s", fact.Key, err)
 		}
 	} else {
-		bot.Conn.Privmsg(line.Args[0], fmt.Sprintf(
-			"%s: Whatever that was, I've already forgotten it.", line.Nick))
+		bot.ReplyN(line, "Whatever that was, I've already forgotten it.")
 	}
 }
 
@@ -165,17 +153,13 @@ func fd_delete(bot *bot.Sp0rkle, fd *factoidDriver, line *base.Line) {
 	ls := fd.Lastseen(line.Args[0], "")
 	if fact := fd.GetById(ls); fact != nil {
 		if err := fd.Remove(bson.M{"_id": ls}); err == nil {
-			bot.Conn.Privmsg(line.Args[0], fmt.Sprintf(
-				"%s: I forgot that '%s' was '%s'.",
-				line.Nick, fact.Key, fact.Value))
+			bot.ReplyN(line, "I forgot that '%s' was '%s'.",
+				fact.Key, fact.Value)
 		} else {
-			bot.Conn.Privmsg(line.Args[0], fmt.Sprintf(
-				"%s: I failed to forget '%s': %s",
-				line.Nick, fact.Key, err))
+			bot.ReplyN(line, "I failed to forget '%s': %s", fact.Key, err)
 		}
 	} else {
-		bot.Conn.Privmsg(line.Args[0], fmt.Sprintf(
-			"%s: Whatever that was, I've already forgotten it.", line.Nick))
+		bot.ReplyN(line, "Whatever that was, I've already forgotten it.")
 	}
 }
 
@@ -183,18 +167,15 @@ func fd_info(bot *bot.Sp0rkle, fd *factoidDriver, line *base.Line) {
 	key := ToKey(line.Args[1], false)
 	count := fd.GetCount(key)
 	if count == 0 {
-		bot.Conn.Privmsg(line.Args[0], fmt.Sprintf(
-			"%s: I don't know anything about '%s'.",
-			line.Nick, key))
+		bot.ReplyN(line, "I don't know anything about '%s'.", key)
 		return
 	}
 	msgs := make([]string, 0, 10)
 	if key == "" {
-		msgs = append(msgs, fmt.Sprintf("%s: In total, I know %d things.",
-			line.Nick, count))
+		msgs = append(msgs, fmt.Sprintf("In total, I know %d things.", count))
 	} else {
-		msgs = append(msgs, fmt.Sprintf("%s: I know %d things about '%s'.",
-			line.Nick, count, key))
+		msgs = append(msgs, fmt.Sprintf("I know %d things about '%s'.",
+			count, key))
 	}
 	if created := fd.GetLast("created", key); created != nil {
 		c := created.Created
@@ -225,20 +206,16 @@ func fd_info(bot *bot.Sp0rkle, fd *factoidDriver, line *base.Line) {
 			"been modified %d times and accessed %d times.",
 			info.Modified, info.Accessed))
 	}
-	bot.Conn.Privmsg(line.Args[0], strings.Join(msgs, " "))
+	bot.ReplyN(line, "%s", strings.Join(msgs, " "))
 }
 
 func fd_literal(bot *bot.Sp0rkle, fd *factoidDriver, line *base.Line) {
 	key := ToKey(line.Args[1], false)
 	if count := fd.GetCount(key); count == 0 {
-		bot.Conn.Privmsg(line.Args[0], fmt.Sprintf(
-			"%s: I don't know anything about '%s'.",
-			line.Nick, key))
+		bot.ReplyN(line, "I don't know anything about '%s'.", key)
 		return
 	} else if count > 10 && strings.HasPrefix(line.Args[0], "#") {
-		bot.Conn.Privmsg(line.Args[0], fmt.Sprintf(
-			"%s: I know too much about '%s', ask me privately.",
-			line.Nick, key))
+		bot.ReplyN(line, "I know too much about '%s', ask me privately.", key)
 		return
 	}
 
@@ -250,14 +227,12 @@ func fd_literal(bot *bot.Sp0rkle, fd *factoidDriver, line *base.Line) {
 	var fact *factoids.Factoid
 	f := func() error {
 		if fact != nil {
-			bot.Conn.Privmsg(line.Args[0], fmt.Sprintf(
-				"%s: [%3.0f%%] %s", line.Nick, fact.Chance*100, fact.Value))
+			bot.ReplyN(line, "[%3.0f%%] %s", fact.Chance*100, fact.Value)
 		}
 		return nil
 	}
 	if err := fd.Find(bson.M{"key": key}).For(&fact, f); err != nil {
-		bot.Conn.Privmsg(line.Args[0], fmt.Sprintf(
-			"%s: Something went wrong: %s", line.Nick, err))
+		bot.ReplyN(line, "Something literally went wrong: %s", err)
 	}
 }
 
@@ -296,9 +271,8 @@ func fd_lookup(bot *bot.Sp0rkle, fd *factoidDriver, line *base.Line) {
 		fact.Access(n, c)
 		// And store the new factoid data
 		if err := fd.Update(bson.M{"_id": fact.Id}, fact); err != nil {
-			bot.Conn.Privmsg(line.Args[0], fmt.Sprintf(
-				"%s: I failed to update '%s', if: $id: %s ",
-				line.Nick, fact.Key, fact.Id, err))
+			bot.ReplyN(line, "I failed to update '%s' (%s): %s ",
+				fact.Key, fact.Id, err)
 		}
 
 		// Apply the list of factoid plugins to the factoid value.
@@ -325,39 +299,34 @@ func fd_replace(bot *bot.Sp0rkle, fd *factoidDriver, line *base.Line) {
 		fact.Modify(n, c)
 		// And store the new factoid data
 		if err := fd.Update(bson.M{"_id": ls}, fact); err == nil {
-			bot.Conn.Privmsg(line.Args[0], fmt.Sprintf(
-				"%s: '%s' was '%s', now is '%s'.",
-				line.Nick, fact.Key, old, fact.Value))
+			bot.ReplyN(line, "'%s' was '%s', now is '%s'.",
+				fact.Key, old, fact.Value)
 		} else {
-			bot.Conn.Privmsg(line.Args[0], fmt.Sprintf(
-				"%s: I failed to replace '%s': %s",
-				line.Nick, fact.Key, err))
+			bot.ReplyN(line, "I failed to replace '%s': %s", fact.Key, err)
 		}
 	} else {
-		bot.Conn.Privmsg(line.Args[0], fmt.Sprintf(
-			"%s: Whatever that was, I've already forgotten it.", line.Nick))
+		bot.ReplyN(line, "Whatever that was, I've already forgotten it.")
 	}
 }
 
 func fd_search(bot *bot.Sp0rkle, fd *factoidDriver, line *base.Line) {
 	keys := fd.GetKeysMatching(line.Args[1])
 	if keys == nil || len(keys) == 0 {
-		bot.Conn.Privmsg(line.Args[0], fmt.Sprintf(
-			"%s: I couldn't think of anything matching '%s'.",
-			line.Nick, line.Args[0]))
+		bot.ReplyN(line, "I couldn't think of anything matching '%s'.",
+			line.Args[0])
 		return
 	}
 	// RESULTS.
 	count := len(keys)
 	if count > 10 {
 		res := strings.Join(keys[:10], "', '")
-		bot.Conn.Privmsg(line.Args[0], fmt.Sprintf(
-			"%s: I found %d keys matching '%s', here's the first 10: '%s'.",
-			line.Nick, count, line.Args[1], res))
+		bot.ReplyN(line,
+			"I found %d keys matching '%s', here's the first 10: '%s'.",
+			count, line.Args[1], res)
 	} else {
 		res := strings.Join(keys, "', '")
-		bot.Conn.Privmsg(line.Args[0], fmt.Sprintf(
+		bot.ReplyN(line,
 			"%s: I found %d keys matching '%s', here they are: '%s'.",
-			line.Nick, count, line.Args[1], res))
+			count, line.Args[1], res)
 	}
 }
