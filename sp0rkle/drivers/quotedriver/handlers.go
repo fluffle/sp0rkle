@@ -15,22 +15,9 @@ import (
 	//	"time"
 )
 
-type QuoteHandler func(*bot.Sp0rkle, *quoteDriver, *base.Line)
-
-// Unboxer for QuoteDriver handlers
-func QDHandler(f QuoteHandler) event.Handler {
-	return event.NewHandler(func(ev ...interface{}) {
-		f(ev[0].(*bot.Sp0rkle), ev[1].(*quoteDriver), ev[2].(*base.Line))
-	})
-}
-
 func (qd *quoteDriver) RegisterHandlers(r event.EventRegistry) {
 	r.AddHandler(bot.NewHandler(qd_privmsg), "bot_privmsg")
 	//	r.AddHandler(bot.NewHandler(qd_action), "bot_action")
-	r.AddHandler(QDHandler(qd_add), "qd_add")
-	r.AddHandler(QDHandler(qd_delete), "qd_delete")
-	r.AddHandler(QDHandler(qd_fetch), "qd_fetch")
-	r.AddHandler(QDHandler(qd_lookup), "qd_lookup")
 }
 
 func qd_privmsg(bot *bot.Sp0rkle, line *base.Line) {
@@ -44,24 +31,24 @@ func qd_privmsg(bot *bot.Sp0rkle, line *base.Line) {
 	switch {
 	// Quote add: qadd | quote add | add quote
 	case util.StripAnyPrefix(&nl.Args[1], []string{"quote add ", "qadd ", "add quote "}):
-		bot.Dispatch("qd_add", qd, nl)
+		qd_add(bot, qd, nl)
 	// Quote delete: qdel | quote del | del quote  #?QID
 	case util.StripAnyPrefix(&nl.Args[1], []string{"quote del ", "qdel ", "del quote "}):
 		// Strip optional # before qid
 		if nl.Args[1][0] == '#' {
 			nl.Args[1] = nl.Args[1][1:]
 		}
-		bot.Dispatch("qd_delete", qd, nl)
+		qd_delete(bot, qd, nl)
 	// Quote lookup: quote #QID
 	case util.StripAnyPrefix(&nl.Args[1], []string{"quote #"}):
-		bot.Dispatch("qd_fetch", qd, nl)
+		qd_fetch(bot, qd, nl)
 	// Quote lookup: quote | quote regex
 	case strings.ToLower(nl.Args[1]) == "quote":
 		nl.Args[1] = ""
 		fallthrough
 	// This needs to come after the other cases as it will strip just "quote "
 	case util.StripAnyPrefix(&nl.Args[1], []string{"quote "}):
-		bot.Dispatch("qd_lookup", qd, nl)
+		qd_lookup(bot, qd, nl)
 	}
 }
 
