@@ -1,6 +1,7 @@
 package bot
 
 import (
+	"flag"
 	"fmt"
 	"github.com/fluffle/goevent/event"
 	"github.com/fluffle/goirc/client"
@@ -8,6 +9,9 @@ import (
 	"github.com/fluffle/sp0rkle/sp0rkle/base"
 	"strings"
 )
+
+var rebuilder *string = flag.String("rebuilder", "",
+		"Nick[:password] to accept rebuild command from.")
 
 // The bot is called sp0rkle...
 const botName string = "sp0rkle"
@@ -41,6 +45,7 @@ type Sp0rkle struct {
 }
 
 func Bot(c *client.Conn, pm base.PluginManager, l logging.Logger) *Sp0rkle {
+	s := strings.Split(*rebuilder, ":")
 	bot := &Sp0rkle{
 		Conn:     c,
 		ER:       c.ER,
@@ -49,7 +54,12 @@ func Bot(c *client.Conn, pm base.PluginManager, l logging.Logger) *Sp0rkle {
 		l:        l,
 		drivers:  make(map[string]base.Driver),
 		channels: make([]string, 0, 1),
+		rbnick:   s[0],
+		rbpw:     s[1],
 		Quit:     make(chan bool),
+	}
+	if len(s) > 1 {
+		bot.rbpw = s[1]
 	}
 	c.State = bot
 	return bot
@@ -88,14 +98,6 @@ func (bot *Sp0rkle) GetDriver(name string) base.Driver {
 
 func (bot *Sp0rkle) AddChannels(c []string) {
 	bot.channels = append(bot.channels, c...)
-}
-
-func (bot *Sp0rkle) Rebuilder(rb string) {
-	s := strings.Split(rb, ":")
-	if len(s) > 1 {
-		bot.rbpw = s[1]
-	}
-	bot.rbnick = s[0]
 }
 
 func (bot *Sp0rkle) ReExec() bool {
