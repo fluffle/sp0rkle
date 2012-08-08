@@ -55,7 +55,6 @@ func Bot(c *client.Conn, pm base.PluginManager, l logging.Logger) *Sp0rkle {
 		drivers:  make(map[string]base.Driver),
 		channels: make([]string, 0, 1),
 		rbnick:   s[0],
-		rbpw:     s[1],
 		Quit:     make(chan bool),
 	}
 	if len(s) > 1 {
