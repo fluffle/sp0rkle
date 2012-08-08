@@ -15,7 +15,6 @@ import (
 	"github.com/fluffle/sp0rkle/sp0rkle/drivers/netdriver"
 	"github.com/fluffle/sp0rkle/sp0rkle/drivers/quotedriver"
 	"github.com/fluffle/sp0rkle/sp0rkle/drivers/seendriver"
-	"github.com/fluffle/sp0rkle/sp0rkle/drivers/urldriver"
 	"os"
 	"os/exec"
 	"strings"
@@ -30,6 +29,8 @@ var (
 		"Name of bot, defaults to 'sp0rklf'")
 	channels *string = flag.String("channels", "#sp0rklf",
 		"Comma-separated list of channels to join, defaults to '#sp0rklf'")
+	rebuilder *string = flag.String("rebuilder", "",
+		"Nick[:password] to accept rebuild command from.")
 )
 
 func main() {
@@ -61,6 +62,9 @@ func main() {
 	// Initialise bot state
 	bot := bot.Bot(irc, fd, log)
 	bot.AddChannels(strings.Split(*channels, ","))
+	if *rebuilder != "" {
+		bot.Rebuilder(*rebuilder)
+	}
 
 	// Add drivers
 	bot.AddDriver(bot)
@@ -70,7 +74,6 @@ func main() {
 	bot.AddDriver(quotedriver.QuoteDriver(db, log))
 	bot.AddDriver(netdriver.NetDriver(log))
 	bot.AddDriver(seendriver.SeenDriver(db, log))
-	bot.AddDriver(urldriver.UrlDriver(db, log))
 
 	// Register everything
 	bot.RegisterAll()

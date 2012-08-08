@@ -1,10 +1,8 @@
 package urls
 
 import (
-	"fmt"
 	"github.com/fluffle/golog/logging"
 	"github.com/fluffle/sp0rkle/lib/db"
-	"github.com/fluffle/sp0rkle/lib/util"
 	"labix.org/v2/mgo"
 	"labix.org/v2/mgo/bson"
 	"time"
@@ -35,16 +33,6 @@ func NewUrl(u string, n db.StorableNick, c db.StorableChan) *Url {
 	}
 }
 
-func (u Url) String() string {
-	if u.CachedAs != "" {
-		return fmt.Sprintf("%s (cached as %s at %s)",
-			u.Url, u.CachedAs, u.CacheTime)
-	} else if u.Shortened != "" {
-		return fmt.Sprintf("%s (shortened as %s)", u.Url, u.Shortened)
-	}
-	return u.Url
-}
-
 type UrlCollection struct {
 	*mgo.Collection
 	l logging.Logger
@@ -69,33 +57,6 @@ func (uc *UrlCollection) GetByUrl(u string) *Url {
 	return nil
 }
 
-// TODO(fluffle): thisisn't quite PseudoRand but still ...
-func (uc *UrlCollection) GetRand(regex string) *Url {
-	lookup := bson.M{}
-	if regex != "" {
-		// Perform a regex lookup if we have one
-		lookup["url"] = bson.M{"$regex": regex, "$options": "i"}
-	}
-	query := uc.Find(lookup)
-	count, err := query.Count()
-	if err != nil {
-		uc.l.Warn("Count for URL lookup '%s' failed: %s", regex, err)
-		return nil
-	}
-	if count == 0 {
-		return nil
-	}
-	var res Url
-	if count > 1 {
-		query.Skip(util.RNG.Intn(count))
-	}
-	if err = query.One(&res); err != nil {
-		uc.l.Warn("Fetch for URL lookup '%s' failed: %s", regex, err)
-		return nil
-	}
-	return &res
-}
-
 func (uc *UrlCollection) GetCached(c string) *Url {
 	var res Url
 	if err := uc.Find(bson.M{"cachedas": c}).One(&res); err == nil {
@@ -111,3 +72,5 @@ func (uc *UrlCollection) GetShortened(s string) *Url {
 	}
 	return nil
 }
+
+
