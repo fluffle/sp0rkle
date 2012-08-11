@@ -13,6 +13,7 @@ import (
 	"labix.org/v2/mgo/bson"
 	"net/http"
 	"os"
+	"strings"
 	"time"
 )
 
@@ -20,6 +21,10 @@ const driverName string = "urls"
 const shortenPath string = "/s/"
 const cachePath string = "/c/"
 const autoShortenLimit int = 120
+
+var badUrlStrings = []string{
+	"4chan",
+}
 
 var urlCacheDir *string = flag.String("url_cache_dir",
 	util.JoinPath(os.Getenv("HOME"), ".sp0rkle"),
@@ -72,6 +77,11 @@ func (ud *urlDriver) Shorten(u *urls.Url) error {
 }
 
 func (ud *urlDriver) Cache(u *urls.Url) error {
+	for _, s := range badUrlStrings {
+		if strings.Index(u.Url, s) != -1 {
+			return fmt.Errorf("Url contains bad substring '%s'.", s)
+		}
+	}
 	res, err := http.Get(u.Url)
 	defer res.Body.Close()
 	if err != nil {
@@ -80,6 +90,11 @@ func (ud *urlDriver) Cache(u *urls.Url) error {
 	if res.StatusCode != 200 {
 		return fmt.Errorf("Received non-200 response '%s' from server.",
 			res.Status)
+	}
+	// 1 << 22 == 4MB
+	if res.ContentLength == -1 || res.ContentLength > 1 << 22 {
+		return fmt.Errorf("Response too large (%d MB) to cache safely.",
+			res.ContentLength/1024/1024)
 	}
 	u.CachedAs = ud.Encode(u.Url)
 	fh, err := os.OpenFile(util.JoinPath(*urlCacheDir, u.CachedAs),
