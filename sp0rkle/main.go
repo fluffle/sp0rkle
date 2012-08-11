@@ -27,7 +27,7 @@ import (
 var (
 	server *string = flag.String("server", "", "IRC server to connect to.")
 	ssl *bool = flag.Bool("ssl", false, "Use SSL when connecting.")
-	http *string = flag.String("http", ":6666", "Port to serve HTTP requests on.")
+	httpPort *string = flag.String("http", ":6666", "Port to serve HTTP requests on.")
 	nick *string = flag.String("nick", "sp0rklf",
 		"Name of bot, defaults to 'sp0rklf'")
 	channels *string = flag.String("channels", "#sp0rklf",
@@ -39,9 +39,9 @@ func main() {
 	log := logging.NewFromFlags()
 	reg := event.NewRegistry()
 
-	if *host == "" {
+	if *server == "" {
 		//Don't call log.Fatal as we don't want a backtrace in this case
-		log.Error("--host option required. \nOptions are:\n")
+		log.Error("--server option required. \nOptions are:\n")
 		flag.PrintDefaults()
 		os.Exit(1)
 	}
@@ -78,7 +78,7 @@ func main() {
 	bot.RegisterAll()
 
 	// Start up the HTTP server
-	http.ListenAndServe(*http, nil)
+	http.ListenAndServe(*httpPort, nil)
 
 	// Connect loop.
 	quit := false

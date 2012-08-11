@@ -13,7 +13,7 @@ import (
 var (
 	rebuilder *string = flag.String("rebuilder", "",
 		"Nick[:password] to accept rebuild command from.")
-	prefix *string = flag.String("prefix", "http://sp0rk.ly/"
+	prefix *string = flag.String("http_prefix", "http://sp0rk.ly",
 		"Prefix for HTTP paths served by bot.")
 )
 
@@ -62,7 +62,7 @@ func Bot(c *client.Conn, pm base.PluginManager, l logging.Logger) *Sp0rkle {
 		drivers:  make(map[string]base.Driver),
 		channels: make([]string, 0, 1),
 		rbnick:   s[0],
-		Prefix:   *prefix
+		Prefix:   *prefix,
 		Quit:     make(chan bool),
 	}
 	if len(s) > 1 {
