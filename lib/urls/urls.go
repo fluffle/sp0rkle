@@ -52,7 +52,11 @@ type UrlCollection struct {
 
 func Collection(dbh *db.Database, l logging.Logger) *UrlCollection {
 	uc := &UrlCollection{dbh.C(collection), l}
-	for _, idx := range []string{"url", "cachedas", "shortened"} {
+	err := uc.EnsureIndex(mgo.Index{Key: []string{"url"}, Unique: true})
+	if err != nil {
+		l.Error("Couldn't create url index on sp0rkle.urls: %s", err)
+	}
+	for _, idx := range []string{"cachedas", "shortened"} {
 		err := uc.EnsureIndex(mgo.Index{Key: []string{idx}})
 		if err != nil {
 			l.Error("Couldn't create %s index on sp0rkle.urls: %s", idx, err)
