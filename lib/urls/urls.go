@@ -65,6 +65,14 @@ func Collection(dbh *db.Database, l logging.Logger) *UrlCollection {
 	return uc
 }
 
+func (uc *UrlCollection) GetById(id bson.ObjectId) *Url {
+	var res Url
+	if err := uc.Find(bson.M{"_id": id}).One(&res); err == nil {
+		return &res
+	}
+	return nil
+}
+
 func (uc *UrlCollection) GetByUrl(u string) *Url {
 	var res Url
 	if err := uc.Find(bson.M{"url": u}).One(&res); err == nil {

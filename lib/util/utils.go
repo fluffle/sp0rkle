@@ -4,6 +4,7 @@ package util
 
 import (
 	"fmt"
+	"os"
 	"regexp"
 	"strings"
 )
@@ -163,4 +164,8 @@ func ApplyPluginFunction(val, plugin string, f func(string) string) string {
 		val = val[:ps] + f(val[mid:pe]) + val[pe+1:]
 	}
 	return val
+}
+
+func JoinPath(items ...string) string {
+	return strings.Join(items, string(os.PathSeparator))
 }
