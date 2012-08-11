@@ -3,7 +3,6 @@ package factdriver
 import (
 	"fmt"
 	"github.com/fluffle/goevent/event"
-	"github.com/fluffle/sp0rkle/lib/db"
 	"github.com/fluffle/sp0rkle/lib/factoids"
 	"github.com/fluffle/sp0rkle/lib/util"
 	"github.com/fluffle/sp0rkle/sp0rkle/base"
@@ -86,8 +85,7 @@ func fd_add(bot *bot.Sp0rkle, fd *factoidDriver, line *base.Line) {
 		val = strings.Join([]string{strings.TrimSpace(kv[0]),
 			"is", strings.TrimSpace(kv[1])}, " ")
 	}
-	n := db.StorableNick{line.Nick, line.Ident, line.Host}
-	c := db.StorableChan{line.Args[0]}
+	n, c := line.Storable()
 	fact := factoids.NewFactoid(key, val, n, c)
 	if err := fd.Insert(fact); err == nil {
 		count := fd.GetCount(key)
@@ -133,9 +131,7 @@ func fd_chance(bot *bot.Sp0rkle, fd *factoidDriver, line *base.Line) {
 		old := fact.Chance
 		fact.Chance = chance
 		// Update the Modified field
-		n := db.StorableNick{line.Nick, line.Ident, line.Host}
-		c := db.StorableChan{line.Args[0]}
-		fact.Modify(n, c)
+		fact.Modify(line.Storable())
 		// And store the new factoid data
 		if err := fd.Update(bson.M{"_id": ls}, fact); err == nil {
 			bot.ReplyN(line, "'%s' was at %.0f%% chance, now is at %.0f%%.",
@@ -266,9 +262,7 @@ func fd_lookup(bot *bot.Sp0rkle, fd *factoidDriver, line *base.Line) {
 		fd.Lastseen(line.Args[0], fact.Id)
 		// Update the Accessed field
 		// TODO(fluffle): fd should take care of updating Accessed internally
-		n := db.StorableNick{line.Nick, line.Ident, line.Host}
-		c := db.StorableChan{line.Args[0]}
-		fact.Access(n, c)
+		fact.Access(line.Storable())
 		// And store the new factoid data
 		if err := fd.Update(bson.M{"_id": fact.Id}, fact); err != nil {
 			bot.ReplyN(line, "I failed to update '%s' (%s): %s ",
@@ -294,9 +288,7 @@ func fd_replace(bot *bot.Sp0rkle, fd *factoidDriver, line *base.Line) {
 		// Replace the value with the new one
 		fact.Value = strings.TrimSpace(line.Args[1])
 		// Update the Modified field
-		n := db.StorableNick{line.Nick, line.Ident, line.Host}
-		c := db.StorableChan{line.Args[0]}
-		fact.Modify(n, c)
+		fact.Modify(line.Storable())
 		// And store the new factoid data
 		if err := fd.Update(bson.M{"_id": ls}, fact); err == nil {
 			bot.ReplyN(line, "'%s' was '%s', now is '%s'.",

@@ -2,7 +2,6 @@ package quotedriver
 
 import (
 	"github.com/fluffle/goevent/event"
-	"github.com/fluffle/sp0rkle/lib/db"
 	"github.com/fluffle/sp0rkle/lib/quotes"
 	"github.com/fluffle/sp0rkle/lib/util"
 	"github.com/fluffle/sp0rkle/sp0rkle/base"
@@ -50,8 +49,7 @@ func qd_privmsg(bot *bot.Sp0rkle, line *base.Line) {
 }
 
 func qd_add(bot *bot.Sp0rkle, qd *quoteDriver, line *base.Line) {
-	n := db.StorableNick{line.Nick, line.Ident, line.Host}
-	c := db.StorableChan{line.Args[0]}
+	n, c := line.Storable()
 	quote := quotes.NewQuote(line.Args[1], n, c)
 	quote.QID = qd.NewQID()
 	if err := qd.Insert(quote); err == nil {
