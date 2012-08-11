@@ -3,6 +3,7 @@ package main
 // sp0rkle will live again!
 
 import (
+	_ "expvar"
 	"flag"
 	"github.com/fluffle/goevent/event"
 	"github.com/fluffle/goirc/client"
@@ -16,6 +17,7 @@ import (
 	"github.com/fluffle/sp0rkle/sp0rkle/drivers/quotedriver"
 	"github.com/fluffle/sp0rkle/sp0rkle/drivers/seendriver"
 	"github.com/fluffle/sp0rkle/sp0rkle/drivers/urldriver"
+	"net/http"
 	"os"
 	"os/exec"
 	"strings"
@@ -23,9 +25,9 @@ import (
 )
 
 var (
-	host *string = flag.String("host", "", "IRC server to connect to.")
-	port *string = flag.String("port", "6667", "Port to connect to.")
+	server *string = flag.String("server", "", "IRC server to connect to.")
 	ssl *bool = flag.Bool("ssl", false, "Use SSL when connecting.")
+	http *string = flag.String("http", ":6666", "Port to serve HTTP requests on.")
 	nick *string = flag.String("nick", "sp0rklf",
 		"Name of bot, defaults to 'sp0rklf'")
 	channels *string = flag.String("channels", "#sp0rklf",
@@ -72,14 +74,16 @@ func main() {
 	bot.AddDriver(seendriver.SeenDriver(db, log))
 	bot.AddDriver(urldriver.UrlDriver(db, log))
 
-	// Register everything
+	// Register everything (including http handlers)
 	bot.RegisterAll()
 
+	// Start up the HTTP server
+	http.ListenAndServe(*http, nil)
+
 	// Connect loop.
-	hp := strings.Join([]string{*host, *port}, ":")
 	quit := false
 	for !quit {
-		if err := irc.Connect(hp); err != nil {
+		if err := irc.Connect(*server); err != nil {
 			log.Fatal("Connection error: %s", err)
 		}
 		quit = <-bot.Quit

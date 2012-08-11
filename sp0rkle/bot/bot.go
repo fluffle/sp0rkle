@@ -10,8 +10,12 @@ import (
 	"strings"
 )
 
-var rebuilder *string = flag.String("rebuilder", "",
+var (
+	rebuilder *string = flag.String("rebuilder", "",
 		"Nick[:password] to accept rebuild command from.")
+	prefix *string = flag.String("prefix", "http://sp0rk.ly/"
+		"Prefix for HTTP paths served by bot.")
+)
 
 // The bot is called sp0rkle...
 const botName string = "sp0rkle"
@@ -39,6 +43,9 @@ type Sp0rkle struct {
 	// nick and password for rebuild command
 	rbnick, rbpw string
 
+	// prefix for HTTP paths served
+	Prefix string
+
 	// and we need to kill it occasionally.
 	reexec, quit bool
 	Quit chan bool
@@ -55,6 +62,7 @@ func Bot(c *client.Conn, pm base.PluginManager, l logging.Logger) *Sp0rkle {
 		drivers:  make(map[string]base.Driver),
 		channels: make([]string, 0, 1),
 		rbnick:   s[0],
+		Prefix:   *prefix
 		Quit:     make(chan bool),
 	}
 	if len(s) > 1 {
@@ -76,6 +84,10 @@ func (bot *Sp0rkle) RegisterAll() {
 		// register them with the PluginManager here too.
 		if pp, ok := d.(base.PluginProvider); ok {
 			pp.RegisterPlugins(bot.PM)
+		}
+		// If the driver wants to handle any HTTP paths, register them.
+		if hp, ok := d.(base.HttpProvider); ok {
+			hp.RegisterHttpHandlers()
 		}
 	}
 }
