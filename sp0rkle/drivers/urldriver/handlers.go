@@ -35,7 +35,7 @@ func ud_privmsg(bot *bot.Sp0rkle, line *base.Line) {
 			[]string{"shorten that", "shorten"}):
 			ud_shorten(bot, ud, nl)
 		case util.StripAnyPrefix(&nl.Args[1],
-			[]string{"cache that", "cache "}):
+			[]string{"cache that", "save that", "cache ", "save "}):
 			ud_cache(bot, ud, nl)
 		default:
 			ud_scan(bot, ud, line)
