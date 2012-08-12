@@ -86,18 +86,25 @@ func ud_shorten(bot *bot.Sp0rkle, ud *urlDriver, line *base.Line) {
 		if u.Shortened != "" {
 			bot.ReplyN(line, "That was already shortened as %s%s%s",
 				bot.Prefix, shortenPath, u.Shortened)
+			return
 		}
 	} else {
 		url := strings.TrimSpace(line.Args[1])
-		if idx := strings.Index(line.Args[1], " "); idx != -1 {
+		if idx := strings.Index(url, " "); idx != -1 {
 			url = url[:idx]
 		}
 		if !util.LooksURLish(url) {
 			bot.ReplyN(line, "'%s' doesn't look URLish", url)
 			return
 		}
-		n, c := line.Storable()
-		u = urls.NewUrl(url, n, c)
+		if u = ud.GetByUrl(url); u == nil {
+			n, c := line.Storable()
+			u = urls.NewUrl(url, n, c)
+		} else if u.Shortened != "" {
+			bot.ReplyN(line, "That was already shortened as %s%s%s",
+				bot.Prefix, shortenPath, u.Shortened)
+			return
+		}
 	}
 	if err := ud.Shorten(u); err != nil {
 		bot.ReplyN(line, "Failed to store shortened url: %s", err)
@@ -119,18 +126,26 @@ func ud_cache(bot *bot.Sp0rkle, ud *urlDriver, line *base.Line) {
 			bot.ReplyN(line, "That was already cached as %s%s%s at %s",
 			bot.Prefix, cachePath, u.CachedAs,
 			u.CacheTime.Format(time.RFC1123))
+			return
 		}
 	} else {
 		url := strings.TrimSpace(line.Args[1])
-		if idx := strings.Index(line.Args[1], " "); idx != -1 {
+		if idx := strings.Index(url, " "); idx != -1 {
 			url = url[:idx]
 		}
 		if !util.LooksURLish(url) {
 			bot.ReplyN(line, "'%s' doesn't look URLish", url)
 			return
 		}
-		n, c := line.Storable()
-		u = urls.NewUrl(url, n, c)
+		if u = ud.GetByUrl(url); u == nil {
+			n, c := line.Storable()
+			u = urls.NewUrl(url, n, c)
+		} else if u.CachedAs != "" {
+			bot.ReplyN(line, "That was already cached as %s%s%s at %s",
+			bot.Prefix, cachePath, u.CachedAs,
+			u.CacheTime.Format(time.RFC1123))
+			return
+		}
 	}
 	if err := ud.Cache(u); err != nil {
 		bot.ReplyN(line, "Failed to store cached url: %s", err)
