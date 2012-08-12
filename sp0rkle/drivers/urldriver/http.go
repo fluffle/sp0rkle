@@ -12,10 +12,14 @@ func (ud *urlDriver) RegisterHttpHandlers() {
 	// This serves "shortened" urls 
 	http.Handle(shortenPath, http.StripPrefix(shortenPath, ud))
 	// This serves "cached" urls
-	http.Handle(cachePath, http.FileServer(http.Dir(*urlCacheDir)))
+	http.Handle(cachePath, http.StripPrefix(cachePath,
+		http.FileServer(http.Dir(*urlCacheDir))))
 }
 
 func (ud *urlDriver) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
+	if req.URL.Path == "" {
+		http.NotFound(rw, req)
+	}
 	if u := ud.GetShortened(req.URL.Path); u != nil {
 		rw.Header().Set("Location", u.Url)
 		rw.WriteHeader(302)
