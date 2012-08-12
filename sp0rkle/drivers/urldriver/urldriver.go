@@ -83,16 +83,16 @@ func (ud *urlDriver) Cache(u *urls.Url) error {
 		}
 	}
 	res, err := http.Get(u.Url)
-	defer res.Body.Close()
 	if err != nil {
 		return err
 	}
+	defer res.Body.Close()
 	if res.StatusCode != 200 {
 		return fmt.Errorf("Received non-200 response '%s' from server.",
 			res.Status)
 	}
 	// 1 << 22 == 4MB
-	if res.ContentLength == -1 || res.ContentLength > 1 << 22 {
+	if res.ContentLength > 1 << 22 {
 		return fmt.Errorf("Response too large (%d MB) to cache safely.",
 			res.ContentLength/1024/1024)
 	}

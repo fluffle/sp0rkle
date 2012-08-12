@@ -6,7 +6,7 @@ import (
 )
 
 func (ud *urlDriver) RegisterHttpHandlers() {
-	if err := os.MkdirAll(*urlCacheDir, 0600); err != nil {
+	if err := os.MkdirAll(*urlCacheDir, 0700); err != nil {
 		ud.l.Fatal("Couldn't create URL cache dir: %v", err)
 	}
 	// This serves "shortened" urls 

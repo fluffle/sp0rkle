@@ -78,7 +78,7 @@ func main() {
 	bot.RegisterAll()
 
 	// Start up the HTTP server
-	http.ListenAndServe(*httpPort, nil)
+	go http.ListenAndServe(*httpPort, nil)
 
 	// Connect loop.
 	quit := false
