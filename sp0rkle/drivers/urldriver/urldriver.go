@@ -56,16 +56,21 @@ func (ud *urlDriver) Encode(url string) string {
 	for i := 0; i < 4; i++ {
 		crcb[i] = byte((crc>>uint32(i)) & 0xff)
 	}
-	for {
-		// Avoid collisions in shortened URLs
-		s := base64.URLEncoding.EncodeToString(crcb)
-		q := ud.Find(bson.M{"$or": bson.M{"cachedas": s, "shortened": s}})
+	// Avoid collisions in shortened URLs
+	for i := 0; i < 10; i++ {
+		// Since we're always encoding exactly 4 bytes (32 bits)
+		// resulting in 5 1/3 bytes of encoded data, we can drop
+		// the two padding equals signs for brevity.
+		s := (base64.URLEncoding.EncodeToString(crcb))[:6]
+		q := ud.Find(bson.M{"$or": []bson.M{
+			bson.M{"cachedas": s}, bson.M{"shortened": s}}})
 		if n, err := q.Count(); n == 0 && err == nil {
 			return s
 		}
 		crcb[util.RNG.Intn(4)]++
 	}
-	return "" // FUUU
+	ud.l.Warn("Collided ten times while encoding URL.")
+	return ""
 }
 
 func (ud *urlDriver) Shorten(u *urls.Url) error {
