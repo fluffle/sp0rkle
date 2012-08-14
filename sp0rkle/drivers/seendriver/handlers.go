@@ -31,7 +31,7 @@ func sd_smoke(bot *bot.Sp0rkle, line *base.Line) {
 	n, c := line.Storable()
 	if sn != nil {
 		bot.ReplyN(line, "You last went for a smoke %s ago...",
-			time.Since(sn.Timestamp))
+			util.TimeSince(sn.Timestamp))
 		sn.StorableNick, sn.StorableChan = n, c
 		sn.Timestamp = time.Now()
 	} else {

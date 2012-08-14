@@ -7,6 +7,7 @@ import (
 	"os"
 	"regexp"
 	"strings"
+	"time"
 )
 
 func RemovePrefixedNick(text, nick string) (string, bool) {
@@ -168,4 +169,30 @@ func ApplyPluginFunction(val, plugin string, f func(string) string) string {
 
 func JoinPath(items ...string) string {
 	return strings.Join(items, string(os.PathSeparator))
+}
+
+func TimeSince(t time.Time) string {
+	s := ""
+	sec := int(time.Since(t)/time.Second)
+	times := []struct{
+		d int
+		s string
+	}{
+		{31536000, "y"}, // a year is 365 days, natch.
+		{604800, "w"},
+		{86400, "d"},
+		{3600, "h"},
+		{60, "m"},
+		{1, "s"},
+	}
+	for _, v := range times {
+		if div := sec / v.d; div > 0 {
+			s = fmt.Sprintf("%s%d%s ", s, div, v.s)
+		}
+		sec = sec % v.d
+	}
+	if len(s) > 0 {
+		return s[:len(s)-1]
+	}
+	return ""
 }
