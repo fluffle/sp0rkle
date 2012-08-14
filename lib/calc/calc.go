@@ -21,21 +21,26 @@ var ConstMap = map[string]float64{
 }
 
 // precedenceMap defines the precedence of operators Calc() recognises.
-// NOTE: These are all binary and left-associative, which simplified
-//       some of the code below. If any operators that are not left-
-//       associative are added, change precedence() below accordingly.
-var precedenceMap = map[string]int{
-	"**": 3, "^": 3,
-	"*": 2, "/": 2, "%": 2,
-	"+": 1, "-": 1,
+var precedenceMap = map[string]struct{
+	prec int
+	lAss bool
+}{
+	"**": {3, false},
+	"^":  {3, false},
+	"*":  {2, true},
+	"/":  {2, true},
+	"%":  {2, true},
+	"+":  {1, true},
+	"-":  {1, true},
 }
 
 // Return true -- and thus pop the stack in shunt() -- if op1 is left-
-// associative and its precedence is less than or equal to that of op2.
+// associative and its precedence is less than or equal to that of op2,
+// or if op1 is right-associative and its precedence is less than op2.
 func precedence(op1, op2 string) bool {
-	// NOTE: If you add a right-associative operator to operatorMap,
-	//       this conditional will need to be modified.
-	return precedenceMap[op1] <= precedenceMap[op2]
+	o1 := precedenceMap[op1]
+	o2 := precedenceMap[op2]
+	return o1.prec < o2.prec || (o1.lAss && o1.prec == o2.prec)
 }
 
 // The function type (poor naming, meh) performs the work for any

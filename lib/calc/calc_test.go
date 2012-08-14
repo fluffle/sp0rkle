@@ -228,10 +228,12 @@ func TestShunt(t *testing.T) {
 		{"(2+4)*6", "24+6*", false},
 		{"2+4*6", "246*+", false},
 		{"2+3+4+5+6+7+8*9", "23+4+5+6+7+89*+", false},
-		{"2+3*4^5", "2345^*+", false},
+		{"2+3*4^5^6", "23456^^*+", false},
 		{"tan(answer)", "42tan", false},
 		{"(1+((2+(3+(4*(5*6-7)+8)*9))*10))", "123456*7-*8+9*++10*+", false},
 		{"1*atan2((2+3)*4,5*(6+7))+8", "123+4*567+*atan2*8+", false},
+		// This test from rosetta code and ensures power is right-associative
+		{"3 + 4 * 2 / ( 1 - 5 ) ^ 2 ^ 3", "342*15-23^^/+", false},
 		{"(2+4", "", true},
 		{"2+4)", "", true},
 		{"cos(,)", "", true},
