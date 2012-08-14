@@ -1,9 +1,11 @@
 package seendriver
 
 import (
+	"fmt"
 	"github.com/fluffle/goevent/event"
 	"github.com/fluffle/sp0rkle/lib/db"
 	"github.com/fluffle/sp0rkle/lib/seen"
+	"github.com/fluffle/sp0rkle/lib/util"
 	"github.com/fluffle/sp0rkle/sp0rkle/base"
 	"github.com/fluffle/sp0rkle/sp0rkle/bot"
 	"strings"
@@ -12,6 +14,7 @@ import (
 
 func (sd *seenDriver) RegisterHandlers(r event.EventRegistry) {
 	r.AddHandler(bot.NewHandler(sd_record_pm), "bot_privmsg", "bot_action")
+	r.AddHandler(bot.NewHandler(sd_record_lines), "bot_privmsg", "bot_action")
 	r.AddHandler(bot.NewHandler(sd_record_chan), "bot_join", "bot_part")
 	r.AddHandler(bot.NewHandler(sd_record_nick), "bot_quit", "bot_nick")
 	r.AddHandler(bot.NewHandler(sd_record_kick), "bot_kick")
@@ -40,12 +43,22 @@ func sd_smoke(bot *bot.Sp0rkle, line *base.Line) {
 }
 
 func sd_privmsg(bot *bot.Sp0rkle, line *base.Line) {
-	s := strings.Split(line.Args[1], " ")
-	if !line.Addressed || s[0] != "seen" {
+	if !line.Addressed {
 		return
 	}
-
 	sd := bot.GetDriver(driverName).(*seenDriver)
+	switch {
+	case strings.HasPrefix(line.Args[1], "seen "):
+		sd_seen_lookup(bot, sd, line)
+	case strings.HasPrefix(line.Args[1], "lines"):
+		sd_lines_lookup(bot, sd, line)
+	case util.HasAnyPrefix(line.Args[1], []string{"topten", "top10"}):
+		sd_topten(bot, sd, line)
+	}
+}
+
+func sd_seen_lookup(bot *bot.Sp0rkle, sd *seenDriver, line *base.Line) {
+	s := strings.Split(line.Args[1], " ")
 	if len(s) > 2 {
 		// Assume we have "seen <nick> <action>"
 		if n := sd.LastSeenDoing(s[1], strings.ToUpper(s[2])); n != nil {
@@ -86,10 +99,44 @@ func sd_privmsg(bot *bot.Sp0rkle, line *base.Line) {
 	bot.ReplyN(line, "Haven't seen %s before, sorry.", txt)
 }
 
+func sd_lines_lookup(bot *bot.Sp0rkle, sd *seenDriver, line *base.Line) {
+	n := line.Nick
+	if idx := strings.Index(line.Args[1], " "); idx != -1 {
+		n = strings.TrimSpace(line.Args[1][idx:])
+	}
+	sn := sd.LinesFor(n, line.Args[0])
+	if sn != nil {
+		bot.ReplyN(line, "%s has said %d lines in this channel",
+			sn.Nick, sn.Lines)
+	}
+}
+
+func sd_topten(bot *bot.Sp0rkle, sd *seenDriver, line *base.Line) {
+	top := sd.TopTen(line.Args[0])
+	s := make([]string, 0, 10)
+	for i, n := range top {
+		s = append(s, fmt.Sprintf("#%d: %s - %d", i+1, n.Nick, n.Lines))
+	}
+	bot.Reply(line, "%s", strings.Join(s, ", "))
+}
+
 func sd_record_pm(bot *bot.Sp0rkle, line *base.Line) {
 	sd := bot.GetDriver(driverName).(*seenDriver)
 	sn := sd.SeenNickFromLine(line)
 	sn.Text = line.Args[1]
+	_, err := sd.Upsert(sn.Index(), sn)
+	if err != nil {
+		bot.Reply(line, "Failed to store seen data: %v", err)
+	}
+}
+
+func sd_record_lines(bot *bot.Sp0rkle, line *base.Line) {
+	sd := bot.GetDriver(driverName).(*seenDriver)
+	sn := sd.LinesFor(line.Nick, line.Args[0])
+	if sn == nil {
+		n, c := line.Storable()
+		sn = seen.SawNick(n, c, "LINES", "")
+	}
 	sn.Lines++
 	for _, n := range milestones {
 		if sn.Lines == n {

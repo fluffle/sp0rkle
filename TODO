@@ -111,6 +111,7 @@ Core
 ====
 *Persistent ignore list
 *Admin commands like join/part/ignore (and perms)
+* Rewrite driver handlers to be methods wherever possible?
 
 *Ticker for reminders
   - probably implemented with go func(){ time.Sleep(t); ... }()

@@ -52,11 +52,11 @@ func SawNick(nick db.StorableNick, ch db.StorableChan, act, txt string) *Nick {
 	return &Nick{
 		StorableNick: nick,
 		StorableChan: ch,
+		OtherNick:    db.StorableNick{},
 		Timestamp:    time.Now(),
 		Key:          strings.ToLower(nick.Nick),
 		Action:       act,
 		Text:         txt,
-		OtherNick:    db.StorableNick{},
 		Lines:        0,
 		Id:           bson.NewObjectId(),
 	}
@@ -121,6 +121,28 @@ func (sc *SeenCollection) LastSeenDoing(nick, act string) *Nick {
 		return &res
 	}
 	return nil
+}
+
+func (sc *SeenCollection) LinesFor(nick, ch string) *Nick {
+	var res Nick
+	q := sc.Find(bson.M{
+		"key": strings.ToLower(nick),
+		"storablechan.chan": ch,
+		"action": "LINES",
+	})
+	if err := q.One(&res); err == nil {
+		return &res
+	}
+	return nil
+}
+
+func (sc *SeenCollection) TopTen(ch string) []Nick {
+	var res []Nick
+	q := sc.Find(bson.M{"storablechan.chan": ch, "action": "LINES"}).Sort("-lines").Limit(10)
+	if err := q.All(&res); err != nil {
+		sc.l.Warn("TopTen Find error: %v", err)
+	}
+	return res
 }
 
 func (sc *SeenCollection) SeenAnyMatching(rx string) []string {
