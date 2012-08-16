@@ -22,3 +22,7 @@ type PluginManager interface {
 type PluginProvider interface {
 	RegisterPlugins(PluginManager)
 }
+
+type HttpProvider interface {
+	RegisterHttpHandlers()
+}

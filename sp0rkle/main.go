@@ -3,6 +3,7 @@ package main
 // sp0rkle will live again!
 
 import (
+	_ "expvar"
 	"flag"
 	"github.com/fluffle/goevent/event"
 	"github.com/fluffle/goirc/client"
@@ -15,6 +16,8 @@ import (
 	"github.com/fluffle/sp0rkle/sp0rkle/drivers/netdriver"
 	"github.com/fluffle/sp0rkle/sp0rkle/drivers/quotedriver"
 	"github.com/fluffle/sp0rkle/sp0rkle/drivers/seendriver"
+	"github.com/fluffle/sp0rkle/sp0rkle/drivers/urldriver"
+	"net/http"
 	"os"
 	"os/exec"
 	"strings"
@@ -22,15 +25,13 @@ import (
 )
 
 var (
-	host *string = flag.String("host", "", "IRC server to connect to.")
-	port *string = flag.String("port", "6667", "Port to connect to.")
+	server *string = flag.String("server", "", "IRC server to connect to.")
 	ssl *bool = flag.Bool("ssl", false, "Use SSL when connecting.")
+	httpPort *string = flag.String("http", ":6666", "Port to serve HTTP requests on.")
 	nick *string = flag.String("nick", "sp0rklf",
 		"Name of bot, defaults to 'sp0rklf'")
 	channels *string = flag.String("channels", "#sp0rklf",
 		"Comma-separated list of channels to join, defaults to '#sp0rklf'")
-	rebuilder *string = flag.String("rebuilder", "",
-		"Nick[:password] to accept rebuild command from.")
 )
 
 func main() {
@@ -38,9 +39,9 @@ func main() {
 	log := logging.NewFromFlags()
 	reg := event.NewRegistry()
 
-	if *host == "" {
+	if *server == "" {
 		//Don't call log.Fatal as we don't want a backtrace in this case
-		log.Error("--host option required. \nOptions are:\n")
+		log.Error("--server option required. \nOptions are:\n")
 		flag.PrintDefaults()
 		os.Exit(1)
 	}
@@ -62,27 +63,27 @@ func main() {
 	// Initialise bot state
 	bot := bot.Bot(irc, fd, log)
 	bot.AddChannels(strings.Split(*channels, ","))
-	if *rebuilder != "" {
-		bot.Rebuilder(*rebuilder)
-	}
 
 	// Add drivers
 	bot.AddDriver(bot)
 	bot.AddDriver(fd)
 	bot.AddDriver(calcdriver.CalcDriver(log))
-	bot.AddDriver(decisiondriver.DecisionDriver())
+	bot.AddDriver(decisiondriver.DecisionDriver(log))
 	bot.AddDriver(quotedriver.QuoteDriver(db, log))
 	bot.AddDriver(netdriver.NetDriver(log))
 	bot.AddDriver(seendriver.SeenDriver(db, log))
+	bot.AddDriver(urldriver.UrlDriver(db, log))
 
-	// Register everything
+	// Register everything (including http handlers)
 	bot.RegisterAll()
 
+	// Start up the HTTP server
+	go http.ListenAndServe(*httpPort, nil)
+
 	// Connect loop.
-	hp := strings.Join([]string{*host, *port}, ":")
 	quit := false
 	for !quit {
-		if err := irc.Connect(hp); err != nil {
+		if err := irc.Connect(*server); err != nil {
 			log.Fatal("Connection error: %s", err)
 		}
 		quit = <-bot.Quit

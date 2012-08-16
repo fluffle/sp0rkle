@@ -2,9 +2,9 @@ package quotedriver
 
 import (
 	"github.com/fluffle/sp0rkle/lib/quotes"
+	"github.com/fluffle/sp0rkle/lib/util"
 	"github.com/fluffle/sp0rkle/sp0rkle/base"
 	"strconv"
-	"strings"
 )
 
 func (qd *quoteDriver) RegisterPlugins(pm base.PluginManager) {
@@ -20,36 +20,22 @@ func (qp *QuotePlugin) Apply(val string, line *base.Line) string {
 	return qp.processor(qp.provider, val, line)
 }
 
-// TODO(fluffle): add a util function to locate <plugin=SOMETHING [args...]>
-// and use it here and in the decision driver...
 func qd_plugin_lookup(qd *quoteDriver, val string, line *base.Line) string {
-	for {
+	f := func(s string) string {
 		var quote *quotes.Quote
-		ps := strings.Index(val, "<plugin=quote")
-		if ps == -1 {
-			break
-		}
-		pe := strings.Index(val[ps:], ">")
-		switch {
-		case pe == -1:
-			break
-		case pe == 13:
-			// <plugin=quote>
+		if s == "" {
 			quote = qd.GetPseudoRand("")
-		case val[ps+14] == '#':
-			// <plugin=quote #QID>
-			if qid, err := strconv.Atoi(val[ps+15 : ps+pe]); err == nil {
+		} else if s[0] == '#' {
+			if qid, err := strconv.Atoi(s[1:]); err == nil {
 				quote = qd.GetByQID(qid)
 			}
-		default:
-			// we have " some key to look up" between ps+14 and ps+pe
-			quote = qd.GetPseudoRand(val[ps+14 : ps+pe])
+		} else {
+			quote = qd.GetPseudoRand(s)
 		}
 		if quote == nil {
-			continue
+			return "<plugin error>"
 		}
-		pe += ps
-		val = val[:ps] + quote.Quote + val[pe+1:]
+		return quote.Quote
 	}
-	return val
+	return util.ApplyPluginFunction(val, "quote", f)
 }

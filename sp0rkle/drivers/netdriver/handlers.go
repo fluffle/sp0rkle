@@ -1,7 +1,6 @@
 package netdriver
 
 import (
-	"fmt"
 	"github.com/fluffle/goevent/event"
 	"github.com/fluffle/sp0rkle/sp0rkle/base"
 	"github.com/fluffle/sp0rkle/sp0rkle/bot"
@@ -21,7 +20,6 @@ func nd_privmsg(bot *bot.Sp0rkle, line *base.Line) {
 	}
 	svc, query := line.Args[1][:idx], line.Args[1][idx+1:]
 	if s, ok := nd.services[svc]; ok {
-		bot.Conn.Privmsg(line.Args[0], fmt.Sprintf(
-			"%s: %s", line.Nick, s.LookupResult(query)))
+		bot.ReplyN(line, "%s", s.LookupResult(query))
 	}
 }

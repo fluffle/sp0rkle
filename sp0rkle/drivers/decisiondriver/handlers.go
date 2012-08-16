@@ -4,8 +4,10 @@ package decisiondriver
 
 import (
 	"github.com/fluffle/goevent/event"
+	"github.com/fluffle/sp0rkle/lib/util"
 	"github.com/fluffle/sp0rkle/sp0rkle/base"
 	"github.com/fluffle/sp0rkle/sp0rkle/bot"
+	"strings"
 )
 
 func (dd *decisionDriver) RegisterHandlers(r event.EventRegistry) {
@@ -13,5 +15,16 @@ func (dd *decisionDriver) RegisterHandlers(r event.EventRegistry) {
 }
 
 func dd_privmsg(bot *bot.Sp0rkle, line *base.Line) {
-	// dd := bot.GetDriver(driverName).(*decisionDriver)
+	if !line.Addressed {
+		return
+	}
+
+	switch {
+	case strings.HasPrefix(line.Args[1], "decide "):
+		opts := splitDelimitedString(line.Args[1][7:])
+		chosen := strings.TrimSpace(opts[util.RNG.Intn(len(opts))])
+		bot.ReplyN(line, "%s", chosen)
+	case strings.HasPrefix(line.Args[1], "rand "):
+		bot.ReplyN(line, "%s", randomFloatAsString(line.Args[1][5:], util.RNG))
+	}
 }

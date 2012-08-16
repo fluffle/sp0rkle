@@ -1,11 +1,20 @@
 package bot
 
 import (
+	"flag"
+	"fmt"
 	"github.com/fluffle/goevent/event"
 	"github.com/fluffle/goirc/client"
 	"github.com/fluffle/golog/logging"
 	"github.com/fluffle/sp0rkle/sp0rkle/base"
 	"strings"
+)
+
+var (
+	rebuilder *string = flag.String("rebuilder", "",
+		"Nick[:password] to accept rebuild command from.")
+	prefix *string = flag.String("http_prefix", "http://sp0rk.ly",
+		"Prefix for HTTP paths served by bot.")
 )
 
 // The bot is called sp0rkle...
@@ -34,12 +43,16 @@ type Sp0rkle struct {
 	// nick and password for rebuild command
 	rbnick, rbpw string
 
+	// prefix for HTTP paths served
+	Prefix string
+
 	// and we need to kill it occasionally.
 	reexec, quit bool
 	Quit chan bool
 }
 
 func Bot(c *client.Conn, pm base.PluginManager, l logging.Logger) *Sp0rkle {
+	s := strings.Split(*rebuilder, ":")
 	bot := &Sp0rkle{
 		Conn:     c,
 		ER:       c.ER,
@@ -48,7 +61,12 @@ func Bot(c *client.Conn, pm base.PluginManager, l logging.Logger) *Sp0rkle {
 		l:        l,
 		drivers:  make(map[string]base.Driver),
 		channels: make([]string, 0, 1),
+		rbnick:   s[0],
+		Prefix:   *prefix,
 		Quit:     make(chan bool),
+	}
+	if len(s) > 1 {
+		bot.rbpw = s[1]
 	}
 	c.State = bot
 	return bot
@@ -66,6 +84,10 @@ func (bot *Sp0rkle) RegisterAll() {
 		// register them with the PluginManager here too.
 		if pp, ok := d.(base.PluginProvider); ok {
 			pp.RegisterPlugins(bot.PM)
+		}
+		// If the driver wants to handle any HTTP paths, register them.
+		if hp, ok := d.(base.HttpProvider); ok {
+			hp.RegisterHttpHandlers()
 		}
 	}
 }
@@ -89,14 +111,19 @@ func (bot *Sp0rkle) AddChannels(c []string) {
 	bot.channels = append(bot.channels, c...)
 }
 
-func (bot *Sp0rkle) Rebuilder(rb string) {
-	s := strings.Split(rb, ":")
-	if len(s) > 1 {
-		bot.rbpw = s[1]
-	}
-	bot.rbnick = s[0]
-}
-
 func (bot *Sp0rkle) ReExec() bool {
 	return bot.reexec
+}
+
+// Currently makes the assumption that we're replying to line.Args[0] in every
+// instance. While this is normally the case, it may not be in some cases...
+// ReplyN() adds a prefix of "nick: " to the reply text,
+func (bot *Sp0rkle) ReplyN(line *base.Line, fm string, args ...interface{}) {
+	args = append([]interface{}{line.Nick}, args...)
+	bot.Reply(line, "%s: "+fm, args...)
+}
+
+// whereas Reply() does not.
+func (bot *Sp0rkle) Reply(line *base.Line, fm string, args ...interface{}) {
+	bot.Conn.Privmsg(line.Args[0], fmt.Sprintf(fm, args...))
 }

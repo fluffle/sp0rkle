@@ -8,11 +8,8 @@ Bugs: Known problems with current implementation
 Drivers
 =======
 *decide
-  command: decide, choose
-  decide carrots peas
-  decide write unit tests | fix bugs
-  decide "tidy your room" "eat your greens" "behave"
-  factoid plugins for decide and rand
+  - Done, for now
+  - Not ported: 8ball, best of N, percent (they were basically unused)
 
 *Calculate
   - All of the old functionality ported over
@@ -114,6 +111,7 @@ Core
 ====
 *Persistent ignore list
 *Admin commands like join/part/ignore (and perms)
+* Rewrite driver handlers to be methods wherever possible?
 
 *Ticker for reminders
   - probably implemented with go func(){ time.Sleep(t); ... }()
