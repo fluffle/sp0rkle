@@ -2,10 +2,11 @@ package datetime
 
 import (
 	"testing"
+	"time"
 )
 
 func TestParse(t *testing.T) {
-	if ret := Parse("11:24 pm march 4, 2030"); ret == nil || ret.Seconds() != 3600 {
-		t.Errorf("oawww %T(%#v).", ret, ret)
+	if ret := Parse("2pm PDT 15th feb"); ret.IsZero() || ret.Second() != 3600 {
+		t.Errorf("oawww %#v %s.", ret, ret)
 	}
 }

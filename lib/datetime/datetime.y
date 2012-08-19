@@ -7,28 +7,29 @@ package datetime
 
 import (
 	"fmt"
+	"github.com/fluffle/sp0rkle/lib/util"
 //	"math"
 	"strconv"
 	"strings"
 	"time"
-	"utf8"
 	"unicode"
 )
 
 %}
 
-// We essentially pull out substrings from the text and reformat them
-// for time.Parse to understand. Makes life easier :-)
 %union
 {
-  strval    string
-  intval	int
+	strval  string
+	intval  int
+	zoneval *time.Location
 }
 
-%token <strval> T_AMPM T_PLUS T_MINUS T_MONTH
-%token <intval> T_INTEGER
+%token <strval> T_PLUS T_MINUS
+%token <intval> T_AMPM T_INTEGER T_MONTH T_DAY
+%token <zoneval> T_ZONE
 
-%type <strval> sign zone o_sign o_ampm_or_zone
+%type <strval> sign o_sign dayqual
+%type <intval> o_ampm_or_zone
 
 /*
 %token tAGO tDST
@@ -52,14 +53,14 @@ spec:
 unixtime:
 	'@' o_sign T_INTEGER {
 		if $2 == "-" {
-			yylex.(*dateLexer).time = time.SecondsToUTC(int64(-$3))
+			yylex.(*dateLexer).time = time.Unix(int64(-$3), 0)
 		} else {
-			yylex.(*dateLexer).time = time.SecondsToUTC(int64($3))
+			yylex.(*dateLexer).time = time.Unix(int64($3), 0)
 		}
 	};
 
 o_sign:
-    /* empty */	{ $$ = "" }
+	/* empty */	{ $$ = "" }
 	| T_PLUS | T_MINUS;
 
 sign:
@@ -75,102 +76,58 @@ items:
 item:
 	time | date;
 
-/*
-  | local_zone
-	  { pc->local_zones_seen++; }
-  | zone
-	  { pc->zones_seen++; }
-  | date
-	  { pc->dates_seen++; }
-  | day
-	  { pc->days_seen++; }
-  | rel
-  | number
-  | hybrid
-  ;
-*/
-
 // HH:MM or HH:MM:SS with optional am/pm and/or timezone
+// *or* HH with non-optional am/pm
 time:
 	T_INTEGER ':' T_INTEGER o_ampm_or_zone {
 		l := yylex.(*dateLexer)
-		l.parseTime(
-			fmt.Sprintf("%s:04%s%s", l.hourfmt, l.ampmfmt, l.zonefmt),
-			fmt.Sprintf("%02d:%02d%s", $1, $3, $4)) 
+		l.setTime($1 + $4, $3, 0, l.loc)
 	}
 	| T_INTEGER ':' T_INTEGER ':' T_INTEGER o_ampm_or_zone {
 		l := yylex.(*dateLexer)
-		l.parseTime(
-			fmt.Sprintf("%s:04:05%s%s", l.hourfmt, l.ampmfmt, l.zonefmt),
-			fmt.Sprintf("%d:%02d:%02d%s", $1, $3, $5, $6))
+		l.setTime($1 + $6, $3, $5, l.loc)
+	}
+	| T_INTEGER T_AMPM o_zone {
+		l := yylex.(*dateLexer)
+		l.setTime($1 + $2, 0, 0, l.loc)
 	};
 
 o_ampm_or_zone:
-	/* empty */ {
-		l := yylex.(*dateLexer)
-		l.hourfmt, l.ampmfmt, l.zonefmt = "15", "", ""
-		$$ = ""
+	o_zone {
+		$$ = 0
 	}
-	| T_AMPM {
-		l := yylex.(*dateLexer)
-		l.hourfmt, l.ampmfmt, l.zonefmt = "3", $1, ""
-	}
-	| T_AMPM zone {
-		l := yylex.(*dateLexer)
-		l.hourfmt, l.ampmfmt = "3", $1
-		$$ = fmt.Sprintf("%s%s", $1, $2)
-	}
-	| zone {
-		l := yylex.(*dateLexer)
-		l.hourfmt, l.ampmfmt = "15", ""
+	| T_AMPM o_zone {
+		$$ = $1
 	};
+
+o_zone:
+	/* empty */
+	| zone;
 
 zone:
 	sign T_INTEGER {
 		l := yylex.(*dateLexer)
-		l.zonefmt = "-0700"
-		$$ = fmt.Sprintf("%s%04d", $1, $2)
+		hrs, mins := ($2 / 100), ($2 % 100)
+		if ($1 == "-") {
+			l.loc = time.FixedZone("WTF", -3600 * hrs - 60 * mins)
+		} else {
+			l.loc = time.FixedZone("WTF", 3600 * hrs + 60 * mins)
+		}   
 	}
 	| sign T_INTEGER ':' T_INTEGER {
 		l := yylex.(*dateLexer)
-		l.zonefmt = "-07:00"
-		$$ = fmt.Sprintf("%s%02d:%02d", $1, $2, $4)
+		if ($1 == "-") {
+			l.loc = time.FixedZone("WTF", -3600 * $2 - 60 * $4)
+		} else {
+			l.loc = time.FixedZone("WTF", 3600 * $2 + 60 * $4)
+		}   
+	}
+	| T_ZONE {
+		l := yylex.(*dateLexer)
+		l.loc = $1
 	};
 
 /*
-local_zone:
-	tLOCAL_ZONE
-	  {
-		pc->local_isdst = $1;
-		pc->dsts_seen += (0 < $1);
-	  }
-  | tLOCAL_ZONE tDST
-	  {
-		pc->local_isdst = 1;
-		pc->dsts_seen += (0 < $1) + 1;
-	  }
-  ;
-
-// Note 'T' is a special case, as it is used as the separator in ISO
-// 8601 date and time of day representation.
-zone:
-	tZONE
-	  { pc->time_zone = $1; }
-  | 'T'
-	  { pc->time_zone = HOUR(7); }
-  | tZONE relunit_snumber
-	  { pc->time_zone = $1;
-		apply_relative_time (pc, $2, 1); }
-  | 'T' relunit_snumber
-	  { pc->time_zone = HOUR(7);
-		apply_relative_time (pc, $2, 1); }
-  | tZONE tSNUMBER o_colon_minutes
-	  { pc->time_zone = $1 + time_zone_hhmm (pc, $2, $3); }
-  | tDAYZONE
-	  { pc->time_zone = $1 + 60; }
-  | tZONE tDST
-	  { pc->time_zone = $1 + 60; }
-  ;
 
 day:
 	tDAY
@@ -197,65 +154,87 @@ day:
 */
 
 datesep:
-    T_MINUS | '/';
+	T_MINUS | '/';
 
 dayqual:
-	/* empty */
-	| 's' 't'
-	| 'n' 'd'
-	| 'r' 'd'
-	| 't' 'h';
+	/* empty */ { $$ = "" }
+	| 's' 't' { $$ = "st" }
+	| 'n' 'd' { $$ = "nd" }
+	| 'r' 'd' { $$ = "rd" }
+	| 't' 'h' { $$ = "th" }
+	;
 
 date:
 	T_INTEGER datesep T_INTEGER {
-		// DD-MM or MM-YYYY or YYYY-MM
 		l := yylex.(*dateLexer)
 		if $3 > 12 {
-			l.parseDate("1 2006", fmt.Sprintf("%d %04d", $1, $3))
+			// assume we have MM-YYYY
+			l.setDate($3, $1, 1)
 		} else if $1 > 31 {
-			l.parseDate("2006 1", fmt.Sprintf("%04d %d", $1, $3))
+			// assume we have YYYY-MM
+			l.setDate($1, $3, 1)
 		} else {
-			l.parseDate("2 1", fmt.Sprintf("%d %d", $1, $3))
+			// assume we have DD-MM (too bad, americans)
+			l.setDate(0, $3, $1)
 		}
 	}
 	| T_INTEGER datesep T_INTEGER datesep T_INTEGER {
-		// YYYY-MM-DD or DD-MM-YY(YY?).
 		l := yylex.(*dateLexer)
 		if $1 > 31 {
-			l.parseDate("2006 1 2", fmt.Sprintf("%04d %d %d", $1, $3, $5))
-		} else if $3 > 99 {
-			l.parseDate("2 1 2006", fmt.Sprintf("%d %d %04d", $1, $3, $5))
+			// assume we have YYYY-MM-DD
+			l.setDate($1, $3, $5)
+		} else if $5 > 99 {
+			// assume we have DD-MM-YYYY
+			l.setDate($5, $3, $1)
+		} else if $5 > 40 {
+			// assume we have DD-MM-YY, add 1900 if YY > 40
+			l.setDate($5 + 1900, $3, $1)
 		} else {
-			l.parseDate("2 1 06", fmt.Sprintf("%d %d %02d", $1, $3, $5))
+			// assume we have DD-MM-YY, add 2000 otherwise
+			l.setDate($5 + 2000, $3, $1)
 		}
 	}
 	| T_INTEGER dayqual T_MONTH {
-		// 15th feb
+		// DDth Mon
 		l := yylex.(*dateLexer)
-		l.parseDate("2 Jan", fmt.Sprintf("%d %s", $1, $3))
+		l.setDate(0, $3, $1)
 	}
 	| T_MONTH T_INTEGER dayqual {
-		// feb 15th or feb 2010
 		l := yylex.(*dateLexer)
-		if $2 > 31 {
-			l.parseDate("Jan 2006", fmt.Sprintf("%s %04d", $1, $2))
+		if $2 > 31 && $3 == "" {
+			// assume Mon YYYY
+			l.setDate($2, $1, 1)
 		} else {
-			l.parseDate("2 Jan", fmt.Sprintf("%d %s", $2, $1))
+		    // assume Mon DDth
+			l.setDate(0, $1, $2)
 		}
 	}
 	| T_INTEGER dayqual T_MONTH T_INTEGER {
-		// 15th feb 2010
 		l := yylex.(*dateLexer)
-		l.parseDate("2 Jan 2006", fmt.Sprintf("%d %s %04d", $1, $3, $4))
+		if $4 > 99 {
+			// assume DDth Mon YYYY
+			l.setDate($4, $3, $1)
+		} else if $4 > 40 {
+			// assume DDth Mon YY, add 1900 if YY > 40
+			l.setDate($4 + 1900, $3, $1)
+		} else {
+			// assume DDth Mon YY, add 2000 otherwise
+			l.setDate($4 + 2000, $3, $1)
+		}
 	}
 	| T_MONTH T_INTEGER dayqual o_comma T_INTEGER {
-		// feb 15th 2010
 		l := yylex.(*dateLexer)
-		l.parseDate("Jan 2 2006", fmt.Sprintf("%s %d %04d", $1, $2, $5))
+		if $5 > 99 {
+			// assume Mon DDth, YYYY
+			l.setDate($5, $1, $2)
+		} else if $5 > 40 {
+			// assume Mon DDth, YY, add 1900 if YY > 40
+			l.setDate($5 + 1900, $1, $2)
+		} else {
+			// assume Mon DDth YY, add 2000 otherwise
+			l.setDate($5 + 2000, $1, $2)
+		}
 	};
-/*
-  | iso_8601_date
-  ;
 
 /*
 rel:
@@ -352,148 +331,245 @@ hybrid:
 const EPOCH_YEAR = 1970
 const eof = 0
 
-type token struct {
-	canonical string
-	tokentype int
+type tokenMap interface {
+	Lookup(input string, lval *yySymType) (tokenType int, ok bool)
 }
 
-var simpleTokenMap = map[string]int{
-	"AM": T_AMPM,
-	"PM": T_AMPM,
+type strMap map[string]struct{
+	tokenType int
+	tokenVal  string
 }
 
-var irritatingTokenMap = map[string]token{
-	"JAN": token{"Jan", T_MONTH},
-	"FEB": token{"Feb", T_MONTH},
-	"MAR": token{"Mar", T_MONTH},
-	"APR": token{"Apr", T_MONTH},
-	"MAY": token{"May", T_MONTH},
-	"JUN": token{"Jun", T_MONTH},
-	"JUL": token{"Jul", T_MONTH},
-	"AUG": token{"Aug", T_MONTH},
-	"SEP": token{"Sep", T_MONTH},
-	"OCT": token{"Oct", T_MONTH},
-	"NOV": token{"Nov", T_MONTH},
-	"DEC": token{"Dec", T_MONTH},
+var strTokenMap = strMap{
 }
+
+func (stm strMap) Lookup(input string, lval *yySymType) (int, bool) {
+	if len(input) > 3 {
+		input = input[:3]
+	}
+	if tok, ok := stm[input]; ok {
+		lval.strval = tok.tokenVal
+		return tok.tokenType, ok
+	}
+	return -1, false
+}
+
+type numMap map[string]struct{
+	tokenType int
+	tokenVal int
+}
+
+var numTokenMap = numMap{
+	"AM": {T_AMPM, 0},
+	"PM": {T_AMPM, 12},
+	"JAN": {T_MONTH, 1},
+	"FEB": {T_MONTH, 2},
+	"MAR": {T_MONTH, 3},
+	"APR": {T_MONTH, 4},
+	"MAY": {T_MONTH, 5},
+	"JUN": {T_MONTH, 6},
+	"JUL": {T_MONTH, 7},
+	"AUG": {T_MONTH, 8},
+	"SEP": {T_MONTH, 9},
+	"OCT": {T_MONTH, 10},
+	"NOV": {T_MONTH, 11},
+	"DEC": {T_MONTH, 12},
+	"MON": {T_DAY, 1},
+	"TUE": {T_DAY, 2},
+	"WED": {T_DAY, 3},
+	"THU": {T_DAY, 4},
+	"FRI": {T_DAY, 5},
+	"SAT": {T_DAY, 6},
+	"SUN": {T_DAY, 0},
+}
+
+func (ntm numMap) Lookup(input string, lval *yySymType) (int, bool) {
+	if len(input) > 3 {
+		input = input[:3]
+	}
+	if tok, ok := ntm[input]; ok {
+		lval.intval = tok.tokenVal
+		return tok.tokenType, ok
+	}
+	return -1, false
+}
+
+type zoneMap map[string]string
+
+var zoneCache = make(map[string]*time.Location)
+func zone(loc string) *time.Location {
+	if l, ok := zoneCache[loc]; ok {
+		return l
+	}
+	l, _ := time.LoadLocation(loc)
+	zoneCache[loc] = l
+	return l
+}
+
+var zoneTokenMap = zoneMap{
+	"ADT": "America/Barbados",
+	"AFT": "Asia/Kabul",
+	"AKST": "US/Alaska",
+	"AKDT": "US/Alaska",
+	"AMT": "America/Boa_Vista",
+	"ANAT": "Asia/Anadyr",
+	"ART": "America/Argentina/Buenos_Aires",
+	"AST": "Asia/Qatar",
+	"AZOT": "Atlantic/Azores",
+	"BNT": "Asia/Brunei",
+	"BRT": "Brazil/East",
+	"BRST": "Brazil/East",
+	"BST": "GB",
+	"CAT": "Africa/Harare",
+	"CCT": "Indian/Cocos",
+	"CDT": "US/Central",
+	"CET": "Europe/Zurich",
+	"CEST": "Europe/Zurich",
+	"CLST": "Chile/Continental",
+	"CST": "Asia/Shanghai",
+	"EAT": "Africa/Nairobi",
+	"EDT": "US/Eastern",
+	"EET": "Europe/Athens",
+	"EIT": "Asia/Jayapura",
+	"EEST": "Europe/Athens",
+	"EST": "Australia/Melbourne",
+	"FET": "Europe/Kaliningrad",
+	"FJT": "Pacific/Fiji",
+	"FJST": "Pacific/Fiji",
+	"GET": "Asia/Tbilisi",
+	"GMT": "GMT",
+	"GST": "Asia/Dubai",
+	"HADT": "US/Aleutian",
+	"HAST": "US/Aleutian",
+	"HKT": "Hongkong",
+	"HST": "US/Hawaii",
+	"ICT": "Asia/Bangkok",
+	"IDT": "Asia/Tel_Aviv",
+	"IDDT": "Asia/Tel_Aviv",
+	"IRDT": "Iran",
+	"IRST": "Iran",
+	"IOT": "Indian/Chagos",
+	"IST": "Asia/Kolkata",
+	"JST": "Asia/Tokyo",
+	"KGT": "Asia/Bishkek",
+	"KST": "Asia/Pyongyang",
+	"MDT": "US/Mountain",
+	"MART": "Pacific/Marquesas",
+	"MET": "MET",
+	"MEST": "MET",
+	"MMT": "Asia/Rangoon",
+	"MST": "US/Mountain",
+	"MVT": "Indian/Maldives",
+	"MYT": "Asia/Kuala_Lumpur",
+	"NDT": "Canada/Newfoundland",
+	"NPT": "Asia/Kathmandu",
+	"NST": "Canada/Newfoundland",
+	"NZDT": "Pacific/Auckland",
+	"NZST": "Pacific/Auckland",
+	"PDT": "US/Pacific",
+	"PHT": "Asia/Manila",
+	"PKT": "Asia/Karachi",
+	"PST": "US/Pacific",
+	"PWT": "Pacific/Palau",
+	"RET": "Indian/Reunion",
+	"SAST": "Africa/Johannesburg",
+	"SCT": "Indian/Mahe",
+	"SGT": "Asia/Singapore",
+	"SST": "US/Samoa",
+	"ULAT": "Asia/Ulaanbaatar",
+	"UTC": "UTC",
+	"UZT": "Asia/Tashkent",
+	"WAT": "Africa/Lagos",
+	"WAST": "Africa/Lagos",
+	"WET": "WET",
+	"WEST": "WET",
+	"WIT": "Asia/Jakarta",
+	"WST": "Australia/West",
+	"VET": "America/Caracas",
+	"VLAT": "Asia/Vladivostok",
+}
+
+func (ztm zoneMap) Lookup(input string, lval *yySymType) (int, bool) {
+	if tok, ok := ztm[input]; ok {
+		lval.zoneval = zone(tok)
+		return T_ZONE, ok
+	}
+	return -1, false
+}
+
+var tokenMaps = []tokenMap{strTokenMap, numTokenMap, zoneTokenMap}
 
 type dateLexer struct {
-	input string
-	start, pos, width int
+	*util.Lexer
 	hourfmt, ampmfmt, zonefmt string
-	time, date *time.Time
+	time, date time.Time
+	loc *time.Location
 }
 
 func (l *dateLexer) Lex(lval *yySymType) int {
-	l.scan(unicode.IsSpace)
-	c := l.peek()
+	l.Scan(unicode.IsSpace)
+	c := l.Peek()
 	
 	switch {
 	case c == '+':
 		lval.strval = "+"
-		l.next()
+		l.Next()
 		return T_PLUS
 	case c == '-':
 		lval.strval = "-"
-		l.next()
+		l.Next()
 		return T_MINUS
 	case unicode.IsDigit(c):
-		lval.intval, _ = strconv.Atoi(l.scan(unicode.IsDigit))
+		lval.intval, _ = strconv.Atoi(l.Scan(unicode.IsDigit))
 		return T_INTEGER
 	case unicode.IsLetter(c):
-		input := l.scan(unicode.IsLetter)
-		if tok, ok := l.lookup(input); ok {
-			lval.strval = tok.canonical
-			return tok.tokentype
-		} else {
-			l.rewind()
+		input := strings.ToUpper(l.Scan(unicode.IsLetter))
+		fmt.Printf("Map lookup: %s\n", input)
+		for _, m := range tokenMaps {
+			if tok, ok := m.Lookup(input, lval); ok {
+				return tok
+			}
 		}
+		// If we've not returned yet, no token recognised, so rewind.
+		l.Rewind()
 	}
-	return l.next()
+	l.Next()
+	return int(c)
 }
 
 func (l *dateLexer) Error(e string) {
 	fmt.Println(e)
 }
 
-func (l *dateLexer) peek() (rune int) {
-	if l.pos >= len(l.input) {
-		l.width = 0
-		return eof
+func (l *dateLexer) setTime(h, m, s int, loc *time.Location) {
+	if loc == nil {
+		loc = time.Local
 	}
-	rune, l.width = utf8.DecodeRuneInString(l.input[l.pos:])
-	return rune
+	fmt.Printf("Setting time to %d:%d:%d (%s)\n", h, m, s, loc)
+	if ! l.time.IsZero() {
+		l.Error("Parsed two times")
+		return
+	}
+	l.time = time.Date(1, 1, 1, h, m, s, 0, loc)
+}
+	
+
+func (l *dateLexer) setDate(y, m, d int) {
+	fmt.Printf("Setting date to %d-%d-%d\n", y, m, d)
+	if ! l.date.IsZero() {
+		l.Error("Parsed two dates")
+	}
+	l.date = time.Date(y, time.Month(m), d, 0, 0, 0, 0, time.Local)
 }
 
-func (l *dateLexer) next() int {
-	l.start = l.pos
-	rune := l.peek()
-	l.pos += l.width
-	return rune
-}
 
-func (l *dateLexer) scan(f func(int) bool) string {
-	l.start = l.pos
-	for f(l.peek()) {
-		l.pos += l.width
-	}
-	str := l.input[l.start:l.pos]
-	return str
-}
-
-func (l *dateLexer) rewind() {
-	l.pos = l.start
-}
-
-func (l *dateLexer) lookup(input string) (token, bool) {
-	fmt.Printf("Looking up '%s'\n", input)
-	input = strings.ToUpper(input)
-	// try a simple lookup -- these tokens only ever appear as themselves
-	if typ, ok := simpleTokenMap[input]; ok {
-		return token{input,typ}, ok
-	}
-	// Otherwise, it's a more irritating token...
-	if tok, ok := irritatingTokenMap[input]; ok {
-		return tok, ok
-	}
-	// strip off a plural?
-	if input[len(input)-1] == 'S' {
-		if tok, ok := irritatingTokenMap[input[:len(input)-1]]; ok {
-			return tok, ok
-		}
-	}
-	// Look up first three letters.
-	if len(input) > 3 {
-		if tok, ok := irritatingTokenMap[input[:3]]; ok {
-			return tok, ok
-		}
-	}
-	return token{}, false
-}
-
-func (l *dateLexer) parseTime(fmt, timestr string) {
-	if t, err := time.Parse(fmt, timestr); err == nil {
-		l.time = t
-	} else {
-		l.Error(err.String())
-	}
-}
-
-func (l *dateLexer) parseDate(fmt, timestr string) {
-	if t, err := time.Parse(fmt, timestr); err == nil {
-		l.date = t
-	} else {
-		l.Error(err.String())
-	}
-}
-
-func Parse(input string) *time.Time {
-	lexer := &dateLexer{input: input}
+func Parse(input string) time.Time {
+	lexer := &dateLexer{Lexer: &util.Lexer{Input: input}}
 	yyDebug = 5
 	if ret := yyParse(lexer); ret == 0 {
-		fmt.Printf("%#v\n", lexer.time)
-		fmt.Printf("%#v\n", lexer.date)
+		fmt.Printf("%s\n", lexer.time)
+		fmt.Printf("%s\n", lexer.date)
 		return lexer.time
 	}
-	return nil
+	return time.Time{}
 }
