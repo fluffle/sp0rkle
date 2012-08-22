@@ -48,6 +48,21 @@ o_sign_integer:
 o_comma:
 	/* empty */ | ',';
 
+datesep:
+	T_MINUS | '/';
+
+dayqual:
+	's' 't'
+	| 'n' 'd'
+	| 'r' 'd'
+	| 't' 'h';
+
+o_dayqual: /* empty */ | dayqual;
+
+of: 'o' 'f';
+
+o_of: /* empty */ | of;
+
 unixtime:
 	'@' o_sign_integer {
 		yylex.(*dateLexer).time = time.Unix(int64($2), 0)
@@ -95,21 +110,6 @@ o_zone:
 	| sign T_INTEGER ':' T_INTEGER {
 		$$ = time.FixedZone("WTF", $1 * (3600 * $2 + 60 * $4))
 	};
-
-datesep:
-	T_MINUS | '/';
-
-dayqual:
-	's' 't'
-	| 'n' 'd'
-	| 'r' 'd'
-	| 't' 'h';
-
-o_dayqual: /* empty */ | dayqual;
-
-of: 'o' 'f';
-
-o_of: /* empty */ | of;
 
 date:
 	T_INTEGER datesep T_INTEGER {
