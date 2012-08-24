@@ -15,17 +15,24 @@ var numTokenMap = numMap{
 	"AM": {T_AMPM, 0},
 	"PM": {T_AMPM, 12},
 	"AGO": {T_AGO, -1},
-    "YEAR": {T_OFFSET, int(O_YEAR)},
-    "MONTH": {T_OFFSET, int(O_MONTH)},
-	"FORTNIGHT": {T_DAY, 14},
-    "WEEK": {T_DAY, 7},
-    "DAY": {T_DAY, 1},
+	"YEAR": {T_OFFSET, int(O_YEAR)},
+	"Y": {T_ISO, int(O_YEAR)},
+	"MONTH": {T_OFFSET, int(O_MONTH)},
+// Ambiguity problems.
+//	"M": {T_ISO, int(O_MONTH)},
+	"FORTNIGHT": {T_DAYS, 14},
+	"WEEK": {T_DAYS, 7},
+	"DAY": {T_OFFSET, int(O_DAY)},
+	"D": {T_ISO, int(O_DAY)},
 	"NIGHT": {T_DAY, 1},
-    "HOUR": {T_OFFSET, int(O_HOUR)},
-    "MINUTE": {T_OFFSET, int(O_MIN)},
+	"HOUR": {T_OFFSET, int(O_HOUR)},
+	"H": {T_ISO, int(O_HOUR)},
+	"MINUTE": {T_OFFSET, int(O_MIN)},
 	"MIN": {T_OFFSET, int(O_MIN)},
+	"M": {T_ISO, int(O_MIN)},
 	"SECOND": {T_OFFSET, int(O_SEC)},
-    "SEC": {T_OFFSET, int(O_SEC)},
+	"SEC": {T_OFFSET, int(O_SEC)},
+	"S": {T_ISO, int(O_SEC)},
 	"TOMORROW": {T_DAYSHIFT, 1},
 	"YESTERDAY": {T_DAYSHIFT, -1},
 	"TODAY": {T_DAYSHIFT, 0},
@@ -34,7 +41,7 @@ var numTokenMap = numMap{
 
 func (ntm numMap) Lookup(input string, lval *yySymType) (int, bool) {
 	// allow plurals
-	if last := len(input)-1; input[last] == 'S' {
+	if last := len(input)-1; len(input) != 1 && input[last] == 'S' {
 		input = input[:last]
 	}
 	if tok, ok := ntm[input]; ok {
@@ -214,6 +221,7 @@ var zoneTokenMap = zoneMap{
 	"WST": "Australia/West",
 	"VET": "America/Caracas",
 	"VLAT": "Asia/Vladivostok",
+	"Z": "UTC",
 }
 
 func (ztm zoneMap) Lookup(input string, lval *yySymType) (int, bool) {
