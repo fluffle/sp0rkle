@@ -47,7 +47,7 @@ spec:
 o_comma:
 	/* empty */ | ',';
 
-of: 'o' 'f';
+of: 'O' 'F';
 
 o_of: /* empty */ | of;
 
@@ -267,7 +267,7 @@ day_or_month:
 		// Tuesday,
 		yylex.(*dateLexer).setDay($1, 1)
 	}
-	T_MONTHNAME {
+	| T_MONTHNAME {
 		// March
 		yylex.(*dateLexer).setMonth($1, 1)
 	}
@@ -651,16 +651,102 @@ func (l *dateLexer) setAgo() {
     l.ago = true
 }
 
-func Parse(input string) time.Time {
+func Parse(input string) (time.Time, bool) {
+    lexer, ret := lexAndParse(input)
+    if lexer == nil {
+        fmt.Println("Parse error: ", ret)
+    	return time.Time{}, false
+    }
+    // return time.Time{}, false
+    return resolve(lexer, time.Now())
+}
+
+func lexAndParse(input string) (*dateLexer, int) {
 	lexer := &dateLexer{Lexer: &util.Lexer{Input: input}}
 	yyDebug = 5
-	if ret := yyParse(lexer); ret == 0 {
-		fmt.Println(lexer.time)
-		fmt.Println(lexer.date)
-		fmt.Println(lexer.days)
-		fmt.Println(lexer.months)
-		fmt.Println(lexer.offsets)
-		return lexer.time
+	if ret := yyParse(lexer); ret != 0 {
+        return nil, ret
 	}
-	return time.Time{}
+    fmt.Println(lexer.time)
+    fmt.Println(lexer.date)
+    fmt.Println(lexer.days)
+    fmt.Println(lexer.months)
+    fmt.Println(lexer.offsets)
+    return lexer, 0
+}
+
+const (
+    HAVE_TIME = 1 << iota
+    HAVE_DATE
+    HAVE_DAYS
+    HAVE_MONTHS
+    HAVE_OFFSET
+)
+
+func resolve(l *dateLexer, now time.Time) (time.Time, bool) {
+    state := 0
+    if !l.time.IsZero() {
+        state |= HAVE_TIME
+    }
+    if !l.date.IsZero() {
+        state |= HAVE_DATE
+    }
+    if l.days.seen {
+        state |= HAVE_DAYS
+    }
+    if l.months.seen {
+        state |= HAVE_MONTHS
+    }
+    if l.offsets.seen {
+        state |= HAVE_OFFSET
+    }
+    switch state {
+    case HAVE_TIME:
+        y, m, d := now.Date()
+        h, n, s := l.time.Clock()
+        t := time.Date(y, m, d, h, n, s, 0, l.time.Location())
+        fmt.Printf("Parsed time as %s %s\n", t.Weekday(), t)
+        // check if >24h has been given. Results of this may be *very* sketchy.
+        // We can:
+        //   a) drop >24h info completely, raise an error/warning
+        //   b) save the integer number of hours as "days" and add that
+        // Currently, do (a), but (b) would be nice.
+        if y, m, d = l.time.Date(); y != 1 || m != time.January || d != 1 {
+            // TODO(fluffle): better error reporting!
+            fmt.Printf("Time >24h specified, ignoring it")
+        }
+        return t, true
+    case HAVE_DATE:
+        y, m, d := l.date.Date()
+        if y == 0 {
+            y = now.Year()
+        }
+        h, n, s := now.Clock()
+        t := time.Date(y, m, d, h, n, s, 0, now.Location())
+        fmt.Printf("Parsed time as %s %s\n", t.Weekday(), t)
+        return t, true
+    case HAVE_DAYS:
+        var t time.Time
+        if l.days.year != 0 {
+            // this is num'th weekday of year, so start by finding jan 1
+            h, n, s := now.Clock()
+            t = time.Date(l.days.year, 1, 1, h, n, s, 0, now.Location())
+            diff := int(l.days.day - t.Weekday())
+            if diff < 0 {
+                l.days.num -= 1
+            }
+            t = t.AddDate(0, 0, l.days.num * 7 + diff)
+        } else {
+            diff := int(l.days.day - now.Weekday())
+            if diff < 0 && l.days.num < 0 {
+                l.days.num += 1
+            } else if diff > 0 && l.days.num > 0 {
+                l.days.num -= 1
+            }
+            t = now.AddDate(0, 0, l.days.num * 7 + diff)
+        }
+        fmt.Printf("Parsed time as %s %s\n", t.Weekday(), t)
+        return t, true
+    }
+    return time.Time{}, false
 }
