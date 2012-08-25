@@ -1,6 +1,9 @@
 package datetime
 
-import "time"
+import (
+	"fmt"
+	"time"
+)
 
 type tokenMap interface {
 	Lookup(input string, lval *yySymType) (tokenType int, ok bool)
@@ -16,27 +19,33 @@ var numTokenMap = numMap{
 	"PM": {T_AMPM, 12},
 	"AGO": {T_AGO, -1},
 	"YEAR": {T_OFFSET, int(O_YEAR)},
-	"Y": {T_ISO, int(O_YEAR)},
+	"Y": {T_ISOYD, int(O_YEAR)},
 	"MONTH": {T_OFFSET, int(O_MONTH)},
 // Ambiguity problems.
 //	"M": {T_ISO, int(O_MONTH)},
 	"FORTNIGHT": {T_DAYS, 14},
 	"WEEK": {T_DAYS, 7},
+// W is used as the week indicator in ISO 8601
+//	"W": {T_DAYS, 7},
 	"DAY": {T_OFFSET, int(O_DAY)},
-	"D": {T_ISO, int(O_DAY)},
-	"NIGHT": {T_DAY, 1},
+	"D": {T_ISOYD, int(O_DAY)},
+	"NIGHT": {T_OFFSET, int(O_DAY)},
 	"HOUR": {T_OFFSET, int(O_HOUR)},
-	"H": {T_ISO, int(O_HOUR)},
+	"H": {T_ISOHS, int(O_HOUR)},
 	"MINUTE": {T_OFFSET, int(O_MIN)},
 	"MIN": {T_OFFSET, int(O_MIN)},
-	"M": {T_ISO, int(O_MIN)},
+//	"M": {T_ISO, int(O_MIN)},
 	"SECOND": {T_OFFSET, int(O_SEC)},
 	"SEC": {T_OFFSET, int(O_SEC)},
-	"S": {T_ISO, int(O_SEC)},
+	"S": {T_ISOHS, int(O_SEC)},
 	"TOMORROW": {T_DAYSHIFT, 1},
 	"YESTERDAY": {T_DAYSHIFT, -1},
 	"TODAY": {T_DAYSHIFT, 0},
 	"NOW": {T_DAYSHIFT, 0},
+	"ST": {T_DAYQUAL, 1},
+	"ND": {T_DAYQUAL, 2},
+	"RD": {T_DAYQUAL, 3},
+	"TH": {T_DAYQUAL, 4},
 }
 
 func (ntm numMap) Lookup(input string, lval *yySymType) (int, bool) {
@@ -232,4 +241,18 @@ func (ztm zoneMap) Lookup(input string, lval *yySymType) (int, bool) {
 	return -1, false
 }
 
-var tokenMaps = []tokenMap{numTokenMap, abbrTokenMap, relTokenMap, zoneTokenMap}
+type tokenMapList []tokenMap
+var tokenMaps = tokenMapList{numTokenMap, abbrTokenMap, relTokenMap, zoneTokenMap}
+
+func (l tokenMapList) Lookup(input string, lval *yySymType) (int, bool) {
+	fmt.Printf("Map lookup: %s\n", input)
+	// These maps are defined in tokenmaps.go
+	for _, m := range l {
+		if tok, ok := m.Lookup(input, lval); ok {
+			fmt.Printf("Map got: %d %d\n", lval.intval, tok)
+			return tok, ok
+		}
+	}
+	fmt.Printf("Map lookup failed\n")
+	return 0, false
+}

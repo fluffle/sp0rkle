@@ -28,10 +28,11 @@ type textint struct {
 	zoneval *time.Location
 }
 
-%token T_PLUS T_MINUS
-%token <tval>   T_INTEGER
-%token <intval> T_AMPM T_MONTHNAME T_DAYNAME T_DAYS
-%token <intval> T_OFFSET T_ISO T_RELATIVE T_DAYSHIFT T_AGO
+%token           T_DAYQUAL
+%token <tval>    T_INTEGER
+%token <intval>  T_PLUS T_MINUS
+%token <intval>  T_AMPM T_MONTHNAME T_DAYNAME T_DAYS T_DAYSHIFT
+%token <intval>  T_OFFSET T_ISOYD T_ISOHS T_RELATIVE T_AGO
 %token <zoneval> T_ZONE
 
 %type <intval> sign
@@ -50,17 +51,10 @@ of: 'o' 'f';
 
 o_of: /* empty */ | of;
 
-dayqual:
-	's' 't'
-	| 'n' 'd'
-	| 'r' 'd'
-	| 't' 'h';
-
-o_dayqual: /* empty */ | dayqual;
+o_dayqual: /* empty */ | T_DAYQUAL;
 
 sign:
-	T_PLUS { $$ = 1 }
-	| T_MINUS { $$ = -1 }; 
+	T_PLUS | T_MINUS; 
 
 o_sign_integer:
 	T_INTEGER
@@ -75,7 +69,7 @@ o_sign_integer:
     };
 
 zone:
-	| T_ZONE
+	T_ZONE
 	| sign T_INTEGER {
         hrs, mins := $2.i, 0
         if ($2.l == 4) {
@@ -83,7 +77,7 @@ zone:
         } else if ($2.l == 2) {
             hrs *= 100
         } else {
-            l.Error("Invalid timezone offset " +$2.s)
+            yylex.Error("Invalid timezone offset " +$2.s)
         }
 		$$ = time.FixedZone("WTF", $1 * (3600 * hrs + 60 * mins))
 	}
@@ -168,7 +162,7 @@ date:
 			l.setDate($5.i + 2000, $3.i, $1.i)
 		}
 	}
-	T_INTEGER o_dayqual o_of T_MONTHNAME {
+	| T_INTEGER o_dayqual o_of T_MONTHNAME {
 		// DDth of Mon
 		yylex.(*dateLexer).setDate(0, $4, $1.i)
 	}
@@ -184,7 +178,7 @@ date:
     }
 	| T_INTEGER o_dayqual o_of T_MONTHNAME T_INTEGER {
 		l := yylex.(*dateLexer)
-		if $5.l > == 4 {
+		if $5.l == 4 {
 			// assume DDth of Mon YYYY
 			l.setDate($5.i, $4, $1.i)
 		} else if $5.i > 68 {
@@ -232,10 +226,10 @@ iso_8601_date:
 			l.setDate($1.i, $3.i, $5.i)
 		} else if $1.i > 68 {
 			// assume we have YY-MM-DD, add 1900 if YY > 68
-			l.setDate($1.i + 1900, $3, $5.i)
+			l.setDate($1.i + 1900, $3.i, $5.i)
 		} else {
 			// assume we have YY-MM-DD, add 2000 otherwise
-			l.setDate($1.i + 2000, $3, $5.i)
+			l.setDate($1.i + 2000, $3.i, $5.i)
 		}
 	}
     | T_INTEGER 'W' T_INTEGER {
@@ -265,7 +259,7 @@ iso_8601_date_time:
         // ISO 8601 format date and time are handled by 'integer' below.
         l := yylex.(*dateLexer)
         l.setYMD($1.i, $1.l)
-        l.setHMS($3.i, $3.l)
+        l.setHMS($3.i, $3.l, $4)
     };
 
 day_or_month:
@@ -287,29 +281,29 @@ day_or_month:
 	}
 	| o_sign_integer T_DAYNAME {
 		// +-N Tuesdays
-		yylex.(*dateLexer).setDay($2.i, $1)
+		yylex.(*dateLexer).setDay($2, $1.i)
 	}
-	| T_INTEGER dayqual T_DAYNAME {
+	| T_INTEGER T_DAYQUAL T_DAYNAME {
 		// 3rd Tuesday 
-		yylex.(*dateLexer).setDay($3.i, $1)
+		yylex.(*dateLexer).setDay($3, $1.i)
 	}
-	| T_INTEGER dayqual T_DAYNAME of T_MONTHNAME {
+	| T_INTEGER T_DAYQUAL T_DAYNAME of T_MONTHNAME {
 		// 3rd Tuesday of (implicit this) March
 		l := yylex.(*dateLexer)
 		l.setDay($3, $1.i)
 		l.setMonth($5, 1)
 	}
-	| T_INTEGER dayqual T_DAYNAME of T_INTEGER {
+	| T_INTEGER T_DAYQUAL T_DAYNAME of T_INTEGER {
 		// 3rd Tuesday of 2012
-		yylex.(*dateLexer).setDay($3, $1.i, $5)
+		yylex.(*dateLexer).setDay($3, $1.i, $5.i)
 	}
-	| T_INTEGER dayqual T_DAYNAME of T_MONTHNAME T_INTEGER {
+	| T_INTEGER T_DAYQUAL T_DAYNAME of T_MONTHNAME T_INTEGER {
 		// 3rd Tuesday of March 2012
 		l := yylex.(*dateLexer)
 		l.setDay($3, $1.i)
 		l.setMonth($5, 1, $6.i)
 	}
-	| T_INTEGER dayqual T_DAYNAME of T_RELATIVE T_MONTHNAME {
+	| T_INTEGER T_DAYQUAL T_DAYNAME of T_RELATIVE T_MONTHNAME {
 		// 3rd Tuesday of next March
 		l := yylex.(*dateLexer)
 		l.setDay($3, $1.i)
@@ -344,11 +338,63 @@ relunit:
 	}
 	| T_RELATIVE T_DAYS {
 		yylex.(*dateLexer).addOffset(O_DAY, $1 * $2)
-	};
+	}
+    | o_sign_integer T_ISOYD {
+        // As we need to be able to separate out YD from HS in ISO durations
+        // this becomes a fair bit messier than if Y D H S were just T_OFFSET
+        // Because writing "next y" or "two h" would be odd, disallow
+        // T_RELATIVE tokens from being used with ISO single-letter notation
+        yylex.(*dateLexer).addOffset(offset($2), $1.i)
+    }
+    | o_sign_integer T_ISOHS {
+        yylex.(*dateLexer).addOffset(offset($2), $1.i)
+    }
+    | o_sign_integer 'M' {
+        // Resolve 'm' ambiguity in favour of minutes outside ISO duration
+        yylex.(*dateLexer).addOffset(O_MIN, $1.i)
+    };
 
+/* date/time based durations not yet supported */
 iso_8601_duration:
-    'P'
-    ;
+    'P' ymd_units o_t_hms_units
+    | 'P' t_hms_units
+    | 'P' T_INTEGER 'W' {
+        yylex.(*dateLexer).addOffset(O_DAY, 7 * $2.i)
+    };
+
+/* This is a bit lazy compared to specifying the combinations of nYnMnS */
+ymd_units:
+    ymd_unit
+    | ymd_units ymd_unit;
+
+ymd_unit:
+    T_INTEGER T_ISOYD {
+        // takes care of Y and D
+        yylex.(*dateLexer).addOffset(offset($2), $1.i)
+    }
+    | T_INTEGER 'M' {
+        yylex.(*dateLexer).addOffset(O_MONTH, $1.i)
+    };
+
+hms_units:
+    hms_unit
+    | hms_units hms_unit;
+
+hms_unit:
+    T_INTEGER T_ISOHS {
+        // takes care of H and S
+        yylex.(*dateLexer).addOffset(offset($2), $1.i)
+    }
+    | T_INTEGER 'M' {
+        yylex.(*dateLexer).addOffset(O_MIN, $1.i)
+    };
+
+t_hms_units:
+    'T' hms_units;
+
+o_t_hms_units:
+    /* empty */
+    | t_hms_units;
 
 integer:
 	T_INTEGER {
@@ -358,7 +404,7 @@ integer:
             l.setYMD($1.i, $1.l)
         } else {
             // assume ISO 8601 HHMMSS with no zone
-            l.setHMS($1.i $1.l, nil)
+            l.setHMS($1.i, $1.l, nil)
         }   
     };
 
@@ -465,32 +511,38 @@ func (l *dateLexer) Lex(lval *yySymType) int {
 	
 	switch {
 	case c == '+':
-		lval.strval = "+"
+		lval.intval = 1
 		l.Next()
 		return T_PLUS
 	case c == '-':
-		lval.strval = "-"
+		lval.intval = -1
 		l.Next()
 		return T_MINUS
 	case unicode.IsDigit(c):
-		lval.intval, _ = strconv.Atoi(l.Scan(unicode.IsDigit))
+        s := l.Scan(unicode.IsDigit)
+        i, _ := strconv.Atoi(s)
+        lval.tval = textint{i, len(s), s}
 		return T_INTEGER
 	case unicode.IsLetter(c):
 		input := strings.ToUpper(l.Scan(unicode.IsLetter))
-		fmt.Printf("Map lookup: %s\n", input)
-		// These maps are defined in tokenmaps.go
-		for _, m := range tokenMaps {
-			if tok, ok := m.Lookup(input, lval); ok {
-				fmt.Printf("Map got: %d %d\n", lval.intval, tok)
-				return tok
-			}
-		}
-		// If we've not returned yet, no token recognised, so rewind.
-		fmt.Printf("Map lookup failed\n")
+        if tok, ok := tokenMaps.Lookup(input, lval); ok {
+            return tok
+        }
+        // No token recognised, rewind and try the current character instead
+        // as long as the original input was longer than that one character
 		l.Rewind()
+        if len(input) > 1 {
+            input = strings.ToUpper(l.Next())
+            if tok, ok := tokenMaps.Lookup(input, lval); ok {
+                return tok
+            }
+            // Still not recognised.
+            l.Rewind()
+        }
 	}
 	l.Next()
-	return int(c)
+    // At no time do we want to be case-sensitive
+	return int(unicode.ToUpper(c))
 }
 
 func (l *dateLexer) Error(e string) {
@@ -509,17 +561,17 @@ func (l *dateLexer) setTime(h, m, s int, loc *time.Location) {
 	l.time = time.Date(1, 1, 1, h, m, s, 0, loc)
 }
 
-func (l *dateLexer) setHMS(hms int, l int, loc *time.Location) {
+func (l *dateLexer) setHMS(hms int, ln int, loc *time.Location) {
     hour, min, sec := 0, 0, 0
-    if $3.l == 2 {
+    if ln == 2 {
         // HH
-        hour = $3.i
-    } else if $3.l == 4 {
+        hour = hms
+    } else if ln == 4 {
         // HHMM
-        hour, min = $3.i / 100, $3.i % 100
+        hour, min = hms / 100, hms % 100
     } else {
         // HHMMSS
-        hour, min, sec = $3.i / 10000, ($3.i / 100) % 100, $3.i % 100
+        hour, min, sec = hms / 10000, (hms / 100) % 100, hms % 100
     }
     l.setTime(hour, min, sec, loc)
 }
@@ -569,9 +621,9 @@ func (l *dateLexer) setMonth(m, n int, year ...int) {
 	}
 }
 
-func (l *dateLexer) setYMD(ymd int, l int) {
+func (l *dateLexer) setYMD(ymd int, ln int) {
     year, month, day := ymd / 10000, (ymd / 100) % 100, ymd % 100
-    if l == 6 {
+    if ln == 6 {
         // YYMMDD not YYYYMMDD
         if year > 68 {
             year += 1900
