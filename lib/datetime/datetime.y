@@ -8,13 +8,13 @@ package datetime
 // and tokenmaps.go for the token maps.
 
 import (
-    "fmt"
-    "time"
+	"fmt"
+	"time"
 )
 
 type textint struct {
-    i, l int
-    s string
+	i, l int
+	s string
 }
 
 %}
@@ -33,9 +33,9 @@ type textint struct {
 %token <intval>  T_OFFSET T_ISOYD T_ISOHS T_RELATIVE T_AGO
 %token <zoneval> T_ZONE
 
-%type <intval> sign
-%type <tval> o_sign_integer
-%type <zoneval> zone o_zone
+%type <intval>   sign
+%type <tval>     o_sign_integer
+%type <zoneval>  zone o_zone
 
 %%
 
@@ -57,26 +57,26 @@ sign:
 o_sign_integer:
 	T_INTEGER
 	| T_PLUS T_INTEGER {
-        $2.s = "+" + $2.s
-        $$ = $2
-    }
+		$2.s = "+" + $2.s
+		$$ = $2
+	}
 	| T_MINUS T_INTEGER {
-        $2.s = "-" + $2.s
-        $2.i *= -1
-        $$ = $2
-    };
+		$2.s = "-" + $2.s
+		$2.i *= -1
+		$$ = $2
+	};
 
 zone:
 	T_ZONE
 	| sign T_INTEGER {
-        hrs, mins := $2.i, 0
-        if ($2.l == 4) {
-            hrs, mins = ($2.i / 100), ($2.i % 100)
-        } else if ($2.l == 2) {
-            hrs *= 100
-        } else {
-            yylex.Error("Invalid timezone offset " +$2.s)
-        }
+		hrs, mins := $2.i, 0
+		if ($2.l == 4) {
+			hrs, mins = ($2.i / 100), ($2.i % 100)
+		} else if ($2.l == 2) {
+			hrs *= 100
+		} else {
+			yylex.Error("Invalid timezone offset " +$2.s)
+		}
 		$$ = time.FixedZone("WTF", $1 * (3600 * hrs + 60 * mins))
 	}
 	| sign T_INTEGER ':' T_INTEGER {
@@ -85,8 +85,8 @@ zone:
 
 o_zone:
 	/* empty */ { $$ = nil }
-    | zone;
-    
+	| zone;
+	
 unixtime:
 	'@' o_sign_integer {
 		yylex.(*dateLexer).time = time.Unix(int64($2.i), 0)
@@ -98,14 +98,14 @@ items:
 
 item:
 	time
-    | iso_8601_time
+	| iso_8601_time
 	| date
-    | iso_8601_date
-    | iso_8601_date_time
+	| iso_8601_date
+	| iso_8601_date_time
 	| day_or_month
 	| relative
-    | iso_8601_duration
-    | integer;
+	| iso_8601_duration
+	| integer;
 
 // ISO 8601 takes care of 24h time formats, so this deals with
 // 12-hour HH, HH:MM or HH:MM:SS with am/pm and optional timezone
@@ -123,15 +123,15 @@ time:
 // The "basic" ISO 8601 format (without a timezone) is lexed as
 // an integer and handled in 'integer' below
 iso_8601_time:
-    T_INTEGER zone {
-        yylex.(*dateLexer).setHMS($1.i, $1.l, $2)
-    }
-    | T_INTEGER ':' T_INTEGER o_zone {
-        yylex.(*dateLexer).setTime($1.i, $3.i, 0, $4)
-    }
-    | T_INTEGER ':' T_INTEGER ':' T_INTEGER o_zone {
-        yylex.(*dateLexer).setTime($1.i, $3.i, $5.i, $6)
-    };
+	T_INTEGER zone {
+		yylex.(*dateLexer).setHMS($1.i, $1.l, $2)
+	}
+	| T_INTEGER ':' T_INTEGER o_zone {
+		yylex.(*dateLexer).setTime($1.i, $3.i, 0, $4)
+	}
+	| T_INTEGER ':' T_INTEGER ':' T_INTEGER o_zone {
+		yylex.(*dateLexer).setTime($1.i, $3.i, $5.i, $6)
+	};
 
 // ISO 8601 takes care of dash-separated big-endian date formats,
 // so this deals with /-separated little-endian formats (dd/mm/yyyy)
@@ -143,8 +143,8 @@ date:
 			// assume we have MM/YYYY
 			l.setDate($3.i, $1.i, 1)
 		} else {
-            // assume we have DD/MM (too bad, americans)
-            l.setDate(0, $3.i, $1.i)
+			// assume we have DD/MM (too bad, americans)
+			l.setDate(0, $3.i, $1.i)
 		}
 	}
 	| T_INTEGER '/' T_INTEGER '/' T_INTEGER {
@@ -170,10 +170,10 @@ date:
 			// assume Mon YYYY
 			l.setDate($2.i, $1, 1)
 		} else {
-		    // assume Mon DDth
+			// assume Mon DDth
 			l.setDate(0, $1, $2.i)
 		}
-    }
+	}
 	| T_INTEGER o_dayqual o_of T_MONTHNAME T_INTEGER {
 		l := yylex.(*dateLexer)
 		if $5.l == 4 {
@@ -206,15 +206,15 @@ iso_8601_date:
 	T_INTEGER T_MINUS T_INTEGER {
 		l := yylex.(*dateLexer)
 		if $1.l == 4 && $3.l == 3 {
-            // assume we have YYYY-DDD
-            l.setDate($1.i, 1, $3.i)
-        } else if $1.l == 4 {
+			// assume we have YYYY-DDD
+			l.setDate($1.i, 1, $3.i)
+		} else if $1.l == 4 {
 			// assume we have YYYY-MM
 			l.setDate($1.i, $3.i, 1)
 		} else {
-            // assume we have MM-DD (not strictly ISO compliant)
-            // this is for americans, because of DD/MM above ;-)
-            l.setDate(0, $3.i, $1.i)
+			// assume we have MM-DD (not strictly ISO compliant)
+			// this is for americans, because of DD/MM above ;-)
+			l.setDate(0, $3.i, $1.i)
 		}
 	}
 	| T_INTEGER T_MINUS T_INTEGER T_MINUS T_INTEGER {
@@ -230,35 +230,35 @@ iso_8601_date:
 			l.setDate($1.i + 2000, $3.i, $5.i)
 		}
 	}
-    | T_INTEGER 'W' T_INTEGER {
-        l := yylex.(*dateLexer)
-        wday, week := 1, $3.i
-        if $3.l == 3 {
-            // assume YYYY'W'WWD
-            week = week / 10
-            wday = week % 10
-        }
-        l.setWeek($1.i, week, wday)
-    }
-    | T_INTEGER T_MINUS 'W' T_INTEGER {
-        // assume YYYY-'W'WW
-        yylex.(*dateLexer).setWeek($1.i, $4.i, 1)
-    }
-    | T_INTEGER T_MINUS 'W' T_INTEGER T_MINUS T_INTEGER {
-        // assume YYYY-'W'WW-D
-        yylex.(*dateLexer).setWeek($1.i, $4.i, $6.i)
-    };
+	| T_INTEGER 'W' T_INTEGER {
+		l := yylex.(*dateLexer)
+		wday, week := 1, $3.i
+		if $3.l == 3 {
+			// assume YYYY'W'WWD
+			week = week / 10
+			wday = week % 10
+		}
+		l.setWeek($1.i, week, wday)
+	}
+	| T_INTEGER T_MINUS 'W' T_INTEGER {
+		// assume YYYY-'W'WW
+		yylex.(*dateLexer).setWeek($1.i, $4.i, 1)
+	}
+	| T_INTEGER T_MINUS 'W' T_INTEGER T_MINUS T_INTEGER {
+		// assume YYYY-'W'WW-D
+		yylex.(*dateLexer).setWeek($1.i, $4.i, $6.i)
+	};
 
 // NOTE: this doesn't enforce that the date is complete.
 iso_8601_date_time:
-    iso_8601_date 'T' iso_8601_time
-    | T_INTEGER 'T' T_INTEGER o_zone {
-        // this goes here because the YYYYMMDD and HHMMSS forms of the
-        // ISO 8601 format date and time are handled by 'integer' below.
-        l := yylex.(*dateLexer)
-        l.setYMD($1.i, $1.l)
-        l.setHMS($3.i, $3.l, $4)
-    };
+	iso_8601_date 'T' iso_8601_time
+	| T_INTEGER 'T' T_INTEGER o_zone {
+		// this goes here because the YYYYMMDD and HHMMSS forms of the
+		// ISO 8601 format date and time are handled by 'integer' below.
+		l := yylex.(*dateLexer)
+		l.setYMD($1.i, $1.l)
+		l.setHMS($3.i, $3.l, $4)
+	};
 
 day_or_month:
 	T_DAYNAME o_comma {
@@ -337,72 +337,72 @@ relunit:
 	| T_RELATIVE T_DAYS {
 		yylex.(*dateLexer).addOffset(O_DAY, $1 * $2)
 	}
-    | o_sign_integer T_ISOYD {
-        // As we need to be able to separate out YD from HS in ISO durations
-        // this becomes a fair bit messier than if Y D H S were just T_OFFSET
-        // Because writing "next y" or "two h" would be odd, disallow
-        // T_RELATIVE tokens from being used with ISO single-letter notation
-        yylex.(*dateLexer).addOffset(offset($2), $1.i)
-    }
-    | o_sign_integer T_ISOHS {
-        yylex.(*dateLexer).addOffset(offset($2), $1.i)
-    }
-    | o_sign_integer 'M' {
-        // Resolve 'm' ambiguity in favour of minutes outside ISO duration
-        yylex.(*dateLexer).addOffset(O_MIN, $1.i)
-    };
+	| o_sign_integer T_ISOYD {
+		// As we need to be able to separate out YD from HS in ISO durations
+		// this becomes a fair bit messier than if Y D H S were just T_OFFSET
+		// Because writing "next y" or "two h" would be odd, disallow
+		// T_RELATIVE tokens from being used with ISO single-letter notation
+		yylex.(*dateLexer).addOffset(offset($2), $1.i)
+	}
+	| o_sign_integer T_ISOHS {
+		yylex.(*dateLexer).addOffset(offset($2), $1.i)
+	}
+	| o_sign_integer 'M' {
+		// Resolve 'm' ambiguity in favour of minutes outside ISO duration
+		yylex.(*dateLexer).addOffset(O_MIN, $1.i)
+	};
 
 /* date/time based durations not yet supported */
 iso_8601_duration:
-    'P' ymd_units o_t_hms_units
-    | 'P' t_hms_units
-    | 'P' T_INTEGER 'W' {
-        yylex.(*dateLexer).addOffset(O_DAY, 7 * $2.i)
-    };
+	'P' ymd_units o_t_hms_units
+	| 'P' t_hms_units
+	| 'P' T_INTEGER 'W' {
+		yylex.(*dateLexer).addOffset(O_DAY, 7 * $2.i)
+	};
 
 /* This is a bit lazy compared to specifying the combinations of nYnMnS */
 ymd_units:
-    ymd_unit
-    | ymd_units ymd_unit;
+	ymd_unit
+	| ymd_units ymd_unit;
 
 ymd_unit:
-    T_INTEGER T_ISOYD {
-        // takes care of Y and D
-        yylex.(*dateLexer).addOffset(offset($2), $1.i)
-    }
-    | T_INTEGER 'M' {
-        yylex.(*dateLexer).addOffset(O_MONTH, $1.i)
-    };
+	T_INTEGER T_ISOYD {
+		// takes care of Y and D
+		yylex.(*dateLexer).addOffset(offset($2), $1.i)
+	}
+	| T_INTEGER 'M' {
+		yylex.(*dateLexer).addOffset(O_MONTH, $1.i)
+	};
 
 hms_units:
-    hms_unit
-    | hms_units hms_unit;
+	hms_unit
+	| hms_units hms_unit;
 
 hms_unit:
-    T_INTEGER T_ISOHS {
-        // takes care of H and S
-        yylex.(*dateLexer).addOffset(offset($2), $1.i)
-    }
-    | T_INTEGER 'M' {
-        yylex.(*dateLexer).addOffset(O_MIN, $1.i)
-    };
+	T_INTEGER T_ISOHS {
+		// takes care of H and S
+		yylex.(*dateLexer).addOffset(offset($2), $1.i)
+	}
+	| T_INTEGER 'M' {
+		yylex.(*dateLexer).addOffset(O_MIN, $1.i)
+	};
 
 t_hms_units:
-    'T' hms_units;
+	'T' hms_units;
 
 o_t_hms_units:
-    /* empty */
-    | t_hms_units;
+	/* empty */
+	| t_hms_units;
 
 integer:
 	T_INTEGER {
-        l := yylex.(*dateLexer)
-        if $1.l == 8 {
-            // assume ISO 8601 YYYYMMDD
-            l.setYMD($1.i, $1.l)
-        } else {
-            // assume ISO 8601 HHMMSS with no zone
-            l.setHMS($1.i, $1.l, nil)
-        }   
-    };
+		l := yylex.(*dateLexer)
+		if $1.l == 8 {
+			// assume ISO 8601 YYYYMMDD
+			l.setYMD($1.i, $1.l)
+		} else {
+			// assume ISO 8601 HHMMSS with no zone
+			l.setHMS($1.i, $1.l, nil)
+		}   
+	};
 %%
