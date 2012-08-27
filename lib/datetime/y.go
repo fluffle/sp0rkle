@@ -4,15 +4,13 @@ package datetime
 
 // Based upon parse-datetime.y in GNU coreutils.
 // also an exercise in learning goyacc in particular.
+// This file contains the yacc grammar only.
+// See lexer.go for the lexer and parse functions,
+// and tokenmaps.go for the token maps.
 
 import (
-	"fmt"
-	"github.com/fluffle/sp0rkle/lib/util"
-//	"math"
-	"strconv"
-	"strings"
-	"time"
-	"unicode"
+    "fmt"
+    "time"
 )
 
 type textint struct {
@@ -21,7 +19,7 @@ type textint struct {
 }
 
 
-//line datetime.y:24
+//line datetime.y:22
 type yySymType struct
 {
 	yys int
@@ -69,338 +67,8 @@ const yyEofCode = 1
 const yyErrCode = 2
 const yyMaxDepth = 200
 
-//line datetime.y:423
+//line datetime.y:408
 
-
-// Indexes for relTime
-type offset int
-const (
-	O_SEC offset = iota
-	O_MIN
-	O_HOUR
-	O_DAY
-	O_MONTH
-	O_YEAR
-)
-var offsets = [...]string{
-	"seconds",
-	"minutes",
-	"hours",
-	"days",
-	"months",
-	"years",
-}
-func (r offset) String() string {
-	return offsets[r]
-}
-type relTime struct {
-	offsets [6]int
-	seen bool
-}
-func (rt relTime) String() string {
-	if !rt.seen {
-		return "No time offsets seen"
-	}
-	s := make([]string, 0, 6)
-	for off, val := range rt.offsets {
-		if val != 0 {
-			s = append(s, fmt.Sprintf("%d %s", val, offsets[off]))
-		}
-	}
-	return strings.Join(s, " ")
-}
-
-type relDays struct {
-	day time.Weekday
-	num int
-	year int
-	seen bool
-}
-func (rd relDays) String() string {
-	if !rd.seen {
-		return "No relative days seen"
-	}
-	s := fmt.Sprintf("%d %s", rd.num, rd.day)
-	if rd.year != 0 {
-		s += fmt.Sprintf(" of %d", rd.year)
-	}
-	return s
-}
-
-type relMonths struct {
-	month time.Month
-	num int
-	year int
-	seen bool
-}
-func (rm relMonths) String() string {
-	if !rm.seen {
-		return "No relative months seen"
-	}
-	s := fmt.Sprintf("%d %s", rm.num, rm.month)
-	if rm.year != 0 {
-		s += fmt.Sprintf(" of %d", rm.year)
-	}
-	return s
-}
-
-type dateLexer struct {
-	*util.Lexer
-	hourfmt, ampmfmt, zonefmt string
-	time, date time.Time
-	offsets relTime       // takes care of +- ymd hms
-    days    relDays       // takes care of specific days into future
-	months  relMonths     // takes care of specific months into future
-    ago     bool          // more than one "ago" is probably bad
-}
-
-
-func (l *dateLexer) Lex(lval *yySymType) int {
-	l.Scan(unicode.IsSpace)
-	c := l.Peek()
-	
-	switch {
-	case c == '+':
-		lval.intval = 1
-		l.Next()
-		return T_PLUS
-	case c == '-':
-		lval.intval = -1
-		l.Next()
-		return T_MINUS
-	case unicode.IsDigit(c):
-        s := l.Scan(unicode.IsDigit)
-        i, _ := strconv.Atoi(s)
-        lval.tval = textint{i, len(s), s}
-		return T_INTEGER
-	case unicode.IsLetter(c):
-		input := strings.ToUpper(l.Scan(unicode.IsLetter))
-        if tok, ok := tokenMaps.Lookup(input, lval); ok {
-            return tok
-        }
-        // No token recognised, rewind and try the current character instead
-        // as long as the original input was longer than that one character
-		l.Rewind()
-        if len(input) > 1 {
-            input = strings.ToUpper(l.Next())
-            if tok, ok := tokenMaps.Lookup(input, lval); ok {
-                return tok
-            }
-            // Still not recognised.
-            l.Rewind()
-        }
-	}
-	l.Next()
-    // At no time do we want to be case-sensitive
-	return int(unicode.ToUpper(c))
-}
-
-func (l *dateLexer) Error(e string) {
-	fmt.Println(e)
-}
-
-func (l *dateLexer) setTime(h, m, s int, loc *time.Location) {
-	if loc == nil {
-		loc = time.Local
-	}
-	fmt.Printf("Setting time to %d:%d:%d (%s)\n", h, m, s, loc)
-	if ! l.time.IsZero() {
-		l.Error("Parsed two times")
-		return
-	}
-	l.time = time.Date(1, 1, 1, h, m, s, 0, loc)
-}
-
-func (l *dateLexer) setHMS(hms int, ln int, loc *time.Location) {
-    hour, min, sec := 0, 0, 0
-    if ln == 2 {
-        // HH
-        hour = hms
-    } else if ln == 4 {
-        // HHMM
-        hour, min = hms / 100, hms % 100
-    } else {
-        // HHMMSS
-        hour, min, sec = hms / 10000, (hms / 100) % 100, hms % 100
-    }
-    l.setTime(hour, min, sec, loc)
-}
-
-func (l *dateLexer) setDate(y, m, d int) {
-	fmt.Printf("Setting date to %d-%d-%d\n", y, m, d)
-	if ! l.date.IsZero() {
-		l.Error("Parsed two dates")
-        return
-	}
-	l.date = time.Date(y, time.Month(m), d, 0, 0, 0, 0, time.Local)
-}
-
-func (l *dateLexer) setDay(d, n int, year ...int) {
-	fmt.Printf("Setting day to %d %s\n", n, time.Weekday(d))
-	if l.days.seen {
-		l.Error("Parsed two days")
-        return
-	}
-	l.days = relDays{time.Weekday(d), n, 0, true}
-	if len(year) > 0 {
-		l.days.year = year[0]
-	}
-}
-
-func (l *dateLexer) setWeek(year, week, wday int) {
-    // Week and wday are ISO numbers: week == 1-53, wday == 1-7, Monday == 1
-    // http://en.wikipedia.org/wiki/ISO_week_date#Calculating_a_date_given_the_year.2C_week_number_and_weekday
-    jan4 := int(time.Date(year, 1, 4, 0, 0, 0, 0, time.UTC).Weekday())
-    if jan4 == 0 {
-        // Go weekdays are 0-6, with Sunday == 0
-        jan4 = 7
-    }
-    ord := week * 7 + wday - jan4 - 3
-    l.setDate(year, 1, ord)
-}
-
-func (l *dateLexer) setMonth(m, n int, year ...int) {
-	fmt.Printf("Setting month to %d %s\n", n, time.Month(m))
-	if l.months.seen {
-		l.Error("Parsed two months")
-        return
-	}
-	l.months = relMonths{time.Month(m), n, 0, true}
-	if len(year) > 0 {
-		l.months.year = year[0]
-	}
-}
-
-func (l *dateLexer) setYMD(ymd int, ln int) {
-    year, month, day := ymd / 10000, (ymd / 100) % 100, ymd % 100
-    if ln == 6 {
-        // YYMMDD not YYYYMMDD
-        if year > 68 {
-            year += 1900
-        } else {
-            year += 2000
-        }
-    }
-    l.setDate(year, month, day)
-}
-
-func (l *dateLexer) addOffset(off offset, rel int) {
-	fmt.Printf("Adding relative offset of %d %s\n", rel, off)
-	l.offsets.seen = true
-	l.offsets.offsets[off] += rel
-}
-
-func (l *dateLexer) setAgo() {
-    if l.ago {
-        l.Error("Parsed two agos")
-        return
-    }
-	for i := range l.offsets.offsets {
-		l.offsets.offsets[i] *= -1
-	}
-    l.ago = true
-}
-
-func Parse(input string) (time.Time, bool) {
-    lexer, ret := lexAndParse(input)
-    if lexer == nil {
-        fmt.Println("Parse error: ", ret)
-    	return time.Time{}, false
-    }
-    // return time.Time{}, false
-    return resolve(lexer, time.Now())
-}
-
-func lexAndParse(input string) (*dateLexer, int) {
-	lexer := &dateLexer{Lexer: &util.Lexer{Input: input}}
-	yyDebug = 5
-	if ret := yyParse(lexer); ret != 0 {
-        return nil, ret
-	}
-    fmt.Println(lexer.time)
-    fmt.Println(lexer.date)
-    fmt.Println(lexer.days)
-    fmt.Println(lexer.months)
-    fmt.Println(lexer.offsets)
-    return lexer, 0
-}
-
-const (
-    HAVE_TIME = 1 << iota
-    HAVE_DATE
-    HAVE_DAYS
-    HAVE_MONTHS
-    HAVE_OFFSET
-)
-
-func resolve(l *dateLexer, now time.Time) (time.Time, bool) {
-    state := 0
-    if !l.time.IsZero() {
-        state |= HAVE_TIME
-    }
-    if !l.date.IsZero() {
-        state |= HAVE_DATE
-    }
-    if l.days.seen {
-        state |= HAVE_DAYS
-    }
-    if l.months.seen {
-        state |= HAVE_MONTHS
-    }
-    if l.offsets.seen {
-        state |= HAVE_OFFSET
-    }
-    switch state {
-    case HAVE_TIME:
-        y, m, d := now.Date()
-        h, n, s := l.time.Clock()
-        t := time.Date(y, m, d, h, n, s, 0, l.time.Location())
-        fmt.Printf("Parsed time as %s %s\n", t.Weekday(), t)
-        // check if >24h has been given. Results of this may be *very* sketchy.
-        // We can:
-        //   a) drop >24h info completely, raise an error/warning
-        //   b) save the integer number of hours as "days" and add that
-        // Currently, do (a), but (b) would be nice.
-        if y, m, d = l.time.Date(); y != 1 || m != time.January || d != 1 {
-            // TODO(fluffle): better error reporting!
-            fmt.Printf("Time >24h specified, ignoring it")
-        }
-        return t, true
-    case HAVE_DATE:
-        y, m, d := l.date.Date()
-        if y == 0 {
-            y = now.Year()
-        }
-        h, n, s := now.Clock()
-        t := time.Date(y, m, d, h, n, s, 0, now.Location())
-        fmt.Printf("Parsed time as %s %s\n", t.Weekday(), t)
-        return t, true
-    case HAVE_DAYS:
-        var t time.Time
-        if l.days.year != 0 {
-            // this is num'th weekday of year, so start by finding jan 1
-            h, n, s := now.Clock()
-            t = time.Date(l.days.year, 1, 1, h, n, s, 0, now.Location())
-            diff := int(l.days.day - t.Weekday())
-            if diff < 0 {
-                t = t.AddDate(0, 0, l.days.num * 7 + diff)
-            } else {
-                t = t.AddDate(0, 0, (l.days.num-1) * 7 + diff)
-            }
-        } else {
-            diff := int(l.days.day - now.Weekday())
-            if diff < 0 && l.days.num < 0 {
-                l.days.num += 1
-            } else if diff > 0 && l.days.num > 0 {
-                l.days.num -= 1
-            }
-            t = now.AddDate(0, 0, l.days.num * 7 + diff)
-        }
-        fmt.Printf("Parsed time as %s %s\n", t.Weekday(), t)
-        return t, true
-    }
-    return time.Time{}, false
-}
 
 //line yacctab:1
 var yyExca = []int{
@@ -778,13 +446,13 @@ yydefault:
 	case 12:
 		yyVAL.tval = yyS[yypt-0].tval
 	case 13:
-		//line datetime.y:61
+		//line datetime.y:59
 		{
 	        yyS[yypt-0].tval.s = "+" + yyS[yypt-0].tval.s
 	        yyVAL.tval = yyS[yypt-0].tval
 	    }
 	case 14:
-		//line datetime.y:65
+		//line datetime.y:63
 		{
 	        yyS[yypt-0].tval.s = "-" + yyS[yypt-0].tval.s
 	        yyS[yypt-0].tval.i *= -1
@@ -793,7 +461,7 @@ yydefault:
 	case 15:
 		yyVAL.zoneval = yyS[yypt-0].zoneval
 	case 16:
-		//line datetime.y:73
+		//line datetime.y:71
 		{
 	        hrs, mins := yyS[yypt-0].tval.i, 0
 	        if (yyS[yypt-0].tval.l == 4) {
@@ -806,52 +474,52 @@ yydefault:
 			yyVAL.zoneval = time.FixedZone("WTF", yyS[yypt-1].intval * (3600 * hrs + 60 * mins))
 		}
 	case 17:
-		//line datetime.y:84
+		//line datetime.y:82
 		{
 			yyVAL.zoneval = time.FixedZone("WTF", yyS[yypt-3].intval * (3600 * yyS[yypt-2].tval.i + 60 * yyS[yypt-0].tval.i))
 		}
 	case 18:
-		//line datetime.y:89
+		//line datetime.y:87
 		{ yyVAL.zoneval = nil }
 	case 19:
 		yyVAL.zoneval = yyS[yypt-0].zoneval
 	case 20:
-		//line datetime.y:93
+		//line datetime.y:91
 		{
 			yylex.(*dateLexer).time = time.Unix(int64(yyS[yypt-0].tval.i), 0)
 		}
 	case 32:
-		//line datetime.y:115
+		//line datetime.y:113
 		{
 			yylex.(*dateLexer).setTime(yyS[yypt-2].tval.i + yyS[yypt-1].intval, 0, 0, yyS[yypt-0].zoneval)
 		}
 	case 33:
-		//line datetime.y:118
+		//line datetime.y:116
 		{
 			yylex.(*dateLexer).setTime(yyS[yypt-4].tval.i + yyS[yypt-1].intval, yyS[yypt-2].tval.i, 0, yyS[yypt-0].zoneval)
 		}
 	case 34:
-		//line datetime.y:121
+		//line datetime.y:119
 		{
 			yylex.(*dateLexer).setTime(yyS[yypt-6].tval.i + yyS[yypt-1].intval, yyS[yypt-4].tval.i, yyS[yypt-2].tval.i, yyS[yypt-0].zoneval)
 		}
 	case 35:
-		//line datetime.y:128
+		//line datetime.y:126
 		{
 	        yylex.(*dateLexer).setHMS(yyS[yypt-1].tval.i, yyS[yypt-1].tval.l, yyS[yypt-0].zoneval)
 	    }
 	case 36:
-		//line datetime.y:131
+		//line datetime.y:129
 		{
 	        yylex.(*dateLexer).setTime(yyS[yypt-3].tval.i, yyS[yypt-1].tval.i, 0, yyS[yypt-0].zoneval)
 	    }
 	case 37:
-		//line datetime.y:134
+		//line datetime.y:132
 		{
 	        yylex.(*dateLexer).setTime(yyS[yypt-5].tval.i, yyS[yypt-3].tval.i, yyS[yypt-1].tval.i, yyS[yypt-0].zoneval)
 	    }
 	case 38:
-		//line datetime.y:142
+		//line datetime.y:140
 		{
 			l := yylex.(*dateLexer)
 			if yyS[yypt-0].tval.l == 4 {
@@ -863,7 +531,7 @@ yydefault:
 			}
 		}
 	case 39:
-		//line datetime.y:152
+		//line datetime.y:150
 		{
 			l := yylex.(*dateLexer)
 			if yyS[yypt-0].tval.l == 4 {
@@ -878,13 +546,13 @@ yydefault:
 			}
 		}
 	case 40:
-		//line datetime.y:165
+		//line datetime.y:163
 		{
 			// DDth of Mon
 		yylex.(*dateLexer).setDate(0, yyS[yypt-0].intval, yyS[yypt-3].tval.i)
 		}
 	case 41:
-		//line datetime.y:169
+		//line datetime.y:167
 		{
 			l := yylex.(*dateLexer)
 			if yyS[yypt-1].tval.l == 4 {
@@ -896,7 +564,7 @@ yydefault:
 			}
 	    }
 	case 42:
-		//line datetime.y:179
+		//line datetime.y:177
 		{
 			l := yylex.(*dateLexer)
 			if yyS[yypt-0].tval.l == 4 {
@@ -911,7 +579,7 @@ yydefault:
 			}
 		}
 	case 43:
-		//line datetime.y:192
+		//line datetime.y:190
 		{
 			l := yylex.(*dateLexer)
 			if yyS[yypt-0].tval.l == 4 {
@@ -926,7 +594,7 @@ yydefault:
 			}
 		}
 	case 44:
-		//line datetime.y:208
+		//line datetime.y:206
 		{
 			l := yylex.(*dateLexer)
 			if yyS[yypt-2].tval.l == 4 && yyS[yypt-0].tval.l == 3 {
@@ -942,7 +610,7 @@ yydefault:
 			}
 		}
 	case 45:
-		//line datetime.y:222
+		//line datetime.y:220
 		{
 			l := yylex.(*dateLexer)
 			if yyS[yypt-4].tval.l == 4 {
@@ -957,7 +625,7 @@ yydefault:
 			}
 		}
 	case 46:
-		//line datetime.y:235
+		//line datetime.y:233
 		{
 	        l := yylex.(*dateLexer)
 	        wday, week := 1, yyS[yypt-0].tval.i
@@ -969,19 +637,19 @@ yydefault:
 	        l.setWeek(yyS[yypt-2].tval.i, week, wday)
 	    }
 	case 47:
-		//line datetime.y:245
+		//line datetime.y:243
 		{
 	        // assume YYYY-'W'WW
         yylex.(*dateLexer).setWeek(yyS[yypt-3].tval.i, yyS[yypt-0].tval.i, 1)
 	    }
 	case 48:
-		//line datetime.y:249
+		//line datetime.y:247
 		{
 	        // assume YYYY-'W'WW-D
         yylex.(*dateLexer).setWeek(yyS[yypt-5].tval.i, yyS[yypt-2].tval.i, yyS[yypt-0].tval.i)
 	    }
 	case 50:
-		//line datetime.y:257
+		//line datetime.y:255
 		{
 	        // this goes here because the YYYYMMDD and HHMMSS forms of the
         // ISO 8601 format date and time are handled by 'integer' below.
@@ -990,43 +658,43 @@ yydefault:
 	        l.setHMS(yyS[yypt-1].tval.i, yyS[yypt-1].tval.l, yyS[yypt-0].zoneval)
 	    }
 	case 51:
-		//line datetime.y:266
+		//line datetime.y:264
 		{
-			// Tuesday,
-		yylex.(*dateLexer).setDay(yyS[yypt-1].intval, 1)
+			// Tuesday
+		yylex.(*dateLexer).setDay(yyS[yypt-1].intval, 0)
 		}
 	case 52:
-		//line datetime.y:270
+		//line datetime.y:268
 		{
 			// March
-		yylex.(*dateLexer).setMonth(yyS[yypt-0].intval, 1)
+		yylex.(*dateLexer).setMonth(yyS[yypt-0].intval, 0)
 		}
 	case 53:
-		//line datetime.y:274
+		//line datetime.y:272
 		{
 			// Next tuesday
 		yylex.(*dateLexer).setDay(yyS[yypt-0].intval, yyS[yypt-1].intval)
 		}
 	case 54:
-		//line datetime.y:278
+		//line datetime.y:276
 		{
 			// Next march
 		yylex.(*dateLexer).setMonth(yyS[yypt-0].intval, yyS[yypt-1].intval)
 		}
 	case 55:
-		//line datetime.y:282
+		//line datetime.y:280
 		{
 			// +-N Tuesdays
 		yylex.(*dateLexer).setDay(yyS[yypt-0].intval, yyS[yypt-1].tval.i)
 		}
 	case 56:
-		//line datetime.y:286
+		//line datetime.y:284
 		{
 			// 3rd Tuesday 
 		yylex.(*dateLexer).setDay(yyS[yypt-0].intval, yyS[yypt-2].tval.i)
 		}
 	case 57:
-		//line datetime.y:290
+		//line datetime.y:288
 		{
 			// 3rd Tuesday of (implicit this) March
 		l := yylex.(*dateLexer)
@@ -1034,13 +702,13 @@ yydefault:
 			l.setMonth(yyS[yypt-0].intval, 1)
 		}
 	case 58:
-		//line datetime.y:296
+		//line datetime.y:294
 		{
 			// 3rd Tuesday of 2012
 		yylex.(*dateLexer).setDay(yyS[yypt-2].intval, yyS[yypt-4].tval.i, yyS[yypt-0].tval.i)
 		}
 	case 59:
-		//line datetime.y:300
+		//line datetime.y:298
 		{
 			// 3rd Tuesday of March 2012
 		l := yylex.(*dateLexer)
@@ -1048,7 +716,7 @@ yydefault:
 			l.setMonth(yyS[yypt-1].intval, 1, yyS[yypt-0].tval.i)
 		}
 	case 60:
-		//line datetime.y:306
+		//line datetime.y:304
 		{
 			// 3rd Tuesday of next March
 		l := yylex.(*dateLexer)
@@ -1056,40 +724,40 @@ yydefault:
 			l.setMonth(yyS[yypt-0].intval, yyS[yypt-1].intval)
 		}
 	case 61:
-		//line datetime.y:312
+		//line datetime.y:310
 		{
 			// yesterday or tomorrow
 		d := time.Now().Weekday()
 			yylex.(*dateLexer).setDay((7+int(d)+yyS[yypt-0].intval)%7, yyS[yypt-0].intval)
 		}
 	case 63:
-		//line datetime.y:320
+		//line datetime.y:318
 		{
 			yylex.(*dateLexer).setAgo()
 		}
 	case 66:
-		//line datetime.y:329
+		//line datetime.y:327
 		{
 			yylex.(*dateLexer).addOffset(offset(yyS[yypt-0].intval), yyS[yypt-1].tval.i)
 		}
 	case 67:
-		//line datetime.y:332
+		//line datetime.y:330
 		{
 			yylex.(*dateLexer).addOffset(offset(yyS[yypt-0].intval), yyS[yypt-1].intval)
 		}
 	case 68:
-		//line datetime.y:335
+		//line datetime.y:333
 		{
 			// Special-case to handle "week" and "fortnight"
 		yylex.(*dateLexer).addOffset(O_DAY, yyS[yypt-1].tval.i * yyS[yypt-0].intval)
 		}
 	case 69:
-		//line datetime.y:339
+		//line datetime.y:337
 		{
 			yylex.(*dateLexer).addOffset(O_DAY, yyS[yypt-1].intval * yyS[yypt-0].intval)
 		}
 	case 70:
-		//line datetime.y:342
+		//line datetime.y:340
 		{
 	        // As we need to be able to separate out YD from HS in ISO durations
         // this becomes a fair bit messier than if Y D H S were just T_OFFSET
@@ -1098,45 +766,45 @@ yydefault:
         yylex.(*dateLexer).addOffset(offset(yyS[yypt-0].intval), yyS[yypt-1].tval.i)
 	    }
 	case 71:
-		//line datetime.y:349
+		//line datetime.y:347
 		{
 	        yylex.(*dateLexer).addOffset(offset(yyS[yypt-0].intval), yyS[yypt-1].tval.i)
 	    }
 	case 72:
-		//line datetime.y:352
+		//line datetime.y:350
 		{
 	        // Resolve 'm' ambiguity in favour of minutes outside ISO duration
         yylex.(*dateLexer).addOffset(O_MIN, yyS[yypt-1].tval.i)
 	    }
 	case 75:
-		//line datetime.y:361
+		//line datetime.y:359
 		{
 	        yylex.(*dateLexer).addOffset(O_DAY, 7 * yyS[yypt-1].tval.i)
 	    }
 	case 78:
-		//line datetime.y:371
+		//line datetime.y:369
 		{
 	        // takes care of Y and D
         yylex.(*dateLexer).addOffset(offset(yyS[yypt-0].intval), yyS[yypt-1].tval.i)
 	    }
 	case 79:
-		//line datetime.y:375
+		//line datetime.y:373
 		{
 	        yylex.(*dateLexer).addOffset(O_MONTH, yyS[yypt-1].tval.i)
 	    }
 	case 82:
-		//line datetime.y:384
+		//line datetime.y:382
 		{
 	        // takes care of H and S
         yylex.(*dateLexer).addOffset(offset(yyS[yypt-0].intval), yyS[yypt-1].tval.i)
 	    }
 	case 83:
-		//line datetime.y:388
+		//line datetime.y:386
 		{
 	        yylex.(*dateLexer).addOffset(O_MIN, yyS[yypt-1].tval.i)
 	    }
 	case 87:
-		//line datetime.y:400
+		//line datetime.y:398
 		{
 	        l := yylex.(*dateLexer)
 	        if yyS[yypt-0].tval.l == 8 {

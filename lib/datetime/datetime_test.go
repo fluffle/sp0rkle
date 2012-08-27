@@ -6,7 +6,7 @@ import (
 )
 
 func TestParse(t *testing.T) {
-	if ret, _ := Parse("1 sunday"); true {
+	if ret, _ := Parse("this sunday"); true {
 		t.Errorf("oawww %#v %s.", ret, ret)
 	}
 }

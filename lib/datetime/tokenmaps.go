@@ -102,7 +102,7 @@ type relMap map[string]int
 
 var relTokenMap = relMap{
 	"LAST": -1,
-	"THIS": 1,
+	"THIS": 0,
 	"A": 1,
 	"NEXT": 1,
 	"FIRST": 1,
