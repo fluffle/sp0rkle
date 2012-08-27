@@ -9,6 +9,8 @@ import (
 	"unicode"
 )
 
+var DEBUG = false
+
 // Indexes for relTime
 type offset int
 
@@ -142,13 +144,22 @@ func (l *dateLexer) Lex(lval *yySymType) int {
 		lval.tval = textint{i, len(s), s}
 		return T_INTEGER
 	case unicode.IsLetter(c):
-		input := strings.ToUpper(l.Scan(unicode.IsLetter))
-		if tok, ok := tokenMaps.Lookup(input, lval); ok {
+		pos := l.Pos()
+		input := l.Scan(unicode.IsLetter)
+		if tok, ok := tokenMaps.Lookup(strings.ToUpper(input), lval); ok {
 			return tok
 		}
+		// No token recognised, but it could be a zone in $TZ format!
+		if l.Peek() == '/' {
+			loc := input + l.Next() + l.Scan(unicode.IsLetter)
+			if z := zone(loc); z != nil {
+				lval.zoneval = z
+				return T_ZONE
+			}
+		}
+		l.Pos(pos)
 		// No token recognised, rewind and try the current character instead
 		// as long as the original input was longer than that one character
-		l.Rewind()
 		if len(input) > 1 {
 			input = strings.ToUpper(l.Next())
 			if tok, ok := tokenMaps.Lookup(input, lval); ok {
@@ -171,7 +182,10 @@ func (l *dateLexer) setTime(h, m, s int, loc *time.Location) {
 	if loc == nil {
 		loc = time.Local
 	}
-	fmt.Printf("Setting time to %d:%d:%d (%s)\n", h, m, s, loc)
+	h, m, s = h % 24, m % 60, s % 60
+	if DEBUG {
+		fmt.Printf("Setting time to %d:%d:%d (%s)\n", h, m, s, loc)
+	}
 	if l.state(HAVE_TIME, true) {
 		l.Error("Parsed two times")
 		return
@@ -195,7 +209,9 @@ func (l *dateLexer) setHMS(hms int, ln int, loc *time.Location) {
 }
 
 func (l *dateLexer) setDate(y, m, d int) {
-	fmt.Printf("Setting date to %d-%d-%d\n", y, m, d)
+	if DEBUG {
+		fmt.Printf("Setting date to %d-%d-%d\n", y, m, d)
+	}
 	if l.state(HAVE_DATE, true) {
 		l.Error("Parsed two dates")
 		return
@@ -204,10 +220,11 @@ func (l *dateLexer) setDate(y, m, d int) {
 }
 
 func (l *dateLexer) setDay(d, n int, year ...int) {
-	fmt.Printf("Setting day to %d %s\n", n, time.Weekday(d))
+	if DEBUG {
+		fmt.Printf("Setting day to %d %s\n", n, time.Weekday(d))
+	}
 	if l.state(HAVE_DAYS, true) {
 		l.Error("Parsed two days")
-		return
 	}
 	l.days = relDays{time.Weekday(d), n, 0}
 	if len(year) > 0 {
@@ -224,11 +241,17 @@ func (l *dateLexer) setWeek(year, week, wday int) {
 		jan4 = 7
 	}
 	ord := week*7 + wday - jan4 - 3
+	if DEBUG {
+		fmt.Printf("Setting week to %d week %d day %d (ord=%d, jan4=%d)\n",
+			year, week, wday, ord, jan4)
+	}
 	l.setDate(year, 1, ord)
 }
 
 func (l *dateLexer) setMonth(m, n int, year ...int) {
-	fmt.Printf("Setting month to %d %s\n", n, time.Month(m))
+	if DEBUG {
+		fmt.Printf("Setting month to %d %s\n", n, time.Month(m))
+	}
 	if l.state(HAVE_MONTHS, true) {
 		l.Error("Parsed two months")
 		return
@@ -236,6 +259,18 @@ func (l *dateLexer) setMonth(m, n int, year ...int) {
 	l.months = relMonths{time.Month(m), n, 0}
 	if len(year) > 0 {
 		l.months.year = year[0]
+	}
+}
+
+func (l *dateLexer) setYear(year int) {
+	if l.state(HAVE_DATE) {
+		l.date = time.Date(year, l.date.Month(), l.date.Day(),
+			0, 0, 0, 0, time.Local)
+	} else if l.state(HAVE_MONTHS) {
+		l.months.year = year
+	} else {
+		l.days.year = year
+		l.state(HAVE_DAYS, true)
 	}
 }
 
@@ -253,7 +288,9 @@ func (l *dateLexer) setYMD(ymd int, ln int) {
 }
 
 func (l *dateLexer) addOffset(off offset, rel int) {
-	fmt.Printf("Adding relative offset of %d %s\n", rel, off)
+	if DEBUG {
+		fmt.Printf("Adding relative offset of %d %s\n", rel, off)
+	}
 	l.offsets[off] += rel
 	l.state(HAVE_OFFSET, true)
 }
@@ -272,13 +309,14 @@ func (l *dateLexer) setAgo() {
 func (l *dateLexer) resolveTime(rel time.Time) time.Time {
 	y, m, d := rel.Date()
 	h, n, s := l.time.Clock()
-	rel = time.Date(y, m, d, h, n, s, 0, l.time.Location())
-	fmt.Printf("Parsed time as %s %s\n", rel.Weekday(), rel)
-	// check if >24h has been given. Results of this may be *very* sketchy.
 	// We can:
 	//   a) drop >24h info completely
 	//   b) save the integer number of hours as "days" and add that
 	// Currently, do (a), but (b) would be nice.
+	rel = time.Date(y, m, d, h, n, s, 0, l.time.Location())
+	if DEBUG {
+		fmt.Printf("Parsed time as %s %s\n", rel.Weekday(), rel)
+	}
 	return rel
 }
 
@@ -290,7 +328,9 @@ func (l *dateLexer) resolveDate(rel time.Time) time.Time {
 	}
 	h, n, s := rel.Clock()
 	rel = time.Date(y, m, d, h, n, s, 0, rel.Location())
-	fmt.Printf("Parsed date as %s %s\n", rel.Weekday(), rel)
+	if DEBUG {
+		fmt.Printf("Parsed date as %s %s\n", rel.Weekday(), rel)
+	}
 	return rel
 }
 
@@ -312,7 +352,9 @@ func (l *dateLexer) resolveDays(rel time.Time) time.Time {
 		l.days.num--
 	}
 	rel = rel.AddDate(0, 0, l.days.num*7+diff)
-	fmt.Printf("Parsed days as %s %s\n", rel.Weekday(), rel)
+	if DEBUG {
+		fmt.Printf("Parsed days as %s %s\n", rel.Weekday(), rel)
+	}
 	return rel
 }
 
@@ -329,7 +371,9 @@ func (l *dateLexer) resolveMonths(rel time.Time) time.Time {
 	// this is relative months
 	diff := int(l.months.month - rel.Month())
 	rel = rel.AddDate(0, l.months.num*12+diff, 0)
-	fmt.Printf("Parsed months as %s %s\n", rel.Weekday(), rel)
+	if DEBUG {
+		fmt.Printf("Parsed months as %s %s\n", rel.Weekday(), rel)
+	}
 	return rel
 }
 
@@ -339,22 +383,29 @@ func (l *dateLexer) resolveOffset(rel time.Time) time.Time {
 	rel = rel.Add(time.Hour*time.Duration(l.offsets[O_HOUR]) +
 		time.Minute*time.Duration(l.offsets[O_MIN]) +
 		time.Second*time.Duration(l.offsets[O_SEC]))
-	fmt.Printf("Parsed offset as %s %s\n", rel.Weekday(), rel)
+	if DEBUG {
+		fmt.Printf("Parsed offset as %s %s\n", rel.Weekday(), rel)
+	}
 	return rel
 }
 
 func lexAndParse(input string) (*dateLexer, int) {
 	lexer := &dateLexer{Lexer: &util.Lexer{Input: input}}
-	yyDebug = 5
+	if DEBUG {
+		fmt.Println("Parsing", input)
+		yyDebug = 5
+	}
 	if ret := yyParse(lexer); ret != 0 {
 		return nil, ret
 	}
-	fmt.Println("state: ", lexer.states)
-	fmt.Println("time: ", lexer.time)
-	fmt.Println("date: ", lexer.date)
-	fmt.Println("days: ", lexer.days)
-	fmt.Println("months: ", lexer.months)
-	fmt.Println("offset: ", lexer.offsets)
+	if DEBUG {
+		fmt.Println("state: ", lexer.states)
+		fmt.Println("time: ", lexer.time)
+		fmt.Println("date: ", lexer.date)
+		fmt.Println("days: ", lexer.days)
+		fmt.Println("months: ", lexer.months)
+		fmt.Println("offset: ", lexer.offsets)
+	}
 	return lexer, 0
 }
 
@@ -385,12 +436,16 @@ func resolve(l *dateLexer, rel time.Time) (time.Time, bool) {
 	return rel, true
 }
 
-func Parse(input string) (time.Time, bool) {
+func parse(input string, rel time.Time) (time.Time, bool) {
 	lexer, ret := lexAndParse(input)
 	if lexer == nil || lexer.states == 0 {
 		fmt.Println("Parse error: ", ret)
 		return time.Time{}, false
 	}
 	// return time.Time{}, false
-	return resolve(lexer, time.Now())
+	return resolve(lexer, rel)
+}
+
+func Parse(input string) (time.Time, bool) {
+	return parse(input, time.Now())
 }

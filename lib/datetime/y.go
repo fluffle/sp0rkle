@@ -9,13 +9,13 @@ package datetime
 // and tokenmaps.go for the token maps.
 
 import (
-    "fmt"
-    "time"
+	"fmt"
+	"time"
 )
 
 type textint struct {
-    i, l int
-    s string
+	i, l int
+	s string
 }
 
 
@@ -32,24 +32,22 @@ const T_DAYQUAL = 57346
 const T_INTEGER = 57347
 const T_PLUS = 57348
 const T_MINUS = 57349
-const T_AMPM = 57350
-const T_MONTHNAME = 57351
-const T_DAYNAME = 57352
-const T_DAYS = 57353
-const T_DAYSHIFT = 57354
-const T_OFFSET = 57355
-const T_ISOYD = 57356
-const T_ISOHS = 57357
-const T_RELATIVE = 57358
-const T_AGO = 57359
-const T_ZONE = 57360
+const T_MONTHNAME = 57350
+const T_DAYNAME = 57351
+const T_DAYS = 57352
+const T_DAYSHIFT = 57353
+const T_OFFSET = 57354
+const T_ISOYD = 57355
+const T_ISOHS = 57356
+const T_RELATIVE = 57357
+const T_AGO = 57358
+const T_ZONE = 57359
 
 var yyToknames = []string{
 	"T_DAYQUAL",
 	"T_INTEGER",
 	"T_PLUS",
 	"T_MINUS",
-	"T_AMPM",
 	"T_MONTHNAME",
 	"T_DAYNAME",
 	"T_DAYS",
@@ -67,7 +65,7 @@ const yyEofCode = 1
 const yyErrCode = 2
 const yyMaxDepth = 200
 
-//line datetime.y:408
+//line datetime.y:454
 
 
 //line yacctab:1
@@ -76,123 +74,131 @@ var yyExca = []int{
 	1, -1,
 	-2, 0,
 	-1, 15,
-	1, 87,
-	5, 87,
-	9, 8,
-	12, 87,
-	16, 87,
-	20, 8,
-	28, 87,
-	-2, 12,
-	-1, 81,
-	5, 3,
-	-2, 41,
+	1, 96,
+	5, 96,
+	8, 9,
+	11, 96,
+	15, 96,
+	19, 9,
+	-2, 17,
 }
 
-const yyNprod = 88
+const yyNprod = 97
 const yyPrivate = 57344
 
 var yyTokenNames []string
 var yyStates []string
 
-const yyLast = 159
+const yyLast = 184
 
 var yyAct = []int{
 
-	96, 91, 42, 73, 68, 58, 56, 33, 15, 23,
-	24, 28, 16, 17, 37, 20, 40, 34, 29, 18,
-	31, 48, 50, 7, 49, 51, 52, 86, 38, 57,
-	67, 22, 30, 88, 32, 35, 36, 50, 53, 49,
-	51, 52, 107, 88, 87, 75, 89, 97, 59, 81,
-	59, 21, 65, 53, 108, 19, 89, 40, 69, 94,
-	26, 84, 85, 99, 4, 76, 40, 69, 104, 38,
-	74, 31, 43, 95, 40, 69, 54, 62, 38, 102,
-	79, 63, 121, 103, 105, 126, 38, 40, 69, 122,
-	93, 98, 106, 40, 69, 110, 27, 23, 24, 38,
-	117, 47, 127, 46, 116, 38, 115, 64, 27, 23,
-	24, 118, 123, 45, 44, 47, 100, 46, 125, 124,
-	120, 119, 114, 128, 113, 112, 111, 109, 123, 92,
-	101, 80, 78, 77, 71, 70, 66, 61, 60, 41,
-	82, 90, 83, 55, 25, 14, 13, 12, 11, 10,
-	9, 8, 6, 5, 72, 3, 2, 1, 39,
+	108, 30, 103, 19, 46, 79, 74, 62, 27, 60,
+	34, 98, 100, 38, 29, 43, 35, 140, 109, 4,
+	119, 101, 32, 7, 137, 21, 41, 99, 136, 67,
+	39, 73, 118, 40, 31, 63, 33, 36, 37, 61,
+	15, 23, 24, 16, 17, 100, 20, 43, 75, 82,
+	18, 66, 81, 71, 101, 92, 26, 111, 41, 22,
+	89, 90, 39, 63, 117, 40, 107, 96, 80, 97,
+	43, 75, 83, 87, 88, 47, 43, 75, 106, 32,
+	86, 41, 43, 75, 58, 39, 115, 41, 40, 51,
+	146, 50, 116, 41, 70, 141, 69, 120, 121, 52,
+	54, 105, 53, 55, 56, 122, 54, 126, 53, 55,
+	56, 123, 57, 110, 28, 23, 24, 132, 57, 124,
+	43, 75, 134, 113, 68, 133, 112, 147, 143, 142,
+	26, 41, 135, 49, 48, 51, 145, 50, 28, 23,
+	24, 144, 139, 148, 138, 131, 130, 129, 143, 128,
+	127, 125, 104, 114, 91, 85, 84, 77, 76, 72,
+	65, 64, 44, 93, 102, 95, 59, 94, 25, 14,
+	13, 12, 11, 10, 9, 8, 6, 5, 78, 45,
+	3, 2, 1, 42,
 }
 var yyPact = []int{
 
-	41, -1000, -1000, 3, 103, -1000, -1000, -1000, -1000, -15,
-	-1000, -1000, -1000, -1000, -1000, 10, 134, 53, 104, 11,
-	-1000, 59, 24, 133, 132, 91, -1000, -1000, 131, 87,
-	130, -1000, 129, 50, 40, 128, 127, 70, -1000, 126,
-	-1000, 136, -1000, -1000, -1000, -1000, -1000, -1000, -1000, -1000,
-	-1000, -1000, -1000, -1000, -1000, 22, -1000, 19, -1000, 124,
-	-1000, -1000, -1000, 26, 90, -1000, 68, -1000, -1000, -1000,
-	51, 23, 82, -1000, 42, 109, 125, -1000, 87, 50,
-	46, 53, -1000, -1000, -1000, -1000, 29, -1000, -1000, -1000,
-	124, -1000, 27, 122, 87, 121, -1000, 120, 119, -1000,
-	117, 99, -1000, 95, 116, 115, -1000, -1000, -1000, 60,
-	-1000, 81, -1000, -1000, -1000, 114, 113, -1000, 76, -1000,
-	-1000, 97, 87, -1000, -1000, -1000, -1000, 87, -1000,
+	-7, -1000, -1000, 35, 133, -1000, -1000, -1000, -1000, -15,
+	-1000, -1000, -1000, -1000, -1000, 9, 157, 57, 125, 90,
+	-1000, 68, 34, 156, 155, 109, 84, -1000, -1000, 154,
+	114, 153, -1000, 152, 49, 44, 151, 150, 71, 51,
+	38, -1000, 149, -1000, 159, -1000, -1000, -1000, -1000, -1000,
+	-1000, -1000, -1000, -1000, -1000, -1000, -1000, -1000, -1000, 6,
+	-1000, -1, -1000, 147, -1000, -1000, -1000, 96, 79, -1000,
+	-1000, -1000, 76, -1000, -1000, -1000, 41, -9, 105, -1000,
+	37, 119, 116, 148, -1000, 114, 49, -1000, 42, -1000,
+	10, -5, 57, -1000, 133, -1000, -1000, -1000, 32, -1000,
+	-1000, -1000, 147, -1000, 97, 146, 114, 145, -1000, 144,
+	142, -1000, 141, 140, 110, -1000, 117, 5, 1, 139,
+	137, -11, -1000, -1000, -1000, 70, -1000, 64, -1000, -1000,
+	-1000, -1000, 136, 131, -1000, 82, -1000, -1000, -1000, -1000,
+	-1000, 122, 114, -1000, -1000, -1000, -1000, 114, -1000,
 }
 var yyPgo = []int{
 
-	0, 158, 55, 4, 0, 157, 156, 155, 2, 3,
-	154, 7, 153, 152, 23, 151, 150, 149, 148, 147,
-	146, 145, 51, 144, 143, 142, 6, 5, 141, 1,
+	0, 183, 1, 3, 6, 0, 182, 181, 180, 4,
+	179, 5, 178, 10, 177, 176, 23, 175, 174, 173,
+	172, 171, 170, 169, 25, 168, 167, 166, 165, 9,
+	7, 164, 2,
 }
 var yyR1 = []int{
 
-	0, 5, 5, 8, 8, 9, 10, 10, 11, 11,
-	1, 1, 2, 2, 2, 3, 3, 3, 4, 4,
-	6, 7, 7, 12, 12, 12, 12, 12, 12, 12,
-	12, 12, 13, 13, 13, 14, 14, 14, 15, 15,
-	15, 15, 15, 15, 16, 16, 16, 16, 16, 17,
-	17, 18, 18, 18, 18, 18, 18, 18, 18, 18,
-	18, 18, 19, 19, 22, 22, 23, 23, 23, 23,
-	23, 23, 23, 20, 20, 20, 24, 24, 27, 27,
-	28, 28, 29, 29, 26, 25, 25, 21,
+	0, 6, 6, 9, 10, 10, 11, 12, 12, 13,
+	13, 2, 2, 2, 2, 1, 1, 3, 3, 3,
+	4, 4, 4, 5, 5, 7, 8, 8, 14, 14,
+	14, 14, 14, 14, 14, 14, 14, 15, 15, 15,
+	16, 16, 16, 17, 17, 17, 17, 17, 17, 17,
+	18, 18, 18, 18, 18, 19, 19, 20, 20, 20,
+	20, 20, 20, 20, 20, 20, 20, 20, 21, 21,
+	24, 24, 25, 25, 25, 25, 25, 25, 25, 25,
+	26, 25, 22, 22, 22, 27, 27, 30, 30, 31,
+	31, 32, 32, 29, 28, 28, 23,
 }
 var yyR2 = []int{
 
-	0, 1, 1, 0, 1, 2, 0, 1, 0, 1,
-	1, 1, 1, 2, 2, 1, 2, 4, 0, 1,
-	2, 0, 2, 1, 1, 1, 1, 1, 1, 1,
-	1, 1, 3, 5, 7, 2, 4, 6, 3, 5,
-	4, 3, 5, 5, 3, 5, 3, 4, 6, 3,
-	4, 2, 1, 2, 2, 2, 3, 5, 5, 6,
-	6, 1, 1, 2, 1, 2, 2, 2, 2, 2,
-	2, 2, 2, 3, 2, 3, 1, 2, 2, 2,
-	1, 2, 2, 2, 2, 0, 1, 1,
+	0, 1, 1, 1, 0, 1, 2, 0, 1, 0,
+	1, 2, 4, 2, 4, 1, 1, 1, 2, 2,
+	1, 2, 4, 0, 1, 2, 0, 2, 1, 1,
+	1, 1, 1, 1, 1, 1, 1, 3, 5, 7,
+	2, 4, 6, 3, 5, 4, 3, 5, 5, 5,
+	3, 5, 3, 4, 6, 3, 4, 2, 1, 2,
+	2, 2, 3, 5, 5, 6, 6, 1, 1, 2,
+	1, 2, 2, 2, 2, 2, 2, 2, 2, 2,
+	0, 5, 3, 2, 3, 1, 2, 2, 2, 1,
+	2, 2, 2, 2, 0, 1, 1,
 }
 var yyChk = []int{
 
-	-1000, -5, -6, -7, 23, -12, -13, -14, -15, -16,
-	-17, -18, -19, -20, -21, 5, 9, 10, 16, -2,
-	12, -22, 28, 6, 7, -23, -2, 5, 26, 8,
-	22, -3, 24, -11, 7, 25, 26, 4, 18, -1,
-	6, 5, -8, 19, 10, 9, 13, 11, 10, 13,
-	11, 14, 15, 27, 17, -24, -26, 5, -27, 26,
-	5, 5, -22, -2, 16, -14, 5, -4, -3, 7,
-	5, 5, -10, -9, 20, 5, 25, 5, 5, 10,
-	5, -11, 4, -25, -27, -26, 5, 25, 14, 27,
-	-28, -29, 5, 22, 8, 22, -4, 24, 9, 21,
-	7, 5, -4, -9, 22, -8, -29, 15, 27, 5,
-	-4, 5, 5, 5, 5, 7, 9, 5, 16, 5,
-	5, 22, 8, -4, 5, 5, 9, 5, -4,
+	-1000, -6, -7, -8, 26, -14, -15, -16, -17, -18,
+	-19, -20, -21, -22, -23, 5, 8, 9, 15, -3,
+	11, -24, 24, 6, 7, -25, 21, -3, 5, 29,
+	-2, 25, -4, 27, -13, 7, 28, 29, 4, 21,
+	24, 17, -1, 6, 5, -10, -9, 18, 9, 8,
+	12, 10, 9, 12, 10, 13, 14, 22, 16, -27,
+	-29, 5, -30, 29, 5, 5, -24, -3, 15, 12,
+	10, -16, 5, -5, -4, 7, 5, 5, -12, -11,
+	19, 8, 5, 28, 5, 5, 9, 22, 23, 22,
+	23, 5, -13, 4, -26, -28, -30, -29, 5, 28,
+	13, 22, -31, -32, 5, 25, -2, 25, -5, 27,
+	8, 20, 7, 7, 5, -5, -11, 22, 22, 25,
+	-9, -3, -32, 14, 22, 5, -5, 5, 5, 5,
+	5, 5, 7, 8, 5, 15, 23, 23, 5, 5,
+	28, 25, -2, -5, 5, 5, 8, 5, -5,
 }
 var yyDef = []int{
 
-	21, -2, 1, 2, 0, 22, 23, 24, 25, 26,
-	27, 28, 29, 30, 31, -2, 52, 3, 0, 0,
-	61, 62, 0, 0, 0, 64, 20, 12, 0, 18,
-	0, 35, 0, 6, 0, 0, 0, 9, 15, 0,
-	10, 8, 51, 4, 53, 54, 67, 69, 55, 66,
-	68, 70, 71, 72, 63, 85, 74, 0, 76, 0,
-	13, 14, 65, 0, 0, 49, 0, 32, 19, 11,
-	18, 38, 0, 7, 0, 44, 0, 46, 18, 56,
-	16, -2, 9, 73, 77, 86, 0, 75, 78, 79,
-	84, 80, 0, 0, 18, 0, 36, 0, 40, 5,
-	0, 47, 50, 0, 0, 0, 81, 82, 83, 18,
-	33, 18, 39, 42, 45, 0, 57, 58, 0, 17,
-	43, 0, 18, 37, 48, 59, 60, 18, 34,
+	26, -2, 1, 2, 0, 27, 28, 29, 30, 31,
+	32, 33, 34, 35, 36, -2, 58, 4, 0, 0,
+	67, 68, 0, 0, 0, 70, 0, 25, 17, 0,
+	23, 0, 40, 0, 7, 0, 0, 0, 10, 0,
+	0, 20, 0, 15, 9, 57, 5, 3, 59, 60,
+	73, 76, 61, 72, 75, 78, 79, 80, 69, 94,
+	83, 0, 85, 0, 18, 19, 71, 0, 0, 74,
+	77, 55, 0, 37, 24, 16, 23, 43, 0, 8,
+	0, 0, 50, 0, 52, 23, 62, 11, 0, 13,
+	0, 21, 46, 10, 0, 82, 86, 95, 0, 84,
+	87, 88, 93, 89, 0, 0, 23, 0, 41, 0,
+	45, 6, 0, 0, 53, 56, 0, 0, 0, 0,
+	0, 0, 90, 91, 92, 23, 38, 23, 44, 47,
+	48, 51, 0, 63, 64, 0, 12, 14, 22, 49,
+	81, 0, 23, 42, 54, 65, 66, 23, 39,
 }
 var yyTok1 = []int{
 
@@ -200,16 +206,16 @@ var yyTok1 = []int{
 	3, 3, 3, 3, 3, 3, 3, 3, 3, 3,
 	3, 3, 3, 3, 3, 3, 3, 3, 3, 3,
 	3, 3, 3, 3, 3, 3, 3, 3, 3, 3,
-	3, 3, 3, 3, 19, 3, 3, 24, 3, 3,
-	3, 3, 3, 3, 3, 3, 3, 3, 22, 3,
-	3, 3, 3, 3, 23, 3, 3, 3, 3, 3,
-	21, 3, 3, 3, 3, 3, 3, 27, 3, 20,
-	28, 3, 3, 3, 26, 3, 3, 25,
+	3, 3, 3, 3, 18, 3, 23, 27, 3, 3,
+	3, 3, 3, 3, 3, 3, 3, 3, 25, 3,
+	3, 3, 3, 3, 26, 21, 3, 3, 3, 3,
+	20, 3, 3, 3, 3, 3, 3, 22, 3, 19,
+	24, 3, 3, 3, 29, 3, 3, 28,
 }
 var yyTok2 = []int{
 
 	2, 3, 4, 5, 6, 7, 8, 9, 10, 11,
-	12, 13, 14, 15, 16, 17, 18,
+	12, 13, 14, 15, 16, 17,
 }
 var yyTok3 = []int{
 	0,
@@ -439,99 +445,122 @@ yydefault:
 	// dummy call; replaced with literal code
 	switch yynt {
 
-	case 10:
-		yyVAL.intval = yyS[yypt-0].intval
 	case 11:
-		yyVAL.intval = yyS[yypt-0].intval
-	case 12:
-		yyVAL.tval = yyS[yypt-0].tval
-	case 13:
-		//line datetime.y:59
+		//line datetime.y:57
 		{
-	        yyS[yypt-0].tval.s = "+" + yyS[yypt-0].tval.s
-	        yyVAL.tval = yyS[yypt-0].tval
-	    }
-	case 14:
+		    yyVAL.intval = 0
+		}
+	case 12:
+		//line datetime.y:60
+		{
+		    yyVAL.intval = 0
+		}
+	case 13:
 		//line datetime.y:63
 		{
-	        yyS[yypt-0].tval.s = "-" + yyS[yypt-0].tval.s
-	        yyS[yypt-0].tval.i *= -1
-	        yyVAL.tval = yyS[yypt-0].tval
-	    }
-	case 15:
-		yyVAL.zoneval = yyS[yypt-0].zoneval
-	case 16:
-		//line datetime.y:71
+		    yyVAL.intval = 12
+		}
+	case 14:
+		//line datetime.y:66
 		{
-	        hrs, mins := yyS[yypt-0].tval.i, 0
-	        if (yyS[yypt-0].tval.l == 4) {
-	            hrs, mins = (yyS[yypt-0].tval.i / 100), (yyS[yypt-0].tval.i % 100)
-	        } else if (yyS[yypt-0].tval.l == 2) {
-	            hrs *= 100
-	        } else {
-	            yylex.Error("Invalid timezone offset " +yyS[yypt-0].tval.s)
-	        }
+		    yyVAL.intval = 12
+		}
+	case 15:
+		yyVAL.intval = yyS[yypt-0].intval
+	case 16:
+		yyVAL.intval = yyS[yypt-0].intval
+	case 17:
+		yyVAL.tval = yyS[yypt-0].tval
+	case 18:
+		//line datetime.y:75
+		{
+			yyS[yypt-0].tval.s = "+" + yyS[yypt-0].tval.s
+			yyVAL.tval = yyS[yypt-0].tval
+		}
+	case 19:
+		//line datetime.y:79
+		{
+			yyS[yypt-0].tval.s = "-" + yyS[yypt-0].tval.s
+			yyS[yypt-0].tval.i *= -1
+			yyVAL.tval = yyS[yypt-0].tval
+		}
+	case 20:
+		yyVAL.zoneval = yyS[yypt-0].zoneval
+	case 21:
+		//line datetime.y:87
+		{
+			hrs, mins := yyS[yypt-0].tval.i, 0
+			if (yyS[yypt-0].tval.l == 4) {
+				hrs, mins = (yyS[yypt-0].tval.i / 100), (yyS[yypt-0].tval.i % 100)
+			} else if (yyS[yypt-0].tval.l == 2) {
+				hrs *= 100
+			} else {
+				yylex.Error("Invalid timezone offset " +yyS[yypt-0].tval.s)
+			}
 			yyVAL.zoneval = time.FixedZone("WTF", yyS[yypt-1].intval * (3600 * hrs + 60 * mins))
 		}
-	case 17:
-		//line datetime.y:82
+	case 22:
+		//line datetime.y:98
 		{
 			yyVAL.zoneval = time.FixedZone("WTF", yyS[yypt-3].intval * (3600 * yyS[yypt-2].tval.i + 60 * yyS[yypt-0].tval.i))
 		}
-	case 18:
-		//line datetime.y:87
+	case 23:
+		//line datetime.y:103
 		{ yyVAL.zoneval = nil }
-	case 19:
+	case 24:
 		yyVAL.zoneval = yyS[yypt-0].zoneval
-	case 20:
-		//line datetime.y:91
+	case 25:
+		//line datetime.y:107
 		{
-			yylex.(*dateLexer).time = time.Unix(int64(yyS[yypt-0].tval.i), 0)
+			l := yylex.(*dateLexer)
+			if ! l.state(HAVE_TIME, true) {
+				l.time = time.Unix(int64(yyS[yypt-0].tval.i), 0)
+			}
 		}
-	case 32:
-		//line datetime.y:113
-		{
-			yylex.(*dateLexer).setTime(yyS[yypt-2].tval.i + yyS[yypt-1].intval, 0, 0, yyS[yypt-0].zoneval)
-		}
-	case 33:
-		//line datetime.y:116
-		{
-			yylex.(*dateLexer).setTime(yyS[yypt-4].tval.i + yyS[yypt-1].intval, yyS[yypt-2].tval.i, 0, yyS[yypt-0].zoneval)
-		}
-	case 34:
-		//line datetime.y:119
-		{
-			yylex.(*dateLexer).setTime(yyS[yypt-6].tval.i + yyS[yypt-1].intval, yyS[yypt-4].tval.i, yyS[yypt-2].tval.i, yyS[yypt-0].zoneval)
-		}
-	case 35:
-		//line datetime.y:126
-		{
-	        yylex.(*dateLexer).setHMS(yyS[yypt-1].tval.i, yyS[yypt-1].tval.l, yyS[yypt-0].zoneval)
-	    }
-	case 36:
-		//line datetime.y:129
-		{
-	        yylex.(*dateLexer).setTime(yyS[yypt-3].tval.i, yyS[yypt-1].tval.i, 0, yyS[yypt-0].zoneval)
-	    }
 	case 37:
 		//line datetime.y:132
 		{
-	        yylex.(*dateLexer).setTime(yyS[yypt-5].tval.i, yyS[yypt-3].tval.i, yyS[yypt-1].tval.i, yyS[yypt-0].zoneval)
-	    }
+			yylex.(*dateLexer).setTime(yyS[yypt-2].tval.i + yyS[yypt-1].intval, 0, 0, yyS[yypt-0].zoneval)
+		}
 	case 38:
-		//line datetime.y:140
+		//line datetime.y:135
+		{
+			yylex.(*dateLexer).setTime(yyS[yypt-4].tval.i + yyS[yypt-1].intval, yyS[yypt-2].tval.i, 0, yyS[yypt-0].zoneval)
+		}
+	case 39:
+		//line datetime.y:138
+		{
+			yylex.(*dateLexer).setTime(yyS[yypt-6].tval.i + yyS[yypt-1].intval, yyS[yypt-4].tval.i, yyS[yypt-2].tval.i, yyS[yypt-0].zoneval)
+		}
+	case 40:
+		//line datetime.y:145
+		{
+			yylex.(*dateLexer).setHMS(yyS[yypt-1].tval.i, yyS[yypt-1].tval.l, yyS[yypt-0].zoneval)
+		}
+	case 41:
+		//line datetime.y:148
+		{
+			yylex.(*dateLexer).setTime(yyS[yypt-3].tval.i, yyS[yypt-1].tval.i, 0, yyS[yypt-0].zoneval)
+		}
+	case 42:
+		//line datetime.y:151
+		{
+			yylex.(*dateLexer).setTime(yyS[yypt-5].tval.i, yyS[yypt-3].tval.i, yyS[yypt-1].tval.i, yyS[yypt-0].zoneval)
+		}
+	case 43:
+		//line datetime.y:159
 		{
 			l := yylex.(*dateLexer)
 			if yyS[yypt-0].tval.l == 4 {
 				// assume we have MM/YYYY
 			l.setDate(yyS[yypt-0].tval.i, yyS[yypt-2].tval.i, 1)
 			} else {
-	            // assume we have DD/MM (too bad, americans)
-            l.setDate(0, yyS[yypt-0].tval.i, yyS[yypt-2].tval.i)
+				// assume we have DD/MM (too bad, americans)
+			l.setDate(0, yyS[yypt-0].tval.i, yyS[yypt-2].tval.i)
 			}
 		}
-	case 39:
-		//line datetime.y:150
+	case 44:
+		//line datetime.y:169
 		{
 			l := yylex.(*dateLexer)
 			if yyS[yypt-0].tval.l == 4 {
@@ -545,26 +574,26 @@ yydefault:
 			l.setDate(yyS[yypt-0].tval.i + 2000, yyS[yypt-2].tval.i, yyS[yypt-4].tval.i)
 			}
 		}
-	case 40:
-		//line datetime.y:163
+	case 45:
+		//line datetime.y:182
 		{
 			// DDth of Mon
 		yylex.(*dateLexer).setDate(0, yyS[yypt-0].intval, yyS[yypt-3].tval.i)
 		}
-	case 41:
-		//line datetime.y:167
+	case 46:
+		//line datetime.y:186
 		{
 			l := yylex.(*dateLexer)
 			if yyS[yypt-1].tval.l == 4 {
 				// assume Mon YYYY
 			l.setDate(yyS[yypt-1].tval.i, yyS[yypt-2].intval, 1)
 			} else {
-			    // assume Mon DDth
+				// assume Mon DDth
 			l.setDate(0, yyS[yypt-2].intval, yyS[yypt-1].tval.i)
 			}
-	    }
-	case 42:
-		//line datetime.y:177
+		}
+	case 47:
+		//line datetime.y:196
 		{
 			l := yylex.(*dateLexer)
 			if yyS[yypt-0].tval.l == 4 {
@@ -578,8 +607,24 @@ yydefault:
 			l.setDate(yyS[yypt-0].tval.i + 2000, yyS[yypt-1].intval, yyS[yypt-4].tval.i)
 			}
 		}
-	case 43:
-		//line datetime.y:190
+	case 48:
+		//line datetime.y:209
+		{
+		    // RFC 850, srsly :(
+		l := yylex.(*dateLexer)
+			if yyS[yypt-0].tval.l == 4 {
+				// assume DD-Mon-YYYY
+			l.setDate(yyS[yypt-0].tval.i, yyS[yypt-2].intval, yyS[yypt-4].tval.i)
+			} else if yyS[yypt-0].tval.i > 68 {
+				// assume DD-Mon-YY, add 1900 if YY > 68
+			l.setDate(yyS[yypt-0].tval.i + 1900, yyS[yypt-2].intval, yyS[yypt-4].tval.i)
+			} else {
+				// assume DD-Mon-YY, add 2000 otherwise
+			l.setDate(yyS[yypt-0].tval.i + 2000, yyS[yypt-2].intval, yyS[yypt-4].tval.i)
+			}
+		}
+	case 49:
+		//line datetime.y:223
 		{
 			l := yylex.(*dateLexer)
 			if yyS[yypt-0].tval.l == 4 {
@@ -589,28 +634,28 @@ yydefault:
 				// assume Mon DDth, YY, add 1900 if YY > 68
 			l.setDate(yyS[yypt-0].tval.i + 1900, yyS[yypt-4].intval, yyS[yypt-3].tval.i)
 			} else {
-				// assume Mon DDth YY, add 2000 otherwise
+				// assume Mon DDth, YY, add 2000 otherwise
 			l.setDate(yyS[yypt-0].tval.i + 2000, yyS[yypt-4].intval, yyS[yypt-3].tval.i)
 			}
 		}
-	case 44:
-		//line datetime.y:206
+	case 50:
+		//line datetime.y:239
 		{
 			l := yylex.(*dateLexer)
 			if yyS[yypt-2].tval.l == 4 && yyS[yypt-0].tval.l == 3 {
-	            // assume we have YYYY-DDD
-            l.setDate(yyS[yypt-2].tval.i, 1, yyS[yypt-0].tval.i)
-	        } else if yyS[yypt-2].tval.l == 4 {
+				// assume we have YYYY-DDD
+			l.setDate(yyS[yypt-2].tval.i, 1, yyS[yypt-0].tval.i)
+			} else if yyS[yypt-2].tval.l == 4 {
 				// assume we have YYYY-MM
 			l.setDate(yyS[yypt-2].tval.i, yyS[yypt-0].tval.i, 1)
 			} else {
-	            // assume we have MM-DD (not strictly ISO compliant)
-            // this is for americans, because of DD/MM above ;-)
-            l.setDate(0, yyS[yypt-0].tval.i, yyS[yypt-2].tval.i)
+				// assume we have MM-DD (not strictly ISO compliant)
+			// this is for americans, because of DD/MM above ;-)
+			l.setDate(0, yyS[yypt-2].tval.i, yyS[yypt-0].tval.i)
 			}
 		}
-	case 45:
-		//line datetime.y:220
+	case 51:
+		//line datetime.y:253
 		{
 			l := yylex.(*dateLexer)
 			if yyS[yypt-4].tval.l == 4 {
@@ -624,197 +669,217 @@ yydefault:
 			l.setDate(yyS[yypt-4].tval.i + 2000, yyS[yypt-2].tval.i, yyS[yypt-0].tval.i)
 			}
 		}
-	case 46:
-		//line datetime.y:233
+	case 52:
+		//line datetime.y:266
 		{
-	        l := yylex.(*dateLexer)
-	        wday, week := 1, yyS[yypt-0].tval.i
-	        if yyS[yypt-0].tval.l == 3 {
-	            // assume YYYY'W'WWD
-            week = week / 10
-	            wday = week % 10
-	        }
-	        l.setWeek(yyS[yypt-2].tval.i, week, wday)
-	    }
-	case 47:
-		//line datetime.y:243
+			l := yylex.(*dateLexer)
+			wday, week := 1, yyS[yypt-0].tval.i
+			if yyS[yypt-0].tval.l == 3 {
+				// assume YYYY'W'WWD
+			wday = week % 10
+				week = week / 10
+			}
+			l.setWeek(yyS[yypt-2].tval.i, week, wday)
+		}
+	case 53:
+		//line datetime.y:276
 		{
-	        // assume YYYY-'W'WW
-        yylex.(*dateLexer).setWeek(yyS[yypt-3].tval.i, yyS[yypt-0].tval.i, 1)
-	    }
-	case 48:
-		//line datetime.y:247
+			// assume YYYY-'W'WW
+		yylex.(*dateLexer).setWeek(yyS[yypt-3].tval.i, yyS[yypt-0].tval.i, 1)
+		}
+	case 54:
+		//line datetime.y:280
 		{
-	        // assume YYYY-'W'WW-D
-        yylex.(*dateLexer).setWeek(yyS[yypt-5].tval.i, yyS[yypt-2].tval.i, yyS[yypt-0].tval.i)
-	    }
-	case 50:
-		//line datetime.y:255
+			// assume YYYY-'W'WW-D
+		yylex.(*dateLexer).setWeek(yyS[yypt-5].tval.i, yyS[yypt-2].tval.i, yyS[yypt-0].tval.i)
+		}
+	case 56:
+		//line datetime.y:288
 		{
-	        // this goes here because the YYYYMMDD and HHMMSS forms of the
-        // ISO 8601 format date and time are handled by 'integer' below.
-        l := yylex.(*dateLexer)
-	        l.setYMD(yyS[yypt-3].tval.i, yyS[yypt-3].tval.l)
-	        l.setHMS(yyS[yypt-1].tval.i, yyS[yypt-1].tval.l, yyS[yypt-0].zoneval)
-	    }
-	case 51:
-		//line datetime.y:264
+			// this goes here because the YYYYMMDD and HHMMSS forms of the
+		// ISO 8601 format date and time are handled by 'integer' below.
+		l := yylex.(*dateLexer)
+			l.setYMD(yyS[yypt-3].tval.i, yyS[yypt-3].tval.l)
+			l.setHMS(yyS[yypt-1].tval.i, yyS[yypt-1].tval.l, yyS[yypt-0].zoneval)
+		}
+	case 57:
+		//line datetime.y:297
 		{
 			// Tuesday
 		yylex.(*dateLexer).setDay(yyS[yypt-1].intval, 0)
 		}
-	case 52:
-		//line datetime.y:268
+	case 58:
+		//line datetime.y:301
 		{
 			// March
 		yylex.(*dateLexer).setMonth(yyS[yypt-0].intval, 0)
 		}
-	case 53:
-		//line datetime.y:272
+	case 59:
+		//line datetime.y:305
 		{
 			// Next tuesday
 		yylex.(*dateLexer).setDay(yyS[yypt-0].intval, yyS[yypt-1].intval)
 		}
-	case 54:
-		//line datetime.y:276
+	case 60:
+		//line datetime.y:309
 		{
 			// Next march
 		yylex.(*dateLexer).setMonth(yyS[yypt-0].intval, yyS[yypt-1].intval)
 		}
-	case 55:
-		//line datetime.y:280
+	case 61:
+		//line datetime.y:313
 		{
 			// +-N Tuesdays
 		yylex.(*dateLexer).setDay(yyS[yypt-0].intval, yyS[yypt-1].tval.i)
 		}
-	case 56:
-		//line datetime.y:284
+	case 62:
+		//line datetime.y:317
 		{
 			// 3rd Tuesday 
 		yylex.(*dateLexer).setDay(yyS[yypt-0].intval, yyS[yypt-2].tval.i)
 		}
-	case 57:
-		//line datetime.y:288
+	case 63:
+		//line datetime.y:321
 		{
 			// 3rd Tuesday of (implicit this) March
 		l := yylex.(*dateLexer)
 			l.setDay(yyS[yypt-2].intval, yyS[yypt-4].tval.i)
 			l.setMonth(yyS[yypt-0].intval, 1)
 		}
-	case 58:
-		//line datetime.y:294
+	case 64:
+		//line datetime.y:327
 		{
 			// 3rd Tuesday of 2012
 		yylex.(*dateLexer).setDay(yyS[yypt-2].intval, yyS[yypt-4].tval.i, yyS[yypt-0].tval.i)
 		}
-	case 59:
-		//line datetime.y:298
+	case 65:
+		//line datetime.y:331
 		{
 			// 3rd Tuesday of March 2012
 		l := yylex.(*dateLexer)
 			l.setDay(yyS[yypt-3].intval, yyS[yypt-5].tval.i)
 			l.setMonth(yyS[yypt-1].intval, 1, yyS[yypt-0].tval.i)
 		}
-	case 60:
-		//line datetime.y:304
+	case 66:
+		//line datetime.y:337
 		{
 			// 3rd Tuesday of next March
 		l := yylex.(*dateLexer)
 			l.setDay(yyS[yypt-3].intval, yyS[yypt-5].tval.i)
 			l.setMonth(yyS[yypt-0].intval, yyS[yypt-1].intval)
 		}
-	case 61:
-		//line datetime.y:310
+	case 67:
+		//line datetime.y:343
 		{
 			// yesterday or tomorrow
 		d := time.Now().Weekday()
 			yylex.(*dateLexer).setDay((7+int(d)+yyS[yypt-0].intval)%7, yyS[yypt-0].intval)
 		}
-	case 63:
-		//line datetime.y:318
+	case 69:
+		//line datetime.y:351
 		{
 			yylex.(*dateLexer).setAgo()
 		}
-	case 66:
-		//line datetime.y:327
+	case 72:
+		//line datetime.y:360
 		{
 			yylex.(*dateLexer).addOffset(offset(yyS[yypt-0].intval), yyS[yypt-1].tval.i)
 		}
-	case 67:
-		//line datetime.y:330
+	case 73:
+		//line datetime.y:363
 		{
 			yylex.(*dateLexer).addOffset(offset(yyS[yypt-0].intval), yyS[yypt-1].intval)
 		}
-	case 68:
-		//line datetime.y:333
+	case 74:
+		//line datetime.y:366
+		{
+			yylex.(*dateLexer).addOffset(offset(yyS[yypt-0].intval), 1)
+		}
+	case 75:
+		//line datetime.y:369
 		{
 			// Special-case to handle "week" and "fortnight"
 		yylex.(*dateLexer).addOffset(O_DAY, yyS[yypt-1].tval.i * yyS[yypt-0].intval)
 		}
-	case 69:
-		//line datetime.y:337
+	case 76:
+		//line datetime.y:373
 		{
 			yylex.(*dateLexer).addOffset(O_DAY, yyS[yypt-1].intval * yyS[yypt-0].intval)
 		}
-	case 70:
-		//line datetime.y:340
+	case 77:
+		//line datetime.y:376
 		{
-	        // As we need to be able to separate out YD from HS in ISO durations
-        // this becomes a fair bit messier than if Y D H S were just T_OFFSET
-        // Because writing "next y" or "two h" would be odd, disallow
-        // T_RELATIVE tokens from being used with ISO single-letter notation
-        yylex.(*dateLexer).addOffset(offset(yyS[yypt-0].intval), yyS[yypt-1].tval.i)
-	    }
-	case 71:
-		//line datetime.y:347
-		{
-	        yylex.(*dateLexer).addOffset(offset(yyS[yypt-0].intval), yyS[yypt-1].tval.i)
-	    }
-	case 72:
-		//line datetime.y:350
-		{
-	        // Resolve 'm' ambiguity in favour of minutes outside ISO duration
-        yylex.(*dateLexer).addOffset(O_MIN, yyS[yypt-1].tval.i)
-	    }
-	case 75:
-		//line datetime.y:359
-		{
-	        yylex.(*dateLexer).addOffset(O_DAY, 7 * yyS[yypt-1].tval.i)
-	    }
+			yylex.(*dateLexer).addOffset(O_DAY, yyS[yypt-0].intval)
+		}
 	case 78:
-		//line datetime.y:369
+		//line datetime.y:379
 		{
-	        // takes care of Y and D
-        yylex.(*dateLexer).addOffset(offset(yyS[yypt-0].intval), yyS[yypt-1].tval.i)
-	    }
+			// As we need to be able to separate out YD from HS in ISO durations
+		// this becomes a fair bit messier than if Y D H S were just T_OFFSET
+		// Because writing "next y" or "two h" would be odd, disallow
+		// T_RELATIVE tokens from being used with ISO single-letter notation
+		yylex.(*dateLexer).addOffset(offset(yyS[yypt-0].intval), yyS[yypt-1].tval.i)
+		}
 	case 79:
-		//line datetime.y:373
-		{
-	        yylex.(*dateLexer).addOffset(O_MONTH, yyS[yypt-1].tval.i)
-	    }
-	case 82:
-		//line datetime.y:382
-		{
-	        // takes care of H and S
-        yylex.(*dateLexer).addOffset(offset(yyS[yypt-0].intval), yyS[yypt-1].tval.i)
-	    }
-	case 83:
 		//line datetime.y:386
 		{
-	        yylex.(*dateLexer).addOffset(O_MIN, yyS[yypt-1].tval.i)
-	    }
-	case 87:
-		//line datetime.y:398
+			yylex.(*dateLexer).addOffset(offset(yyS[yypt-0].intval), yyS[yypt-1].tval.i)
+		}
+	case 80:
+		//line datetime.y:389
 		{
-	        l := yylex.(*dateLexer)
-	        if yyS[yypt-0].tval.l == 8 {
-	            // assume ISO 8601 YYYYMMDD
-            l.setYMD(yyS[yypt-0].tval.i, yyS[yypt-0].tval.l)
-	        } else {
-	            // assume ISO 8601 HHMMSS with no zone
-            l.setHMS(yyS[yypt-0].tval.i, yyS[yypt-0].tval.l, nil)
-	        }   
-	    }
+			// Resolve 'm' ambiguity in favour of minutes outside ISO duration
+		yylex.(*dateLexer).addOffset(O_MIN, yyS[yypt-1].tval.i)
+		}
+	case 81:
+		//line datetime.y:392
+		{
+		    yylex.(*dateLexer).addOffset(O_DAY, yyS[yypt-4].tval.i * 7)
+		}
+	case 84:
+		//line datetime.y:400
+		{
+			yylex.(*dateLexer).addOffset(O_DAY, 7 * yyS[yypt-1].tval.i)
+		}
+	case 87:
+		//line datetime.y:410
+		{
+			// takes care of Y and D
+		yylex.(*dateLexer).addOffset(offset(yyS[yypt-0].intval), yyS[yypt-1].tval.i)
+		}
+	case 88:
+		//line datetime.y:414
+		{
+			yylex.(*dateLexer).addOffset(O_MONTH, yyS[yypt-1].tval.i)
+		}
+	case 91:
+		//line datetime.y:423
+		{
+			// takes care of H and S
+		yylex.(*dateLexer).addOffset(offset(yyS[yypt-0].intval), yyS[yypt-1].tval.i)
+		}
+	case 92:
+		//line datetime.y:427
+		{
+			yylex.(*dateLexer).addOffset(O_MIN, yyS[yypt-1].tval.i)
+		}
+	case 96:
+		//line datetime.y:439
+		{
+			l := yylex.(*dateLexer)
+			if yyS[yypt-0].tval.l == 8 {
+				// assume ISO 8601 YYYYMMDD
+			l.setYMD(yyS[yypt-0].tval.i, yyS[yypt-0].tval.l)
+			} else if yyS[yypt-0].tval.l == 6 {
+				// assume ISO 8601 HHMMSS with no zone
+			l.setHMS(yyS[yypt-0].tval.i, yyS[yypt-0].tval.l, nil)
+			} else if yyS[yypt-0].tval.l == 4 {
+				// assume setting YYYY, because otherwise parsing ANSIC, UnixTime
+			// and RubyTime formats fails as the year is after the time
+			// Probably should be HHMM instead...
+			l.setYear(yyS[yypt-0].tval.i)
+			}
+		}
 	}
 	goto yystack /* stack new state and value */
 }

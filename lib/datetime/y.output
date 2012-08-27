@@ -1,10 +1,10 @@
 
 state 0
 	$accept: .spec $end 
-	items: .    (21)
+	items: .    (26)
 
 	@  shift 4
-	.  reduce 21 (src line 95)
+	.  reduce 26 (src line 114)
 
 	spec  goto 1
 	unixtime  goto 2
@@ -34,6 +34,7 @@ state 3
 	T_DAYNAME  shift 17
 	T_DAYSHIFT  shift 20
 	T_RELATIVE  shift 18
+	A  shift 26
 	P  shift 22
 	.  reduce 2 (src line 43)
 
@@ -54,84 +55,86 @@ state 3
 state 4
 	unixtime:  @.o_sign_integer 
 
-	T_INTEGER  shift 27
+	T_INTEGER  shift 28
 	T_PLUS  shift 23
 	T_MINUS  shift 24
 	.  error
 
-	o_sign_integer  goto 26
+	o_sign_integer  goto 27
 
 state 5
-	items:  items item.    (22)
+	items:  items item.    (27)
 
-	.  reduce 22 (src line 97)
+	.  reduce 27 (src line 116)
 
 
 state 6
-	item:  time.    (23)
+	item:  time.    (28)
 
-	.  reduce 23 (src line 99)
+	.  reduce 28 (src line 118)
 
 
 state 7
-	item:  iso_8601_time.    (24)
+	item:  iso_8601_time.    (29)
 
-	.  reduce 24 (src line 101)
+	.  reduce 29 (src line 120)
 
 
 state 8
-	item:  date.    (25)
+	item:  date.    (30)
 
-	.  reduce 25 (src line 102)
+	.  reduce 30 (src line 121)
 
 
 state 9
-	item:  iso_8601_date.    (26)
+	item:  iso_8601_date.    (31)
 	iso_8601_date_time:  iso_8601_date.T iso_8601_time 
 
-	T  shift 28
-	.  reduce 26 (src line 103)
+	T  shift 29
+	.  reduce 31 (src line 122)
 
 
 state 10
-	item:  iso_8601_date_time.    (27)
+	item:  iso_8601_date_time.    (32)
 
-	.  reduce 27 (src line 104)
+	.  reduce 32 (src line 123)
 
 
 state 11
-	item:  day_or_month.    (28)
+	item:  day_or_month.    (33)
 
-	.  reduce 28 (src line 105)
+	.  reduce 33 (src line 124)
 
 
 state 12
-	item:  relative.    (29)
+	item:  relative.    (34)
 
-	.  reduce 29 (src line 106)
+	.  reduce 34 (src line 125)
 
 
 state 13
-	item:  iso_8601_duration.    (30)
+	item:  iso_8601_duration.    (35)
 
-	.  reduce 30 (src line 107)
+	.  reduce 35 (src line 126)
 
 
 state 14
-	item:  integer.    (31)
+	item:  integer.    (36)
 
-	.  reduce 31 (src line 108)
+	.  reduce 36 (src line 127)
 
 
-15: shift/reduce conflict (shift 40(0), red'n 87(0)) on T_PLUS
-15: shift/reduce conflict (shift 34(0), red'n 87(0)) on T_MINUS
- 15: reduce/reduce conflict  (red'ns 12 and 87) on T_DAYNAME
- 15: reduce/reduce conflict  (red'ns 87 and 8) on T_MONTHNAME
+15: shift/reduce conflict (shift 43(0), red'n 96(0)) on T_PLUS
+15: shift/reduce conflict (shift 35(0), red'n 96(0)) on T_MINUS
+ 15: reduce/reduce conflict  (red'ns 17 and 96) on T_DAYNAME
+15: shift/reduce conflict (shift 39(0), red'n 96(0)) on A
+15: shift/reduce conflict (shift 40(0), red'n 96(0)) on P
+ 15: reduce/reduce conflict  (red'ns 96 and 9) on T_MONTHNAME
 state 15
-	o_sign_integer:  T_INTEGER.    (12)
-	time:  T_INTEGER.T_AMPM o_zone 
-	time:  T_INTEGER.: T_INTEGER T_AMPM o_zone 
-	time:  T_INTEGER.: T_INTEGER : T_INTEGER T_AMPM o_zone 
+	o_sign_integer:  T_INTEGER.    (17)
+	time:  T_INTEGER.ampm o_zone 
+	time:  T_INTEGER.: T_INTEGER ampm o_zone 
+	time:  T_INTEGER.: T_INTEGER : T_INTEGER ampm o_zone 
 	iso_8601_time:  T_INTEGER.zone 
 	iso_8601_time:  T_INTEGER.: T_INTEGER o_zone 
 	iso_8601_time:  T_INTEGER.: T_INTEGER : T_INTEGER o_zone 
@@ -139,6 +142,7 @@ state 15
 	date:  T_INTEGER./ T_INTEGER / T_INTEGER 
 	date:  T_INTEGER.o_dayqual o_of T_MONTHNAME 
 	date:  T_INTEGER.o_dayqual o_of T_MONTHNAME T_INTEGER 
+	date:  T_INTEGER.T_MINUS T_MONTHNAME T_MINUS T_INTEGER 
 	iso_8601_date:  T_INTEGER.T_MINUS T_INTEGER 
 	iso_8601_date:  T_INTEGER.T_MINUS T_INTEGER T_MINUS T_INTEGER 
 	iso_8601_date:  T_INTEGER.W T_INTEGER 
@@ -150,49 +154,51 @@ state 15
 	day_or_month:  T_INTEGER.T_DAYQUAL T_DAYNAME of T_INTEGER 
 	day_or_month:  T_INTEGER.T_DAYQUAL T_DAYNAME of T_MONTHNAME T_INTEGER 
 	day_or_month:  T_INTEGER.T_DAYQUAL T_DAYNAME of T_RELATIVE T_MONTHNAME 
-	integer:  T_INTEGER.    (87)
-	o_dayqual: .    (8)
+	integer:  T_INTEGER.    (96)
+	o_dayqual: .    (9)
 
-	$end  reduce 87 (src line 397)
-	T_DAYQUAL  shift 37
-	T_INTEGER  reduce 87 (src line 397)
-	T_PLUS  shift 40
-	T_MINUS  shift 34
-	T_AMPM  shift 29
-	T_MONTHNAME  reduce 8 (src line 52)
-	T_DAYSHIFT  reduce 87 (src line 397)
-	T_RELATIVE  reduce 87 (src line 397)
-	T_ZONE  shift 38
-	O  reduce 8 (src line 52)
-	:  shift 30
-	/  shift 32
-	W  shift 35
-	T  shift 36
-	P  reduce 87 (src line 397)
-	.  reduce 12 (src line 57)
+	$end  reduce 96 (src line 438)
+	T_DAYQUAL  shift 38
+	T_INTEGER  reduce 96 (src line 438)
+	T_PLUS  shift 43
+	T_MINUS  shift 35
+	T_MONTHNAME  reduce 9 (src line 54)
+	T_DAYSHIFT  reduce 96 (src line 438)
+	T_RELATIVE  reduce 96 (src line 438)
+	T_ZONE  shift 41
+	O  reduce 9 (src line 54)
+	A  shift 39
+	P  shift 40
+	:  shift 31
+	/  shift 33
+	W  shift 36
+	T  shift 37
+	.  reduce 17 (src line 73)
 
-	sign  goto 39
-	zone  goto 31
-	o_dayqual  goto 33
+	sign  goto 42
+	ampm  goto 30
+	zone  goto 32
+	o_dayqual  goto 34
 
-16: shift/reduce conflict (shift 41(0), red'n 52(0)) on T_INTEGER
+16: shift/reduce conflict (shift 44(0), red'n 58(0)) on T_INTEGER
 state 16
 	date:  T_MONTHNAME.T_INTEGER o_dayqual 
-	date:  T_MONTHNAME.T_INTEGER o_dayqual o_comma T_INTEGER 
-	day_or_month:  T_MONTHNAME.    (52)
+	date:  T_MONTHNAME.T_INTEGER o_dayqual comma T_INTEGER 
+	day_or_month:  T_MONTHNAME.    (58)
 
-	T_INTEGER  shift 41
-	.  reduce 52 (src line 268)
+	T_INTEGER  shift 44
+	.  reduce 58 (src line 301)
 
 
 state 17
 	day_or_month:  T_DAYNAME.o_comma 
-	o_comma: .    (3)
+	o_comma: .    (4)
 
-	,  shift 43
-	.  reduce 3 (src line 45)
+	,  shift 47
+	.  reduce 4 (src line 47)
 
-	o_comma  goto 42
+	comma  goto 46
+	o_comma  goto 45
 
 state 18
 	day_or_month:  T_RELATIVE.T_DAYNAME 
@@ -200,10 +206,10 @@ state 18
 	relunit:  T_RELATIVE.T_OFFSET 
 	relunit:  T_RELATIVE.T_DAYS 
 
-	T_MONTHNAME  shift 45
-	T_DAYNAME  shift 44
-	T_DAYS  shift 47
-	T_OFFSET  shift 46
+	T_MONTHNAME  shift 49
+	T_DAYNAME  shift 48
+	T_DAYS  shift 51
+	T_OFFSET  shift 50
 	.  error
 
 
@@ -213,29 +219,29 @@ state 19
 	relunit:  o_sign_integer.T_DAYS 
 	relunit:  o_sign_integer.T_ISOYD 
 	relunit:  o_sign_integer.T_ISOHS 
-	relunit:  o_sign_integer.M 
+	relunit:  o_sign_integer.M $$80 o_sign_integer W 
 
-	T_DAYNAME  shift 48
-	T_DAYS  shift 50
-	T_OFFSET  shift 49
-	T_ISOYD  shift 51
-	T_ISOHS  shift 52
-	M  shift 53
+	T_DAYNAME  shift 52
+	T_DAYS  shift 54
+	T_OFFSET  shift 53
+	T_ISOYD  shift 55
+	T_ISOHS  shift 56
+	M  shift 57
 	.  error
 
 
 state 20
-	day_or_month:  T_DAYSHIFT.    (61)
+	day_or_month:  T_DAYSHIFT.    (67)
 
-	.  reduce 61 (src line 310)
+	.  reduce 67 (src line 343)
 
 
 state 21
-	relative:  relunits.    (62)
+	relative:  relunits.    (68)
 	relative:  relunits.T_AGO 
 
-	T_AGO  shift 54
-	.  reduce 62 (src line 316)
+	T_AGO  shift 58
+	.  reduce 68 (src line 349)
 
 
 state 22
@@ -243,884 +249,1035 @@ state 22
 	iso_8601_duration:  P.t_hms_units 
 	iso_8601_duration:  P.T_INTEGER W 
 
-	T_INTEGER  shift 57
-	T  shift 59
+	T_INTEGER  shift 61
+	T  shift 63
 	.  error
 
-	ymd_units  goto 55
-	t_hms_units  goto 56
-	ymd_unit  goto 58
+	ymd_units  goto 59
+	t_hms_units  goto 60
+	ymd_unit  goto 62
 
 state 23
 	o_sign_integer:  T_PLUS.T_INTEGER 
 
-	T_INTEGER  shift 60
+	T_INTEGER  shift 64
 	.  error
 
 
 state 24
 	o_sign_integer:  T_MINUS.T_INTEGER 
 
-	T_INTEGER  shift 61
+	T_INTEGER  shift 65
 	.  error
 
 
-25: shift/reduce conflict (shift 27(0), red'n 64(0)) on T_INTEGER
-25: shift/reduce conflict (shift 23(0), red'n 64(0)) on T_PLUS
-25: shift/reduce conflict (shift 24(0), red'n 64(0)) on T_MINUS
-25: shift/reduce conflict (shift 64(0), red'n 64(0)) on T_RELATIVE
+25: shift/reduce conflict (shift 28(0), red'n 70(0)) on T_INTEGER
+25: shift/reduce conflict (shift 23(0), red'n 70(0)) on T_PLUS
+25: shift/reduce conflict (shift 24(0), red'n 70(0)) on T_MINUS
+25: shift/reduce conflict (shift 68(0), red'n 70(0)) on T_RELATIVE
+25: shift/reduce conflict (shift 26(0), red'n 70(0)) on A
 state 25
-	relunits:  relunit.    (64)
+	relunits:  relunit.    (70)
 	relunits:  relunit.relunits 
 
-	T_INTEGER  shift 27
+	T_INTEGER  shift 28
 	T_PLUS  shift 23
 	T_MINUS  shift 24
-	T_RELATIVE  shift 64
-	.  reduce 64 (src line 322)
+	T_RELATIVE  shift 68
+	A  shift 26
+	.  reduce 70 (src line 355)
 
-	o_sign_integer  goto 63
-	relunits  goto 62
+	o_sign_integer  goto 67
+	relunits  goto 66
 	relunit  goto 25
 
 state 26
-	unixtime:  @ o_sign_integer.    (20)
+	relunit:  A.T_OFFSET 
+	relunit:  A.T_DAYS 
 
-	.  reduce 20 (src line 90)
+	T_DAYS  shift 70
+	T_OFFSET  shift 69
+	.  error
 
 
 state 27
-	o_sign_integer:  T_INTEGER.    (12)
+	unixtime:  @ o_sign_integer.    (25)
 
-	.  reduce 12 (src line 57)
+	.  reduce 25 (src line 106)
 
 
 state 28
+	o_sign_integer:  T_INTEGER.    (17)
+
+	.  reduce 17 (src line 73)
+
+
+state 29
 	iso_8601_date_time:  iso_8601_date T.iso_8601_time 
 
-	T_INTEGER  shift 66
+	T_INTEGER  shift 72
 	.  error
 
-	iso_8601_time  goto 65
+	iso_8601_time  goto 71
 
-29: shift/reduce conflict (shift 40(0), red'n 18(0)) on T_PLUS
-29: shift/reduce conflict (shift 69(0), red'n 18(0)) on T_MINUS
-state 29
-	time:  T_INTEGER T_AMPM.o_zone 
-	o_zone: .    (18)
-
-	T_PLUS  shift 40
-	T_MINUS  shift 69
-	T_ZONE  shift 38
-	.  reduce 18 (src line 86)
-
-	sign  goto 39
-	zone  goto 68
-	o_zone  goto 67
-
+30: shift/reduce conflict (shift 43(0), red'n 23(0)) on T_PLUS
+30: shift/reduce conflict (shift 75(0), red'n 23(0)) on T_MINUS
 state 30
-	time:  T_INTEGER :.T_INTEGER T_AMPM o_zone 
-	time:  T_INTEGER :.T_INTEGER : T_INTEGER T_AMPM o_zone 
+	time:  T_INTEGER ampm.o_zone 
+	o_zone: .    (23)
+
+	T_PLUS  shift 43
+	T_MINUS  shift 75
+	T_ZONE  shift 41
+	.  reduce 23 (src line 102)
+
+	sign  goto 42
+	zone  goto 74
+	o_zone  goto 73
+
+state 31
+	time:  T_INTEGER :.T_INTEGER ampm o_zone 
+	time:  T_INTEGER :.T_INTEGER : T_INTEGER ampm o_zone 
 	iso_8601_time:  T_INTEGER :.T_INTEGER o_zone 
 	iso_8601_time:  T_INTEGER :.T_INTEGER : T_INTEGER o_zone 
 
-	T_INTEGER  shift 70
+	T_INTEGER  shift 76
 	.  error
-
-
-state 31
-	iso_8601_time:  T_INTEGER zone.    (35)
-
-	.  reduce 35 (src line 125)
 
 
 state 32
-	date:  T_INTEGER /.T_INTEGER 
-	date:  T_INTEGER /.T_INTEGER / T_INTEGER 
+	iso_8601_time:  T_INTEGER zone.    (40)
 
-	T_INTEGER  shift 71
-	.  error
+	.  reduce 40 (src line 144)
 
 
 state 33
-	date:  T_INTEGER o_dayqual.o_of T_MONTHNAME 
-	date:  T_INTEGER o_dayqual.o_of T_MONTHNAME T_INTEGER 
-	o_of: .    (6)
-
-	O  shift 74
-	.  reduce 6 (src line 50)
-
-	of  goto 73
-	o_of  goto 72
-
-34: shift/reduce conflict (shift 75(0), red'n 11(0)) on T_INTEGER
-state 34
-	sign:  T_MINUS.    (11)
-	iso_8601_date:  T_INTEGER T_MINUS.T_INTEGER 
-	iso_8601_date:  T_INTEGER T_MINUS.T_INTEGER T_MINUS T_INTEGER 
-	iso_8601_date:  T_INTEGER T_MINUS.W T_INTEGER 
-	iso_8601_date:  T_INTEGER T_MINUS.W T_INTEGER T_MINUS T_INTEGER 
-
-	T_INTEGER  shift 75
-	W  shift 76
-	.  error
-
-
-state 35
-	iso_8601_date:  T_INTEGER W.T_INTEGER 
+	date:  T_INTEGER /.T_INTEGER 
+	date:  T_INTEGER /.T_INTEGER / T_INTEGER 
 
 	T_INTEGER  shift 77
 	.  error
 
 
-state 36
-	iso_8601_date_time:  T_INTEGER T.T_INTEGER o_zone 
+state 34
+	date:  T_INTEGER o_dayqual.o_of T_MONTHNAME 
+	date:  T_INTEGER o_dayqual.o_of T_MONTHNAME T_INTEGER 
+	o_of: .    (7)
 
-	T_INTEGER  shift 78
+	O  shift 80
+	.  reduce 7 (src line 52)
+
+	of  goto 79
+	o_of  goto 78
+
+35: shift/reduce conflict (shift 82(0), red'n 16(0)) on T_INTEGER
+state 35
+	sign:  T_MINUS.    (16)
+	date:  T_INTEGER T_MINUS.T_MONTHNAME T_MINUS T_INTEGER 
+	iso_8601_date:  T_INTEGER T_MINUS.T_INTEGER 
+	iso_8601_date:  T_INTEGER T_MINUS.T_INTEGER T_MINUS T_INTEGER 
+	iso_8601_date:  T_INTEGER T_MINUS.W T_INTEGER 
+	iso_8601_date:  T_INTEGER T_MINUS.W T_INTEGER T_MINUS T_INTEGER 
+
+	T_INTEGER  shift 82
+	T_MONTHNAME  shift 81
+	W  shift 83
+	.  error
+
+
+state 36
+	iso_8601_date:  T_INTEGER W.T_INTEGER 
+
+	T_INTEGER  shift 84
 	.  error
 
 
 state 37
-	o_dayqual:  T_DAYQUAL.    (9)
+	iso_8601_date_time:  T_INTEGER T.T_INTEGER o_zone 
+
+	T_INTEGER  shift 85
+	.  error
+
+
+state 38
+	o_dayqual:  T_DAYQUAL.    (10)
 	day_or_month:  T_INTEGER T_DAYQUAL.T_DAYNAME 
 	day_or_month:  T_INTEGER T_DAYQUAL.T_DAYNAME of T_MONTHNAME 
 	day_or_month:  T_INTEGER T_DAYQUAL.T_DAYNAME of T_INTEGER 
 	day_or_month:  T_INTEGER T_DAYQUAL.T_DAYNAME of T_MONTHNAME T_INTEGER 
 	day_or_month:  T_INTEGER T_DAYQUAL.T_DAYNAME of T_RELATIVE T_MONTHNAME 
 
-	T_DAYNAME  shift 79
-	.  reduce 9 (src line 52)
-
-
-state 38
-	zone:  T_ZONE.    (15)
-
-	.  reduce 15 (src line 69)
+	T_DAYNAME  shift 86
+	.  reduce 10 (src line 54)
 
 
 state 39
-	zone:  sign.T_INTEGER 
-	zone:  sign.T_INTEGER : T_INTEGER 
+	ampm:  A.M 
+	ampm:  A.. M . 
 
-	T_INTEGER  shift 80
+	M  shift 87
+	.  shift 88
 	.  error
 
 
 state 40
-	sign:  T_PLUS.    (10)
+	ampm:  P.M 
+	ampm:  P.. M . 
 
-	.  reduce 10 (src line 54)
+	M  shift 89
+	.  shift 90
+	.  error
 
 
 state 41
-	date:  T_MONTHNAME T_INTEGER.o_dayqual 
-	date:  T_MONTHNAME T_INTEGER.o_dayqual o_comma T_INTEGER 
-	o_dayqual: .    (8)
+	zone:  T_ZONE.    (20)
 
-	T_DAYQUAL  shift 82
-	.  reduce 8 (src line 52)
+	.  reduce 20 (src line 85)
 
-	o_dayqual  goto 81
 
 state 42
-	day_or_month:  T_DAYNAME o_comma.    (51)
+	zone:  sign.T_INTEGER 
+	zone:  sign.T_INTEGER : T_INTEGER 
 
-	.  reduce 51 (src line 263)
+	T_INTEGER  shift 91
+	.  error
 
 
 state 43
-	o_comma:  ,.    (4)
+	sign:  T_PLUS.    (15)
 
-	.  reduce 4 (src line 46)
+	.  reduce 15 (src line 70)
 
 
 state 44
-	day_or_month:  T_RELATIVE T_DAYNAME.    (53)
+	date:  T_MONTHNAME T_INTEGER.o_dayqual 
+	date:  T_MONTHNAME T_INTEGER.o_dayqual comma T_INTEGER 
+	o_dayqual: .    (9)
 
-	.  reduce 53 (src line 272)
+	T_DAYQUAL  shift 93
+	.  reduce 9 (src line 54)
 
+	o_dayqual  goto 92
 
 state 45
-	day_or_month:  T_RELATIVE T_MONTHNAME.    (54)
+	day_or_month:  T_DAYNAME o_comma.    (57)
 
-	.  reduce 54 (src line 276)
+	.  reduce 57 (src line 296)
 
 
 state 46
-	relunit:  T_RELATIVE T_OFFSET.    (67)
-
-	.  reduce 67 (src line 330)
-
-
-state 47
-	relunit:  T_RELATIVE T_DAYS.    (69)
-
-	.  reduce 69 (src line 337)
-
-
-state 48
-	day_or_month:  o_sign_integer T_DAYNAME.    (55)
-
-	.  reduce 55 (src line 280)
-
-
-state 49
-	relunit:  o_sign_integer T_OFFSET.    (66)
-
-	.  reduce 66 (src line 326)
-
-
-state 50
-	relunit:  o_sign_integer T_DAYS.    (68)
-
-	.  reduce 68 (src line 333)
-
-
-state 51
-	relunit:  o_sign_integer T_ISOYD.    (70)
-
-	.  reduce 70 (src line 340)
-
-
-state 52
-	relunit:  o_sign_integer T_ISOHS.    (71)
-
-	.  reduce 71 (src line 347)
-
-
-state 53
-	relunit:  o_sign_integer M.    (72)
-
-	.  reduce 72 (src line 350)
-
-
-state 54
-	relative:  relunits T_AGO.    (63)
-
-	.  reduce 63 (src line 318)
-
-
-55: shift/reduce conflict (shift 86(0), red'n 85(0)) on T_INTEGER
-state 55
-	iso_8601_duration:  P ymd_units.o_t_hms_units 
-	ymd_units:  ymd_units.ymd_unit 
-	o_t_hms_units: .    (85)
-
-	T_INTEGER  shift 86
-	T  shift 59
-	.  reduce 85 (src line 393)
-
-	o_t_hms_units  goto 83
-	t_hms_units  goto 85
-	ymd_unit  goto 84
-
-state 56
-	iso_8601_duration:  P t_hms_units.    (74)
-
-	.  reduce 74 (src line 358)
-
-
-state 57
-	iso_8601_duration:  P T_INTEGER.W 
-	ymd_unit:  T_INTEGER.T_ISOYD 
-	ymd_unit:  T_INTEGER.M 
-
-	T_ISOYD  shift 88
-	W  shift 87
-	M  shift 89
-	.  error
-
-
-state 58
-	ymd_units:  ymd_unit.    (76)
-
-	.  reduce 76 (src line 364)
-
-
-state 59
-	t_hms_units:  T.hms_units 
-
-	T_INTEGER  shift 92
-	.  error
-
-	hms_units  goto 90
-	hms_unit  goto 91
-
-state 60
-	o_sign_integer:  T_PLUS T_INTEGER.    (13)
-
-	.  reduce 13 (src line 59)
-
-
-state 61
-	o_sign_integer:  T_MINUS T_INTEGER.    (14)
-
-	.  reduce 14 (src line 63)
-
-
-state 62
-	relunits:  relunit relunits.    (65)
-
-	.  reduce 65 (src line 324)
-
-
-state 63
-	relunit:  o_sign_integer.T_OFFSET 
-	relunit:  o_sign_integer.T_DAYS 
-	relunit:  o_sign_integer.T_ISOYD 
-	relunit:  o_sign_integer.T_ISOHS 
-	relunit:  o_sign_integer.M 
-
-	T_DAYS  shift 50
-	T_OFFSET  shift 49
-	T_ISOYD  shift 51
-	T_ISOHS  shift 52
-	M  shift 53
-	.  error
-
-
-state 64
-	relunit:  T_RELATIVE.T_OFFSET 
-	relunit:  T_RELATIVE.T_DAYS 
-
-	T_DAYS  shift 47
-	T_OFFSET  shift 46
-	.  error
-
-
-state 65
-	iso_8601_date_time:  iso_8601_date T iso_8601_time.    (49)
-
-	.  reduce 49 (src line 253)
-
-
-state 66
-	iso_8601_time:  T_INTEGER.zone 
-	iso_8601_time:  T_INTEGER.: T_INTEGER o_zone 
-	iso_8601_time:  T_INTEGER.: T_INTEGER : T_INTEGER o_zone 
-
-	T_PLUS  shift 40
-	T_MINUS  shift 69
-	T_ZONE  shift 38
-	:  shift 93
-	.  error
-
-	sign  goto 39
-	zone  goto 31
-
-state 67
-	time:  T_INTEGER T_AMPM o_zone.    (32)
-
-	.  reduce 32 (src line 112)
-
-
-state 68
-	o_zone:  zone.    (19)
-
-	.  reduce 19 (src line 88)
-
-
-state 69
-	sign:  T_MINUS.    (11)
-
-	.  reduce 11 (src line 55)
-
-
-70: shift/reduce conflict (shift 40(0), red'n 18(0)) on T_PLUS
-70: shift/reduce conflict (shift 69(0), red'n 18(0)) on T_MINUS
-state 70
-	time:  T_INTEGER : T_INTEGER.T_AMPM o_zone 
-	time:  T_INTEGER : T_INTEGER.: T_INTEGER T_AMPM o_zone 
-	iso_8601_time:  T_INTEGER : T_INTEGER.o_zone 
-	iso_8601_time:  T_INTEGER : T_INTEGER.: T_INTEGER o_zone 
-	o_zone: .    (18)
-
-	T_PLUS  shift 40
-	T_MINUS  shift 69
-	T_AMPM  shift 94
-	T_ZONE  shift 38
-	:  shift 95
-	.  reduce 18 (src line 86)
-
-	sign  goto 39
-	zone  goto 68
-	o_zone  goto 96
-
-state 71
-	date:  T_INTEGER / T_INTEGER.    (38)
-	date:  T_INTEGER / T_INTEGER./ T_INTEGER 
-
-	/  shift 97
-	.  reduce 38 (src line 139)
-
-
-state 72
-	date:  T_INTEGER o_dayqual o_of.T_MONTHNAME 
-	date:  T_INTEGER o_dayqual o_of.T_MONTHNAME T_INTEGER 
-
-	T_MONTHNAME  shift 98
-	.  error
-
-
-state 73
-	o_of:  of.    (7)
-
-	.  reduce 7 (src line 50)
-
-
-state 74
-	of:  O.F 
-
-	F  shift 99
-	.  error
-
-
-75: shift/reduce conflict (shift 100(0), red'n 44(0)) on T_MINUS
-state 75
-	iso_8601_date:  T_INTEGER T_MINUS T_INTEGER.    (44)
-	iso_8601_date:  T_INTEGER T_MINUS T_INTEGER.T_MINUS T_INTEGER 
-
-	T_MINUS  shift 100
-	.  reduce 44 (src line 205)
-
-
-state 76
-	iso_8601_date:  T_INTEGER T_MINUS W.T_INTEGER 
-	iso_8601_date:  T_INTEGER T_MINUS W.T_INTEGER T_MINUS T_INTEGER 
-
-	T_INTEGER  shift 101
-	.  error
-
-
-state 77
-	iso_8601_date:  T_INTEGER W T_INTEGER.    (46)
-
-	.  reduce 46 (src line 233)
-
-
-78: shift/reduce conflict (shift 40(0), red'n 18(0)) on T_PLUS
-78: shift/reduce conflict (shift 69(0), red'n 18(0)) on T_MINUS
-state 78
-	iso_8601_date_time:  T_INTEGER T T_INTEGER.o_zone 
-	o_zone: .    (18)
-
-	T_PLUS  shift 40
-	T_MINUS  shift 69
-	T_ZONE  shift 38
-	.  reduce 18 (src line 86)
-
-	sign  goto 39
-	zone  goto 68
-	o_zone  goto 102
-
-state 79
-	day_or_month:  T_INTEGER T_DAYQUAL T_DAYNAME.    (56)
-	day_or_month:  T_INTEGER T_DAYQUAL T_DAYNAME.of T_MONTHNAME 
-	day_or_month:  T_INTEGER T_DAYQUAL T_DAYNAME.of T_INTEGER 
-	day_or_month:  T_INTEGER T_DAYQUAL T_DAYNAME.of T_MONTHNAME T_INTEGER 
-	day_or_month:  T_INTEGER T_DAYQUAL T_DAYNAME.of T_RELATIVE T_MONTHNAME 
-
-	O  shift 74
-	.  reduce 56 (src line 284)
-
-	of  goto 103
-
-state 80
-	zone:  sign T_INTEGER.    (16)
-	zone:  sign T_INTEGER.: T_INTEGER 
-
-	:  shift 104
-	.  reduce 16 (src line 71)
-
-
- 81: reduce/reduce conflict  (red'ns 41 and 3) on T_INTEGER
-state 81
-	date:  T_MONTHNAME T_INTEGER o_dayqual.    (41)
-	date:  T_MONTHNAME T_INTEGER o_dayqual.o_comma T_INTEGER 
-	o_comma: .    (3)
-
-	T_INTEGER  reduce 3 (src line 45)
-	,  shift 43
-	.  reduce 41 (src line 167)
-
-	o_comma  goto 105
-
-state 82
-	o_dayqual:  T_DAYQUAL.    (9)
-
-	.  reduce 9 (src line 52)
-
-
-state 83
-	iso_8601_duration:  P ymd_units o_t_hms_units.    (73)
-
-	.  reduce 73 (src line 356)
-
-
-state 84
-	ymd_units:  ymd_units ymd_unit.    (77)
-
-	.  reduce 77 (src line 366)
-
-
-state 85
-	o_t_hms_units:  t_hms_units.    (86)
-
-	.  reduce 86 (src line 395)
-
-
-state 86
-	ymd_unit:  T_INTEGER.T_ISOYD 
-	ymd_unit:  T_INTEGER.M 
-
-	T_ISOYD  shift 88
-	M  shift 89
-	.  error
-
-
-state 87
-	iso_8601_duration:  P T_INTEGER W.    (75)
-
-	.  reduce 75 (src line 359)
-
-
-state 88
-	ymd_unit:  T_INTEGER T_ISOYD.    (78)
-
-	.  reduce 78 (src line 368)
-
-
-state 89
-	ymd_unit:  T_INTEGER M.    (79)
-
-	.  reduce 79 (src line 373)
-
-
-90: shift/reduce conflict (shift 92(0), red'n 84(0)) on T_INTEGER
-state 90
-	hms_units:  hms_units.hms_unit 
-	t_hms_units:  T hms_units.    (84)
-
-	T_INTEGER  shift 92
-	.  reduce 84 (src line 390)
-
-	hms_unit  goto 106
-
-state 91
-	hms_units:  hms_unit.    (80)
-
-	.  reduce 80 (src line 377)
-
-
-state 92
-	hms_unit:  T_INTEGER.T_ISOHS 
-	hms_unit:  T_INTEGER.M 
-
-	T_ISOHS  shift 107
-	M  shift 108
-	.  error
-
-
-state 93
-	iso_8601_time:  T_INTEGER :.T_INTEGER o_zone 
-	iso_8601_time:  T_INTEGER :.T_INTEGER : T_INTEGER o_zone 
-
-	T_INTEGER  shift 109
-	.  error
-
-
-94: shift/reduce conflict (shift 40(0), red'n 18(0)) on T_PLUS
-94: shift/reduce conflict (shift 69(0), red'n 18(0)) on T_MINUS
-state 94
-	time:  T_INTEGER : T_INTEGER T_AMPM.o_zone 
-	o_zone: .    (18)
-
-	T_PLUS  shift 40
-	T_MINUS  shift 69
-	T_ZONE  shift 38
-	.  reduce 18 (src line 86)
-
-	sign  goto 39
-	zone  goto 68
-	o_zone  goto 110
-
-state 95
-	time:  T_INTEGER : T_INTEGER :.T_INTEGER T_AMPM o_zone 
-	iso_8601_time:  T_INTEGER : T_INTEGER :.T_INTEGER o_zone 
-
-	T_INTEGER  shift 111
-	.  error
-
-
-state 96
-	iso_8601_time:  T_INTEGER : T_INTEGER o_zone.    (36)
-
-	.  reduce 36 (src line 129)
-
-
-state 97
-	date:  T_INTEGER / T_INTEGER /.T_INTEGER 
-
-	T_INTEGER  shift 112
-	.  error
-
-
-98: shift/reduce conflict (shift 113(0), red'n 40(0)) on T_INTEGER
-state 98
-	date:  T_INTEGER o_dayqual o_of T_MONTHNAME.    (40)
-	date:  T_INTEGER o_dayqual o_of T_MONTHNAME.T_INTEGER 
-
-	T_INTEGER  shift 113
-	.  reduce 40 (src line 163)
-
-
-state 99
-	of:  O F.    (5)
+	o_comma:  comma.    (5)
 
 	.  reduce 5 (src line 48)
 
 
-state 100
-	iso_8601_date:  T_INTEGER T_MINUS T_INTEGER T_MINUS.T_INTEGER 
+state 47
+	comma:  ,.    (3)
+
+	.  reduce 3 (src line 45)
+
+
+state 48
+	day_or_month:  T_RELATIVE T_DAYNAME.    (59)
+
+	.  reduce 59 (src line 305)
+
+
+state 49
+	day_or_month:  T_RELATIVE T_MONTHNAME.    (60)
+
+	.  reduce 60 (src line 309)
+
+
+state 50
+	relunit:  T_RELATIVE T_OFFSET.    (73)
+
+	.  reduce 73 (src line 363)
+
+
+state 51
+	relunit:  T_RELATIVE T_DAYS.    (76)
+
+	.  reduce 76 (src line 373)
+
+
+state 52
+	day_or_month:  o_sign_integer T_DAYNAME.    (61)
+
+	.  reduce 61 (src line 313)
+
+
+state 53
+	relunit:  o_sign_integer T_OFFSET.    (72)
+
+	.  reduce 72 (src line 359)
+
+
+state 54
+	relunit:  o_sign_integer T_DAYS.    (75)
+
+	.  reduce 75 (src line 369)
+
+
+state 55
+	relunit:  o_sign_integer T_ISOYD.    (78)
+
+	.  reduce 78 (src line 379)
+
+
+state 56
+	relunit:  o_sign_integer T_ISOHS.    (79)
+
+	.  reduce 79 (src line 386)
+
+
+state 57
+	relunit:  o_sign_integer M.$$80 o_sign_integer W 
+	$$80: .    (80)
+
+	.  reduce 80 (src line 389)
+
+	$$80  goto 94
+
+state 58
+	relative:  relunits T_AGO.    (69)
+
+	.  reduce 69 (src line 351)
+
+
+59: shift/reduce conflict (shift 98(0), red'n 94(0)) on T_INTEGER
+state 59
+	iso_8601_duration:  P ymd_units.o_t_hms_units 
+	ymd_units:  ymd_units.ymd_unit 
+	o_t_hms_units: .    (94)
+
+	T_INTEGER  shift 98
+	T  shift 63
+	.  reduce 94 (src line 434)
+
+	o_t_hms_units  goto 95
+	t_hms_units  goto 97
+	ymd_unit  goto 96
+
+state 60
+	iso_8601_duration:  P t_hms_units.    (83)
+
+	.  reduce 83 (src line 399)
+
+
+state 61
+	iso_8601_duration:  P T_INTEGER.W 
+	ymd_unit:  T_INTEGER.T_ISOYD 
+	ymd_unit:  T_INTEGER.M 
+
+	T_ISOYD  shift 100
+	M  shift 101
+	W  shift 99
+	.  error
+
+
+state 62
+	ymd_units:  ymd_unit.    (85)
+
+	.  reduce 85 (src line 405)
+
+
+state 63
+	t_hms_units:  T.hms_units 
+
+	T_INTEGER  shift 104
+	.  error
+
+	hms_units  goto 102
+	hms_unit  goto 103
+
+state 64
+	o_sign_integer:  T_PLUS T_INTEGER.    (18)
+
+	.  reduce 18 (src line 75)
+
+
+state 65
+	o_sign_integer:  T_MINUS T_INTEGER.    (19)
+
+	.  reduce 19 (src line 79)
+
+
+state 66
+	relunits:  relunit relunits.    (71)
+
+	.  reduce 71 (src line 357)
+
+
+state 67
+	relunit:  o_sign_integer.T_OFFSET 
+	relunit:  o_sign_integer.T_DAYS 
+	relunit:  o_sign_integer.T_ISOYD 
+	relunit:  o_sign_integer.T_ISOHS 
+	relunit:  o_sign_integer.M $$80 o_sign_integer W 
+
+	T_DAYS  shift 54
+	T_OFFSET  shift 53
+	T_ISOYD  shift 55
+	T_ISOHS  shift 56
+	M  shift 57
+	.  error
+
+
+state 68
+	relunit:  T_RELATIVE.T_OFFSET 
+	relunit:  T_RELATIVE.T_DAYS 
+
+	T_DAYS  shift 51
+	T_OFFSET  shift 50
+	.  error
+
+
+state 69
+	relunit:  A T_OFFSET.    (74)
+
+	.  reduce 74 (src line 366)
+
+
+state 70
+	relunit:  A T_DAYS.    (77)
+
+	.  reduce 77 (src line 376)
+
+
+state 71
+	iso_8601_date_time:  iso_8601_date T iso_8601_time.    (55)
+
+	.  reduce 55 (src line 286)
+
+
+state 72
+	iso_8601_time:  T_INTEGER.zone 
+	iso_8601_time:  T_INTEGER.: T_INTEGER o_zone 
+	iso_8601_time:  T_INTEGER.: T_INTEGER : T_INTEGER o_zone 
+
+	T_PLUS  shift 43
+	T_MINUS  shift 75
+	T_ZONE  shift 41
+	:  shift 105
+	.  error
+
+	sign  goto 42
+	zone  goto 32
+
+state 73
+	time:  T_INTEGER ampm o_zone.    (37)
+
+	.  reduce 37 (src line 131)
+
+
+state 74
+	o_zone:  zone.    (24)
+
+	.  reduce 24 (src line 104)
+
+
+state 75
+	sign:  T_MINUS.    (16)
+
+	.  reduce 16 (src line 71)
+
+
+76: shift/reduce conflict (shift 43(0), red'n 23(0)) on T_PLUS
+76: shift/reduce conflict (shift 75(0), red'n 23(0)) on T_MINUS
+76: shift/reduce conflict (shift 39(0), red'n 23(0)) on A
+76: shift/reduce conflict (shift 40(0), red'n 23(0)) on P
+state 76
+	time:  T_INTEGER : T_INTEGER.ampm o_zone 
+	time:  T_INTEGER : T_INTEGER.: T_INTEGER ampm o_zone 
+	iso_8601_time:  T_INTEGER : T_INTEGER.o_zone 
+	iso_8601_time:  T_INTEGER : T_INTEGER.: T_INTEGER o_zone 
+	o_zone: .    (23)
+
+	T_PLUS  shift 43
+	T_MINUS  shift 75
+	T_ZONE  shift 41
+	A  shift 39
+	P  shift 40
+	:  shift 107
+	.  reduce 23 (src line 102)
+
+	sign  goto 42
+	ampm  goto 106
+	zone  goto 74
+	o_zone  goto 108
+
+state 77
+	date:  T_INTEGER / T_INTEGER.    (43)
+	date:  T_INTEGER / T_INTEGER./ T_INTEGER 
+
+	/  shift 109
+	.  reduce 43 (src line 158)
+
+
+state 78
+	date:  T_INTEGER o_dayqual o_of.T_MONTHNAME 
+	date:  T_INTEGER o_dayqual o_of.T_MONTHNAME T_INTEGER 
+
+	T_MONTHNAME  shift 110
+	.  error
+
+
+state 79
+	o_of:  of.    (8)
+
+	.  reduce 8 (src line 52)
+
+
+state 80
+	of:  O.F 
+
+	F  shift 111
+	.  error
+
+
+state 81
+	date:  T_INTEGER T_MINUS T_MONTHNAME.T_MINUS T_INTEGER 
+
+	T_MINUS  shift 112
+	.  error
+
+
+82: shift/reduce conflict (shift 113(0), red'n 50(0)) on T_MINUS
+state 82
+	iso_8601_date:  T_INTEGER T_MINUS T_INTEGER.    (50)
+	iso_8601_date:  T_INTEGER T_MINUS T_INTEGER.T_MINUS T_INTEGER 
+
+	T_MINUS  shift 113
+	.  reduce 50 (src line 238)
+
+
+state 83
+	iso_8601_date:  T_INTEGER T_MINUS W.T_INTEGER 
+	iso_8601_date:  T_INTEGER T_MINUS W.T_INTEGER T_MINUS T_INTEGER 
 
 	T_INTEGER  shift 114
 	.  error
 
 
-101: shift/reduce conflict (shift 115(0), red'n 47(0)) on T_MINUS
-state 101
-	iso_8601_date:  T_INTEGER T_MINUS W T_INTEGER.    (47)
-	iso_8601_date:  T_INTEGER T_MINUS W T_INTEGER.T_MINUS T_INTEGER 
+state 84
+	iso_8601_date:  T_INTEGER W T_INTEGER.    (52)
 
-	T_MINUS  shift 115
-	.  reduce 47 (src line 243)
+	.  reduce 52 (src line 266)
 
 
-state 102
-	iso_8601_date_time:  T_INTEGER T T_INTEGER o_zone.    (50)
+85: shift/reduce conflict (shift 43(0), red'n 23(0)) on T_PLUS
+85: shift/reduce conflict (shift 75(0), red'n 23(0)) on T_MINUS
+state 85
+	iso_8601_date_time:  T_INTEGER T T_INTEGER.o_zone 
+	o_zone: .    (23)
 
-	.  reduce 50 (src line 255)
+	T_PLUS  shift 43
+	T_MINUS  shift 75
+	T_ZONE  shift 41
+	.  reduce 23 (src line 102)
+
+	sign  goto 42
+	zone  goto 74
+	o_zone  goto 115
+
+state 86
+	day_or_month:  T_INTEGER T_DAYQUAL T_DAYNAME.    (62)
+	day_or_month:  T_INTEGER T_DAYQUAL T_DAYNAME.of T_MONTHNAME 
+	day_or_month:  T_INTEGER T_DAYQUAL T_DAYNAME.of T_INTEGER 
+	day_or_month:  T_INTEGER T_DAYQUAL T_DAYNAME.of T_MONTHNAME T_INTEGER 
+	day_or_month:  T_INTEGER T_DAYQUAL T_DAYNAME.of T_RELATIVE T_MONTHNAME 
+
+	O  shift 80
+	.  reduce 62 (src line 317)
+
+	of  goto 116
+
+state 87
+	ampm:  A M.    (11)
+
+	.  reduce 11 (src line 56)
 
 
-state 103
-	day_or_month:  T_INTEGER T_DAYQUAL T_DAYNAME of.T_MONTHNAME 
-	day_or_month:  T_INTEGER T_DAYQUAL T_DAYNAME of.T_INTEGER 
-	day_or_month:  T_INTEGER T_DAYQUAL T_DAYNAME of.T_MONTHNAME T_INTEGER 
-	day_or_month:  T_INTEGER T_DAYQUAL T_DAYNAME of.T_RELATIVE T_MONTHNAME 
+state 88
+	ampm:  A ..M . 
 
-	T_INTEGER  shift 117
-	T_MONTHNAME  shift 116
-	T_RELATIVE  shift 118
+	M  shift 117
 	.  error
 
 
-state 104
-	zone:  sign T_INTEGER :.T_INTEGER 
+state 89
+	ampm:  P M.    (13)
 
-	T_INTEGER  shift 119
+	.  reduce 13 (src line 63)
+
+
+state 90
+	ampm:  P ..M . 
+
+	M  shift 118
+	.  error
+
+
+state 91
+	zone:  sign T_INTEGER.    (21)
+	zone:  sign T_INTEGER.: T_INTEGER 
+
+	:  shift 119
+	.  reduce 21 (src line 87)
+
+
+state 92
+	date:  T_MONTHNAME T_INTEGER o_dayqual.    (46)
+	date:  T_MONTHNAME T_INTEGER o_dayqual.comma T_INTEGER 
+
+	,  shift 47
+	.  reduce 46 (src line 186)
+
+	comma  goto 120
+
+state 93
+	o_dayqual:  T_DAYQUAL.    (10)
+
+	.  reduce 10 (src line 54)
+
+
+state 94
+	relunit:  o_sign_integer M $$80.o_sign_integer W 
+
+	T_INTEGER  shift 28
+	T_PLUS  shift 23
+	T_MINUS  shift 24
+	.  error
+
+	o_sign_integer  goto 121
+
+state 95
+	iso_8601_duration:  P ymd_units o_t_hms_units.    (82)
+
+	.  reduce 82 (src line 397)
+
+
+state 96
+	ymd_units:  ymd_units ymd_unit.    (86)
+
+	.  reduce 86 (src line 407)
+
+
+state 97
+	o_t_hms_units:  t_hms_units.    (95)
+
+	.  reduce 95 (src line 436)
+
+
+state 98
+	ymd_unit:  T_INTEGER.T_ISOYD 
+	ymd_unit:  T_INTEGER.M 
+
+	T_ISOYD  shift 100
+	M  shift 101
+	.  error
+
+
+state 99
+	iso_8601_duration:  P T_INTEGER W.    (84)
+
+	.  reduce 84 (src line 400)
+
+
+state 100
+	ymd_unit:  T_INTEGER T_ISOYD.    (87)
+
+	.  reduce 87 (src line 409)
+
+
+state 101
+	ymd_unit:  T_INTEGER M.    (88)
+
+	.  reduce 88 (src line 414)
+
+
+102: shift/reduce conflict (shift 104(0), red'n 93(0)) on T_INTEGER
+state 102
+	hms_units:  hms_units.hms_unit 
+	t_hms_units:  T hms_units.    (93)
+
+	T_INTEGER  shift 104
+	.  reduce 93 (src line 431)
+
+	hms_unit  goto 122
+
+state 103
+	hms_units:  hms_unit.    (89)
+
+	.  reduce 89 (src line 418)
+
+
+state 104
+	hms_unit:  T_INTEGER.T_ISOHS 
+	hms_unit:  T_INTEGER.M 
+
+	T_ISOHS  shift 123
+	M  shift 124
 	.  error
 
 
 state 105
-	date:  T_MONTHNAME T_INTEGER o_dayqual o_comma.T_INTEGER 
-
-	T_INTEGER  shift 120
-	.  error
-
-
-state 106
-	hms_units:  hms_units hms_unit.    (81)
-
-	.  reduce 81 (src line 379)
-
-
-state 107
-	hms_unit:  T_INTEGER T_ISOHS.    (82)
-
-	.  reduce 82 (src line 381)
-
-
-state 108
-	hms_unit:  T_INTEGER M.    (83)
-
-	.  reduce 83 (src line 386)
-
-
-109: shift/reduce conflict (shift 40(0), red'n 18(0)) on T_PLUS
-109: shift/reduce conflict (shift 69(0), red'n 18(0)) on T_MINUS
-state 109
-	iso_8601_time:  T_INTEGER : T_INTEGER.o_zone 
-	iso_8601_time:  T_INTEGER : T_INTEGER.: T_INTEGER o_zone 
-	o_zone: .    (18)
-
-	T_PLUS  shift 40
-	T_MINUS  shift 69
-	T_ZONE  shift 38
-	:  shift 121
-	.  reduce 18 (src line 86)
-
-	sign  goto 39
-	zone  goto 68
-	o_zone  goto 96
-
-state 110
-	time:  T_INTEGER : T_INTEGER T_AMPM o_zone.    (33)
-
-	.  reduce 33 (src line 116)
-
-
-111: shift/reduce conflict (shift 40(0), red'n 18(0)) on T_PLUS
-111: shift/reduce conflict (shift 69(0), red'n 18(0)) on T_MINUS
-state 111
-	time:  T_INTEGER : T_INTEGER : T_INTEGER.T_AMPM o_zone 
-	iso_8601_time:  T_INTEGER : T_INTEGER : T_INTEGER.o_zone 
-	o_zone: .    (18)
-
-	T_PLUS  shift 40
-	T_MINUS  shift 69
-	T_AMPM  shift 122
-	T_ZONE  shift 38
-	.  reduce 18 (src line 86)
-
-	sign  goto 39
-	zone  goto 68
-	o_zone  goto 123
-
-state 112
-	date:  T_INTEGER / T_INTEGER / T_INTEGER.    (39)
-
-	.  reduce 39 (src line 150)
-
-
-state 113
-	date:  T_INTEGER o_dayqual o_of T_MONTHNAME T_INTEGER.    (42)
-
-	.  reduce 42 (src line 177)
-
-
-state 114
-	iso_8601_date:  T_INTEGER T_MINUS T_INTEGER T_MINUS T_INTEGER.    (45)
-
-	.  reduce 45 (src line 220)
-
-
-state 115
-	iso_8601_date:  T_INTEGER T_MINUS W T_INTEGER T_MINUS.T_INTEGER 
-
-	T_INTEGER  shift 124
-	.  error
-
-
-116: shift/reduce conflict (shift 125(0), red'n 57(0)) on T_INTEGER
-state 116
-	day_or_month:  T_INTEGER T_DAYQUAL T_DAYNAME of T_MONTHNAME.    (57)
-	day_or_month:  T_INTEGER T_DAYQUAL T_DAYNAME of T_MONTHNAME.T_INTEGER 
+	iso_8601_time:  T_INTEGER :.T_INTEGER o_zone 
+	iso_8601_time:  T_INTEGER :.T_INTEGER : T_INTEGER o_zone 
 
 	T_INTEGER  shift 125
-	.  reduce 57 (src line 288)
-
-
-state 117
-	day_or_month:  T_INTEGER T_DAYQUAL T_DAYNAME of T_INTEGER.    (58)
-
-	.  reduce 58 (src line 294)
-
-
-state 118
-	day_or_month:  T_INTEGER T_DAYQUAL T_DAYNAME of T_RELATIVE.T_MONTHNAME 
-
-	T_MONTHNAME  shift 126
 	.  error
 
 
-state 119
-	zone:  sign T_INTEGER : T_INTEGER.    (17)
+106: shift/reduce conflict (shift 43(0), red'n 23(0)) on T_PLUS
+106: shift/reduce conflict (shift 75(0), red'n 23(0)) on T_MINUS
+state 106
+	time:  T_INTEGER : T_INTEGER ampm.o_zone 
+	o_zone: .    (23)
 
-	.  reduce 17 (src line 82)
+	T_PLUS  shift 43
+	T_MINUS  shift 75
+	T_ZONE  shift 41
+	.  reduce 23 (src line 102)
 
+	sign  goto 42
+	zone  goto 74
+	o_zone  goto 126
 
-state 120
-	date:  T_MONTHNAME T_INTEGER o_dayqual o_comma T_INTEGER.    (43)
-
-	.  reduce 43 (src line 190)
-
-
-state 121
+state 107
+	time:  T_INTEGER : T_INTEGER :.T_INTEGER ampm o_zone 
 	iso_8601_time:  T_INTEGER : T_INTEGER :.T_INTEGER o_zone 
 
 	T_INTEGER  shift 127
 	.  error
 
 
-122: shift/reduce conflict (shift 40(0), red'n 18(0)) on T_PLUS
-122: shift/reduce conflict (shift 69(0), red'n 18(0)) on T_MINUS
+state 108
+	iso_8601_time:  T_INTEGER : T_INTEGER o_zone.    (41)
+
+	.  reduce 41 (src line 148)
+
+
+state 109
+	date:  T_INTEGER / T_INTEGER /.T_INTEGER 
+
+	T_INTEGER  shift 128
+	.  error
+
+
+110: shift/reduce conflict (shift 129(0), red'n 45(0)) on T_INTEGER
+state 110
+	date:  T_INTEGER o_dayqual o_of T_MONTHNAME.    (45)
+	date:  T_INTEGER o_dayqual o_of T_MONTHNAME.T_INTEGER 
+
+	T_INTEGER  shift 129
+	.  reduce 45 (src line 182)
+
+
+state 111
+	of:  O F.    (6)
+
+	.  reduce 6 (src line 50)
+
+
+state 112
+	date:  T_INTEGER T_MINUS T_MONTHNAME T_MINUS.T_INTEGER 
+
+	T_INTEGER  shift 130
+	.  error
+
+
+state 113
+	iso_8601_date:  T_INTEGER T_MINUS T_INTEGER T_MINUS.T_INTEGER 
+
+	T_INTEGER  shift 131
+	.  error
+
+
+114: shift/reduce conflict (shift 132(0), red'n 53(0)) on T_MINUS
+state 114
+	iso_8601_date:  T_INTEGER T_MINUS W T_INTEGER.    (53)
+	iso_8601_date:  T_INTEGER T_MINUS W T_INTEGER.T_MINUS T_INTEGER 
+
+	T_MINUS  shift 132
+	.  reduce 53 (src line 276)
+
+
+state 115
+	iso_8601_date_time:  T_INTEGER T T_INTEGER o_zone.    (56)
+
+	.  reduce 56 (src line 288)
+
+
+state 116
+	day_or_month:  T_INTEGER T_DAYQUAL T_DAYNAME of.T_MONTHNAME 
+	day_or_month:  T_INTEGER T_DAYQUAL T_DAYNAME of.T_INTEGER 
+	day_or_month:  T_INTEGER T_DAYQUAL T_DAYNAME of.T_MONTHNAME T_INTEGER 
+	day_or_month:  T_INTEGER T_DAYQUAL T_DAYNAME of.T_RELATIVE T_MONTHNAME 
+
+	T_INTEGER  shift 134
+	T_MONTHNAME  shift 133
+	T_RELATIVE  shift 135
+	.  error
+
+
+state 117
+	ampm:  A . M.. 
+
+	.  shift 136
+	.  error
+
+
+state 118
+	ampm:  P . M.. 
+
+	.  shift 137
+	.  error
+
+
+state 119
+	zone:  sign T_INTEGER :.T_INTEGER 
+
+	T_INTEGER  shift 138
+	.  error
+
+
+state 120
+	date:  T_MONTHNAME T_INTEGER o_dayqual comma.T_INTEGER 
+
+	T_INTEGER  shift 139
+	.  error
+
+
+state 121
+	relunit:  o_sign_integer M $$80 o_sign_integer.W 
+
+	W  shift 140
+	.  error
+
+
 state 122
-	time:  T_INTEGER : T_INTEGER : T_INTEGER T_AMPM.o_zone 
-	o_zone: .    (18)
+	hms_units:  hms_units hms_unit.    (90)
 
-	T_PLUS  shift 40
-	T_MINUS  shift 69
-	T_ZONE  shift 38
-	.  reduce 18 (src line 86)
+	.  reduce 90 (src line 420)
 
-	sign  goto 39
-	zone  goto 68
-	o_zone  goto 128
 
 state 123
-	iso_8601_time:  T_INTEGER : T_INTEGER : T_INTEGER o_zone.    (37)
+	hms_unit:  T_INTEGER T_ISOHS.    (91)
 
-	.  reduce 37 (src line 132)
+	.  reduce 91 (src line 422)
 
 
 state 124
-	iso_8601_date:  T_INTEGER T_MINUS W T_INTEGER T_MINUS T_INTEGER.    (48)
+	hms_unit:  T_INTEGER M.    (92)
 
-	.  reduce 48 (src line 247)
+	.  reduce 92 (src line 427)
 
 
+125: shift/reduce conflict (shift 43(0), red'n 23(0)) on T_PLUS
+125: shift/reduce conflict (shift 75(0), red'n 23(0)) on T_MINUS
 state 125
-	day_or_month:  T_INTEGER T_DAYQUAL T_DAYNAME of T_MONTHNAME T_INTEGER.    (59)
+	iso_8601_time:  T_INTEGER : T_INTEGER.o_zone 
+	iso_8601_time:  T_INTEGER : T_INTEGER.: T_INTEGER o_zone 
+	o_zone: .    (23)
 
-	.  reduce 59 (src line 298)
+	T_PLUS  shift 43
+	T_MINUS  shift 75
+	T_ZONE  shift 41
+	:  shift 141
+	.  reduce 23 (src line 102)
 
+	sign  goto 42
+	zone  goto 74
+	o_zone  goto 108
 
 state 126
-	day_or_month:  T_INTEGER T_DAYQUAL T_DAYNAME of T_RELATIVE T_MONTHNAME.    (60)
+	time:  T_INTEGER : T_INTEGER ampm o_zone.    (38)
 
-	.  reduce 60 (src line 304)
+	.  reduce 38 (src line 135)
 
 
-127: shift/reduce conflict (shift 40(0), red'n 18(0)) on T_PLUS
-127: shift/reduce conflict (shift 69(0), red'n 18(0)) on T_MINUS
+127: shift/reduce conflict (shift 43(0), red'n 23(0)) on T_PLUS
+127: shift/reduce conflict (shift 75(0), red'n 23(0)) on T_MINUS
+127: shift/reduce conflict (shift 39(0), red'n 23(0)) on A
+127: shift/reduce conflict (shift 40(0), red'n 23(0)) on P
 state 127
+	time:  T_INTEGER : T_INTEGER : T_INTEGER.ampm o_zone 
 	iso_8601_time:  T_INTEGER : T_INTEGER : T_INTEGER.o_zone 
-	o_zone: .    (18)
+	o_zone: .    (23)
 
-	T_PLUS  shift 40
-	T_MINUS  shift 69
-	T_ZONE  shift 38
-	.  reduce 18 (src line 86)
+	T_PLUS  shift 43
+	T_MINUS  shift 75
+	T_ZONE  shift 41
+	A  shift 39
+	P  shift 40
+	.  reduce 23 (src line 102)
 
-	sign  goto 39
-	zone  goto 68
-	o_zone  goto 123
+	sign  goto 42
+	ampm  goto 142
+	zone  goto 74
+	o_zone  goto 143
 
 state 128
-	time:  T_INTEGER : T_INTEGER : T_INTEGER T_AMPM o_zone.    (34)
+	date:  T_INTEGER / T_INTEGER / T_INTEGER.    (44)
 
-	.  reduce 34 (src line 119)
+	.  reduce 44 (src line 169)
 
 
-28 terminals, 30 nonterminals
-88 grammar rules, 129/2000 states
-30 shift/reduce, 3 reduce/reduce conflicts reported
-79 working sets used
-memory: parser 59/30000
-2 extra closures
-127 shift entries, 9 exceptions
-47 goto entries
+state 129
+	date:  T_INTEGER o_dayqual o_of T_MONTHNAME T_INTEGER.    (47)
+
+	.  reduce 47 (src line 196)
+
+
+state 130
+	date:  T_INTEGER T_MINUS T_MONTHNAME T_MINUS T_INTEGER.    (48)
+
+	.  reduce 48 (src line 209)
+
+
+state 131
+	iso_8601_date:  T_INTEGER T_MINUS T_INTEGER T_MINUS T_INTEGER.    (51)
+
+	.  reduce 51 (src line 253)
+
+
+state 132
+	iso_8601_date:  T_INTEGER T_MINUS W T_INTEGER T_MINUS.T_INTEGER 
+
+	T_INTEGER  shift 144
+	.  error
+
+
+133: shift/reduce conflict (shift 145(0), red'n 63(0)) on T_INTEGER
+state 133
+	day_or_month:  T_INTEGER T_DAYQUAL T_DAYNAME of T_MONTHNAME.    (63)
+	day_or_month:  T_INTEGER T_DAYQUAL T_DAYNAME of T_MONTHNAME.T_INTEGER 
+
+	T_INTEGER  shift 145
+	.  reduce 63 (src line 321)
+
+
+state 134
+	day_or_month:  T_INTEGER T_DAYQUAL T_DAYNAME of T_INTEGER.    (64)
+
+	.  reduce 64 (src line 327)
+
+
+state 135
+	day_or_month:  T_INTEGER T_DAYQUAL T_DAYNAME of T_RELATIVE.T_MONTHNAME 
+
+	T_MONTHNAME  shift 146
+	.  error
+
+
+state 136
+	ampm:  A . M ..    (12)
+
+	.  reduce 12 (src line 60)
+
+
+state 137
+	ampm:  P . M ..    (14)
+
+	.  reduce 14 (src line 66)
+
+
+state 138
+	zone:  sign T_INTEGER : T_INTEGER.    (22)
+
+	.  reduce 22 (src line 98)
+
+
+state 139
+	date:  T_MONTHNAME T_INTEGER o_dayqual comma T_INTEGER.    (49)
+
+	.  reduce 49 (src line 223)
+
+
+state 140
+	relunit:  o_sign_integer M $$80 o_sign_integer W.    (81)
+
+	.  reduce 81 (src line 392)
+
+
+state 141
+	iso_8601_time:  T_INTEGER : T_INTEGER :.T_INTEGER o_zone 
+
+	T_INTEGER  shift 147
+	.  error
+
+
+142: shift/reduce conflict (shift 43(0), red'n 23(0)) on T_PLUS
+142: shift/reduce conflict (shift 75(0), red'n 23(0)) on T_MINUS
+state 142
+	time:  T_INTEGER : T_INTEGER : T_INTEGER ampm.o_zone 
+	o_zone: .    (23)
+
+	T_PLUS  shift 43
+	T_MINUS  shift 75
+	T_ZONE  shift 41
+	.  reduce 23 (src line 102)
+
+	sign  goto 42
+	zone  goto 74
+	o_zone  goto 148
+
+state 143
+	iso_8601_time:  T_INTEGER : T_INTEGER : T_INTEGER o_zone.    (42)
+
+	.  reduce 42 (src line 151)
+
+
+state 144
+	iso_8601_date:  T_INTEGER T_MINUS W T_INTEGER T_MINUS T_INTEGER.    (54)
+
+	.  reduce 54 (src line 280)
+
+
+state 145
+	day_or_month:  T_INTEGER T_DAYQUAL T_DAYNAME of T_MONTHNAME T_INTEGER.    (65)
+
+	.  reduce 65 (src line 331)
+
+
+state 146
+	day_or_month:  T_INTEGER T_DAYQUAL T_DAYNAME of T_RELATIVE T_MONTHNAME.    (66)
+
+	.  reduce 66 (src line 337)
+
+
+147: shift/reduce conflict (shift 43(0), red'n 23(0)) on T_PLUS
+147: shift/reduce conflict (shift 75(0), red'n 23(0)) on T_MINUS
+state 147
+	iso_8601_time:  T_INTEGER : T_INTEGER : T_INTEGER.o_zone 
+	o_zone: .    (23)
+
+	T_PLUS  shift 43
+	T_MINUS  shift 75
+	T_ZONE  shift 41
+	.  reduce 23 (src line 102)
+
+	sign  goto 42
+	zone  goto 74
+	o_zone  goto 143
+
+state 148
+	time:  T_INTEGER : T_INTEGER : T_INTEGER ampm o_zone.    (39)
+
+	.  reduce 39 (src line 138)
+
+
+29 terminals, 33 nonterminals
+97 grammar rules, 149/2000 states
+37 shift/reduce, 2 reduce/reduce conflicts reported
+82 working sets used
+memory: parser 64/30000
+7 extra closures
+149 shift entries, 7 exceptions
+53 goto entries
 18 entries saved by goto default
-Optimizer space used: output 159/30000
-159 table entries, 0 zero
-maximum spread: 28, maximum offset: 127
+Optimizer space used: output 184/30000
+184 table entries, 0 zero
+maximum spread: 29, maximum offset: 147

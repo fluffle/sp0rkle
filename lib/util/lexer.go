@@ -12,6 +12,14 @@ type Lexer struct {
 	start, pos, width int
 }
 
+// Pos() sets or returns the current position of the lexer in the string.
+func (l *Lexer) Pos(pos ...int) int {
+	if len(pos) > 0 {
+		l.pos = pos[0]
+	}
+	return l.pos
+}
+
 // peek() returns the utf8 rune that is at lexer.pos in the input string.
 // It does not move input.pos; repeated peek()s will return the same rune.
 func (l *Lexer) Peek() (r rune) {

@@ -15,13 +15,11 @@ type numMap map[string]struct {
 }
 
 var numTokenMap = numMap{
-	"AM":        {T_AMPM, 0},
-	"PM":        {T_AMPM, 12},
 	"AGO":       {T_AGO, -1},
 	"YEAR":      {T_OFFSET, int(O_YEAR)},
 	"Y":         {T_ISOYD, int(O_YEAR)},
 	"MONTH":     {T_OFFSET, int(O_MONTH)},
-// Ambiguity problems.
+// *Many* ambiguity problems.
 //	"M":         {T_ISO, int(O_MONTH)},
 	"FORTNIGHT": {T_DAYS, 14},
 	"WEEK":      {T_DAYS, 7},
@@ -103,7 +101,6 @@ type relMap map[string]int
 var relTokenMap = relMap{
 	"LAST":    -1,
 	"THIS":     0,
-	"A":        1,
 	"NEXT":     1,
 	"FIRST":    1,
 	"ONE":      1,
@@ -145,7 +142,10 @@ func zone(loc string) *time.Location {
 	if l, ok := zoneCache[loc]; ok {
 		return l
 	}
-	l, _ := time.LoadLocation(loc)
+	l, err := time.LoadLocation(loc)
+	if err != nil {
+		return nil
+	}
 	zoneCache[loc] = l
 	return l
 }
@@ -247,14 +247,20 @@ type tokenMapList []tokenMap
 var tokenMaps = tokenMapList{numTokenMap, abbrTokenMap, relTokenMap, zoneTokenMap}
 
 func (l tokenMapList) Lookup(input string, lval *yySymType) (int, bool) {
-	fmt.Printf("Map lookup: %s\n", input)
+	if DEBUG {
+		fmt.Printf("Map lookup: %s\n", input)
+	}
 	// These maps are defined in tokenmaps.go
 	for _, m := range l {
 		if tok, ok := m.Lookup(input, lval); ok {
-			fmt.Printf("Map got: %d %d\n", lval.intval, tok)
+			if DEBUG {
+				fmt.Printf("Map got: %d %d\n", lval.intval, tok)
+			}
 			return tok, ok
 		}
 	}
-	fmt.Printf("Map lookup failed\n")
+	if DEBUG {
+		fmt.Printf("Map lookup failed\n")
+	}
 	return 0, false
 }

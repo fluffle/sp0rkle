@@ -29,11 +29,11 @@ type textint struct {
 %token           T_DAYQUAL
 %token <tval>    T_INTEGER
 %token <intval>  T_PLUS T_MINUS
-%token <intval>  T_AMPM T_MONTHNAME T_DAYNAME T_DAYS T_DAYSHIFT
+%token <intval>  T_MONTHNAME T_DAYNAME T_DAYS T_DAYSHIFT
 %token <intval>  T_OFFSET T_ISOYD T_ISOHS T_RELATIVE T_AGO
 %token <zoneval> T_ZONE
 
-%type <intval>   sign
+%type <intval>   sign ampm
 %type <tval>     o_sign_integer
 %type <zoneval>  zone o_zone
 
@@ -42,14 +42,30 @@ type textint struct {
 spec:
 	unixtime | items;
 
+comma: ',';
+
 o_comma:
-	/* empty */ | ',';
+	/* empty */ | comma;
 
 of: 'O' 'F';
 
 o_of: /* empty */ | of;
 
 o_dayqual: /* empty */ | T_DAYQUAL;
+
+ampm:
+	'A' 'M' {
+	    $$ = 0
+	}
+	| 'A' '.' 'M' '.' {
+	    $$ = 0
+	}
+	| 'P' 'M' {
+	    $$ = 12
+	}
+	| 'P' '.' 'M' '.' {
+	    $$ = 12
+	};
 
 sign:
 	T_PLUS | T_MINUS; 
@@ -89,7 +105,10 @@ o_zone:
 	
 unixtime:
 	'@' o_sign_integer {
-		yylex.(*dateLexer).time = time.Unix(int64($2.i), 0)
+		l := yylex.(*dateLexer)
+		if ! l.state(HAVE_TIME, true) {
+			l.time = time.Unix(int64($2.i), 0)
+		}
 	};
 
 items:
@@ -110,13 +129,13 @@ item:
 // ISO 8601 takes care of 24h time formats, so this deals with
 // 12-hour HH, HH:MM or HH:MM:SS with am/pm and optional timezone
 time:
-	T_INTEGER T_AMPM o_zone {
+	T_INTEGER ampm o_zone {
 		yylex.(*dateLexer).setTime($1.i + $2, 0, 0, $3)
 	}
-	| T_INTEGER ':' T_INTEGER T_AMPM o_zone {
+	| T_INTEGER ':' T_INTEGER ampm o_zone {
 		yylex.(*dateLexer).setTime($1.i + $4, $3.i, 0, $5)
 	}
-	| T_INTEGER ':' T_INTEGER ':' T_INTEGER T_AMPM o_zone {
+	| T_INTEGER ':' T_INTEGER ':' T_INTEGER ampm o_zone {
 		yylex.(*dateLexer).setTime($1.i + $6, $3.i, $5.i, $7)
 	};
 
@@ -187,7 +206,21 @@ date:
 			l.setDate($5.i + 2000, $4, $1.i)
 		}
 	}
-	| T_MONTHNAME T_INTEGER o_dayqual o_comma T_INTEGER {
+	| T_INTEGER T_MINUS T_MONTHNAME T_MINUS T_INTEGER {
+	    // RFC 850, srsly :(
+		l := yylex.(*dateLexer)
+		if $5.l == 4 {
+			// assume DD-Mon-YYYY
+			l.setDate($5.i, $3, $1.i)
+		} else if $5.i > 68 {
+			// assume DD-Mon-YY, add 1900 if YY > 68
+			l.setDate($5.i + 1900, $3, $1.i)
+		} else {
+			// assume DD-Mon-YY, add 2000 otherwise
+			l.setDate($5.i + 2000, $3, $1.i)
+		}
+	}
+	| T_MONTHNAME T_INTEGER o_dayqual comma T_INTEGER {
 		l := yylex.(*dateLexer)
 		if $5.l == 4 {
 			// assume Mon DDth, YYYY
@@ -196,7 +229,7 @@ date:
 			// assume Mon DDth, YY, add 1900 if YY > 68
 			l.setDate($5.i + 1900, $1, $2.i)
 		} else {
-			// assume Mon DDth YY, add 2000 otherwise
+			// assume Mon DDth, YY, add 2000 otherwise
 			l.setDate($5.i + 2000, $1, $2.i)
 		}
 	};
@@ -214,7 +247,7 @@ iso_8601_date:
 		} else {
 			// assume we have MM-DD (not strictly ISO compliant)
 			// this is for americans, because of DD/MM above ;-)
-			l.setDate(0, $3.i, $1.i)
+			l.setDate(0, $1.i, $3.i)
 		}
 	}
 	| T_INTEGER T_MINUS T_INTEGER T_MINUS T_INTEGER {
@@ -235,8 +268,8 @@ iso_8601_date:
 		wday, week := 1, $3.i
 		if $3.l == 3 {
 			// assume YYYY'W'WWD
-			week = week / 10
 			wday = week % 10
+			week = week / 10
 		}
 		l.setWeek($1.i, week, wday)
 	}
@@ -330,12 +363,18 @@ relunit:
 	| T_RELATIVE T_OFFSET {
 		yylex.(*dateLexer).addOffset(offset($2), $1)
 	} 
+	| 'A' T_OFFSET {
+		yylex.(*dateLexer).addOffset(offset($2), 1)
+	} 
 	| o_sign_integer T_DAYS {
 		// Special-case to handle "week" and "fortnight"
 		yylex.(*dateLexer).addOffset(O_DAY, $1.i * $2)
 	}
 	| T_RELATIVE T_DAYS {
 		yylex.(*dateLexer).addOffset(O_DAY, $1 * $2)
+	}
+	| 'A' T_DAYS {
+		yylex.(*dateLexer).addOffset(O_DAY, $2)
 	}
 	| o_sign_integer T_ISOYD {
 		// As we need to be able to separate out YD from HS in ISO durations
@@ -351,8 +390,8 @@ relunit:
 		// Resolve 'm' ambiguity in favour of minutes outside ISO duration
 		yylex.(*dateLexer).addOffset(O_MIN, $1.i)
 	} o_sign_integer 'W' {
-        yylex.(*dateLexer).addOffset(O_DAY, $1.i * 7)
-    };
+	    yylex.(*dateLexer).addOffset(O_DAY, $1.i * 7)
+	};
 
 /* date/time based durations not yet supported */
 iso_8601_duration:
@@ -402,9 +441,14 @@ integer:
 		if $1.l == 8 {
 			// assume ISO 8601 YYYYMMDD
 			l.setYMD($1.i, $1.l)
-		} else {
+		} else if $1.l == 6 {
 			// assume ISO 8601 HHMMSS with no zone
 			l.setHMS($1.i, $1.l, nil)
-		}   
+		} else if $1.l == 4 {
+			// assume setting YYYY, because otherwise parsing ANSIC, UnixTime
+			// and RubyTime formats fails as the year is after the time
+			// Probably should be HHMM instead...
+			l.setYear($1.i)
+		}
 	};
 %%
