@@ -350,7 +350,9 @@ relunit:
 	| o_sign_integer 'M' {
 		// Resolve 'm' ambiguity in favour of minutes outside ISO duration
 		yylex.(*dateLexer).addOffset(O_MIN, $1.i)
-	};
+	} o_sign_integer 'W' {
+        yylex.(*dateLexer).addOffset(O_DAY, $1.i * 7)
+    };
 
 /* date/time based durations not yet supported */
 iso_8601_duration:
