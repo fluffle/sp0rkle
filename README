@@ -46,6 +46,7 @@ cd $GOPATH/src/github.com/fluffle
 # If you do that, clone with:
 git clone git@github.com:<username>/sp0rkle.git
 # and then add my repository as an alternative remote to pull from:
+cd sp0rkle
 git remote add -f -m master fluffle http://github.com/fluffle/sp0rkle.git
 
 # Otherwise, just clone from my repository:
