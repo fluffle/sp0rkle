@@ -111,7 +111,10 @@ Core
 ====
 *Persistent ignore list
 *Admin commands like join/part/ignore (and perms)
-* Rewrite driver handlers to be methods wherever possible?
+
+* Change command dispatch to be more centralised, use net/http handler and mux
+  as a design principle. Only goirc handlers should be in bot/handlers.go
+* Push this up into a layer in goirc.
 
 *Ticker for reminders
   - probably implemented with go func(){ time.Sleep(t); ... }()
