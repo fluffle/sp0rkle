@@ -65,7 +65,7 @@ const yyEofCode = 1
 const yyErrCode = 2
 const yyMaxDepth = 200
 
-//line datetime.y:454
+//line datetime.y:463
 
 
 //line yacctab:1
@@ -699,47 +699,53 @@ yydefault:
 			// this goes here because the YYYYMMDD and HHMMSS forms of the
 		// ISO 8601 format date and time are handled by 'integer' below.
 		l := yylex.(*dateLexer)
+			if yyS[yypt-3].tval.l == 8 {
+				// assume ISO 8601 YYYYMMDD
 			l.setYMD(yyS[yypt-3].tval.i, yyS[yypt-3].tval.l)
+	        } else if yyS[yypt-3].tval.l == 7 {
+	            // assume ISO 8601 ordinal YYYYDDD
+			l.setDate(yyS[yypt-3].tval.i / 1000, 1, yyS[yypt-3].tval.i % 1000)
+	        }
 			l.setHMS(yyS[yypt-1].tval.i, yyS[yypt-1].tval.l, yyS[yypt-0].zoneval)
 		}
 	case 57:
-		//line datetime.y:297
+		//line datetime.y:303
 		{
 			// Tuesday
 		yylex.(*dateLexer).setDay(yyS[yypt-1].intval, 0)
 		}
 	case 58:
-		//line datetime.y:301
+		//line datetime.y:307
 		{
 			// March
 		yylex.(*dateLexer).setMonth(yyS[yypt-0].intval, 0)
 		}
 	case 59:
-		//line datetime.y:305
+		//line datetime.y:311
 		{
 			// Next tuesday
 		yylex.(*dateLexer).setDay(yyS[yypt-0].intval, yyS[yypt-1].intval)
 		}
 	case 60:
-		//line datetime.y:309
+		//line datetime.y:315
 		{
 			// Next march
 		yylex.(*dateLexer).setMonth(yyS[yypt-0].intval, yyS[yypt-1].intval)
 		}
 	case 61:
-		//line datetime.y:313
+		//line datetime.y:319
 		{
 			// +-N Tuesdays
 		yylex.(*dateLexer).setDay(yyS[yypt-0].intval, yyS[yypt-1].tval.i)
 		}
 	case 62:
-		//line datetime.y:317
+		//line datetime.y:323
 		{
 			// 3rd Tuesday 
 		yylex.(*dateLexer).setDay(yyS[yypt-0].intval, yyS[yypt-2].tval.i)
 		}
 	case 63:
-		//line datetime.y:321
+		//line datetime.y:327
 		{
 			// 3rd Tuesday of (implicit this) March
 		l := yylex.(*dateLexer)
@@ -747,13 +753,13 @@ yydefault:
 			l.setMonth(yyS[yypt-0].intval, 1)
 		}
 	case 64:
-		//line datetime.y:327
+		//line datetime.y:333
 		{
 			// 3rd Tuesday of 2012
 		yylex.(*dateLexer).setDay(yyS[yypt-2].intval, yyS[yypt-4].tval.i, yyS[yypt-0].tval.i)
 		}
 	case 65:
-		//line datetime.y:331
+		//line datetime.y:337
 		{
 			// 3rd Tuesday of March 2012
 		l := yylex.(*dateLexer)
@@ -761,7 +767,7 @@ yydefault:
 			l.setMonth(yyS[yypt-1].intval, 1, yyS[yypt-0].tval.i)
 		}
 	case 66:
-		//line datetime.y:337
+		//line datetime.y:343
 		{
 			// 3rd Tuesday of next March
 		l := yylex.(*dateLexer)
@@ -769,50 +775,50 @@ yydefault:
 			l.setMonth(yyS[yypt-0].intval, yyS[yypt-1].intval)
 		}
 	case 67:
-		//line datetime.y:343
+		//line datetime.y:349
 		{
 			// yesterday or tomorrow
 		d := time.Now().Weekday()
 			yylex.(*dateLexer).setDay((7+int(d)+yyS[yypt-0].intval)%7, yyS[yypt-0].intval)
 		}
 	case 69:
-		//line datetime.y:351
+		//line datetime.y:357
 		{
 			yylex.(*dateLexer).setAgo()
 		}
 	case 72:
-		//line datetime.y:360
+		//line datetime.y:366
 		{
 			yylex.(*dateLexer).addOffset(offset(yyS[yypt-0].intval), yyS[yypt-1].tval.i)
 		}
 	case 73:
-		//line datetime.y:363
+		//line datetime.y:369
 		{
 			yylex.(*dateLexer).addOffset(offset(yyS[yypt-0].intval), yyS[yypt-1].intval)
 		}
 	case 74:
-		//line datetime.y:366
+		//line datetime.y:372
 		{
 			yylex.(*dateLexer).addOffset(offset(yyS[yypt-0].intval), 1)
 		}
 	case 75:
-		//line datetime.y:369
+		//line datetime.y:375
 		{
 			// Special-case to handle "week" and "fortnight"
 		yylex.(*dateLexer).addOffset(O_DAY, yyS[yypt-1].tval.i * yyS[yypt-0].intval)
 		}
 	case 76:
-		//line datetime.y:373
+		//line datetime.y:379
 		{
 			yylex.(*dateLexer).addOffset(O_DAY, yyS[yypt-1].intval * yyS[yypt-0].intval)
 		}
 	case 77:
-		//line datetime.y:376
+		//line datetime.y:382
 		{
 			yylex.(*dateLexer).addOffset(O_DAY, yyS[yypt-0].intval)
 		}
 	case 78:
-		//line datetime.y:379
+		//line datetime.y:385
 		{
 			// As we need to be able to separate out YD from HS in ISO durations
 		// this becomes a fair bit messier than if Y D H S were just T_OFFSET
@@ -821,55 +827,58 @@ yydefault:
 		yylex.(*dateLexer).addOffset(offset(yyS[yypt-0].intval), yyS[yypt-1].tval.i)
 		}
 	case 79:
-		//line datetime.y:386
+		//line datetime.y:392
 		{
 			yylex.(*dateLexer).addOffset(offset(yyS[yypt-0].intval), yyS[yypt-1].tval.i)
 		}
 	case 80:
-		//line datetime.y:389
+		//line datetime.y:395
 		{
 			// Resolve 'm' ambiguity in favour of minutes outside ISO duration
 		yylex.(*dateLexer).addOffset(O_MIN, yyS[yypt-1].tval.i)
 		}
 	case 81:
-		//line datetime.y:392
+		//line datetime.y:398
 		{
 		    yylex.(*dateLexer).addOffset(O_DAY, yyS[yypt-4].tval.i * 7)
 		}
 	case 84:
-		//line datetime.y:400
+		//line datetime.y:406
 		{
 			yylex.(*dateLexer).addOffset(O_DAY, 7 * yyS[yypt-1].tval.i)
 		}
 	case 87:
-		//line datetime.y:410
+		//line datetime.y:416
 		{
 			// takes care of Y and D
 		yylex.(*dateLexer).addOffset(offset(yyS[yypt-0].intval), yyS[yypt-1].tval.i)
 		}
 	case 88:
-		//line datetime.y:414
+		//line datetime.y:420
 		{
 			yylex.(*dateLexer).addOffset(O_MONTH, yyS[yypt-1].tval.i)
 		}
 	case 91:
-		//line datetime.y:423
+		//line datetime.y:429
 		{
 			// takes care of H and S
 		yylex.(*dateLexer).addOffset(offset(yyS[yypt-0].intval), yyS[yypt-1].tval.i)
 		}
 	case 92:
-		//line datetime.y:427
+		//line datetime.y:433
 		{
 			yylex.(*dateLexer).addOffset(O_MIN, yyS[yypt-1].tval.i)
 		}
 	case 96:
-		//line datetime.y:439
+		//line datetime.y:445
 		{
 			l := yylex.(*dateLexer)
 			if yyS[yypt-0].tval.l == 8 {
 				// assume ISO 8601 YYYYMMDD
 			l.setYMD(yyS[yypt-0].tval.i, yyS[yypt-0].tval.l)
+	        } else if yyS[yypt-0].tval.l == 7 {
+	            // assume ISO 8601 ordinal YYYYDDD
+			l.setDate(yyS[yypt-0].tval.i / 1000, 1, yyS[yypt-0].tval.i % 1000)
 			} else if yyS[yypt-0].tval.l == 6 {
 				// assume ISO 8601 HHMMSS with no zone
 			l.setHMS(yyS[yypt-0].tval.i, yyS[yypt-0].tval.l, nil)

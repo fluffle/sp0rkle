@@ -51,8 +51,8 @@ func TestParseTime(t *testing.T) {
 		{"3 pm PDT", mkt(15, 0, 0, "US/Pacific")},
 		{"5AM -4:30", mkt(5, 0, 0, "America/Caracas")},
 		{"5PM -4:30", mkt(17, 0, 0, "America/Caracas")},
-		{"7 a.m. +0800", mkt(7, 0, 0, "Asia/Shanghai")},
-		{"7 p.m. +0800", mkt(19, 0, 0, "Asia/Shanghai")},
+		{"7 a.m. +0800", mkt(7, 0, 0, "Etc/GMT-8")},
+		{"7 p.m. +0800", mkt(19, 0, 0, "Etc/GMT-8")},
 		{"9A.M. Africa/Nairobi", mkt(9, 0, 0, "Africa/Nairobi")},
 		{"9P.M. Africa/Nairobi", mkt(21, 0, 0, "Africa/Nairobi")},
 		// T_INTEGER : T_INTEGER T_AMPM o_zone
@@ -211,6 +211,37 @@ func TestParseDate(t *testing.T) {
 		if !ok || !ret.Equal(test.t) {
 			t.Errorf("Unable to parse date %d\nin: %s\ngot: %s",
 				i, test.in, ret)
+		}
+	}
+}
+
+func TestParseIsoDateTime(t *testing.T) {
+	tests := []struct{
+		in string
+		t  time.Time
+	}{
+		// some random iso_8601_date 'T' iso_8601_time tests
+		{"2004-03-02T13:14:15",
+			time.Date(2004, 3, 2, 13, 14, 15, 0, time.Local)},
+		{"2004-062T13:14Z",
+			time.Date(2004, 3, 2, 13, 14, 0, 0, time.UTC)},
+		{"2004W102T13+0400",
+			time.Date(2004, 3, 2, 13, 0, 0, 0, zone("Etc/GMT-4"))},
+		{"2004-W10-2T13:14:15-08:00",
+			time.Date(2004, 3, 2, 13, 14, 15, 0, zone("Etc/GMT+8"))},
+		// T_INTEGER 'T' T_INTEGER o_zone
+		{"20040302T131415",
+			time.Date(2004, 3, 2, 13, 14, 15, 0, time.Local)},
+		{"2004062T1314Z",
+			time.Date(2004, 3, 2, 13, 14, 0, 0, time.UTC)},
+		{"20040302T13+0400",
+			time.Date(2004, 3, 2, 13, 0, 0, 0, zone("Etc/GMT-4"))},
+	}
+	for i, test := range tests {
+		ret, ok := parse(test.in, time.Now())
+		if !ok || !ret.Equal(test.t) {
+			t.Errorf("Unable to parse date %d\nin: %s\nexp: %s\ngot: %s",
+				i, test.in, test.t, ret)
 		}
 	}
 }

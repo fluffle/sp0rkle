@@ -157,14 +157,14 @@ state 15
 	integer:  T_INTEGER.    (96)
 	o_dayqual: .    (9)
 
-	$end  reduce 96 (src line 438)
+	$end  reduce 96 (src line 444)
 	T_DAYQUAL  shift 38
-	T_INTEGER  reduce 96 (src line 438)
+	T_INTEGER  reduce 96 (src line 444)
 	T_PLUS  shift 43
 	T_MINUS  shift 35
 	T_MONTHNAME  reduce 9 (src line 54)
-	T_DAYSHIFT  reduce 96 (src line 438)
-	T_RELATIVE  reduce 96 (src line 438)
+	T_DAYSHIFT  reduce 96 (src line 444)
+	T_RELATIVE  reduce 96 (src line 444)
 	T_ZONE  shift 41
 	O  reduce 9 (src line 54)
 	A  shift 39
@@ -187,7 +187,7 @@ state 16
 	day_or_month:  T_MONTHNAME.    (58)
 
 	T_INTEGER  shift 44
-	.  reduce 58 (src line 301)
+	.  reduce 58 (src line 307)
 
 
 state 17
@@ -233,7 +233,7 @@ state 19
 state 20
 	day_or_month:  T_DAYSHIFT.    (67)
 
-	.  reduce 67 (src line 343)
+	.  reduce 67 (src line 349)
 
 
 state 21
@@ -241,7 +241,7 @@ state 21
 	relative:  relunits.T_AGO 
 
 	T_AGO  shift 58
-	.  reduce 68 (src line 349)
+	.  reduce 68 (src line 355)
 
 
 state 22
@@ -285,7 +285,7 @@ state 25
 	T_MINUS  shift 24
 	T_RELATIVE  shift 68
 	A  shift 26
-	.  reduce 70 (src line 355)
+	.  reduce 70 (src line 361)
 
 	o_sign_integer  goto 67
 	relunits  goto 66
@@ -462,7 +462,7 @@ state 44
 state 45
 	day_or_month:  T_DAYNAME o_comma.    (57)
 
-	.  reduce 57 (src line 296)
+	.  reduce 57 (src line 302)
 
 
 state 46
@@ -480,69 +480,69 @@ state 47
 state 48
 	day_or_month:  T_RELATIVE T_DAYNAME.    (59)
 
-	.  reduce 59 (src line 305)
+	.  reduce 59 (src line 311)
 
 
 state 49
 	day_or_month:  T_RELATIVE T_MONTHNAME.    (60)
 
-	.  reduce 60 (src line 309)
+	.  reduce 60 (src line 315)
 
 
 state 50
 	relunit:  T_RELATIVE T_OFFSET.    (73)
 
-	.  reduce 73 (src line 363)
+	.  reduce 73 (src line 369)
 
 
 state 51
 	relunit:  T_RELATIVE T_DAYS.    (76)
 
-	.  reduce 76 (src line 373)
+	.  reduce 76 (src line 379)
 
 
 state 52
 	day_or_month:  o_sign_integer T_DAYNAME.    (61)
 
-	.  reduce 61 (src line 313)
+	.  reduce 61 (src line 319)
 
 
 state 53
 	relunit:  o_sign_integer T_OFFSET.    (72)
 
-	.  reduce 72 (src line 359)
+	.  reduce 72 (src line 365)
 
 
 state 54
 	relunit:  o_sign_integer T_DAYS.    (75)
 
-	.  reduce 75 (src line 369)
+	.  reduce 75 (src line 375)
 
 
 state 55
 	relunit:  o_sign_integer T_ISOYD.    (78)
 
-	.  reduce 78 (src line 379)
+	.  reduce 78 (src line 385)
 
 
 state 56
 	relunit:  o_sign_integer T_ISOHS.    (79)
 
-	.  reduce 79 (src line 386)
+	.  reduce 79 (src line 392)
 
 
 state 57
 	relunit:  o_sign_integer M.$$80 o_sign_integer W 
 	$$80: .    (80)
 
-	.  reduce 80 (src line 389)
+	.  reduce 80 (src line 395)
 
 	$$80  goto 94
 
 state 58
 	relative:  relunits T_AGO.    (69)
 
-	.  reduce 69 (src line 351)
+	.  reduce 69 (src line 357)
 
 
 59: shift/reduce conflict (shift 98(0), red'n 94(0)) on T_INTEGER
@@ -553,7 +553,7 @@ state 59
 
 	T_INTEGER  shift 98
 	T  shift 63
-	.  reduce 94 (src line 434)
+	.  reduce 94 (src line 440)
 
 	o_t_hms_units  goto 95
 	t_hms_units  goto 97
@@ -562,7 +562,7 @@ state 59
 state 60
 	iso_8601_duration:  P t_hms_units.    (83)
 
-	.  reduce 83 (src line 399)
+	.  reduce 83 (src line 405)
 
 
 state 61
@@ -579,7 +579,7 @@ state 61
 state 62
 	ymd_units:  ymd_unit.    (85)
 
-	.  reduce 85 (src line 405)
+	.  reduce 85 (src line 411)
 
 
 state 63
@@ -606,7 +606,7 @@ state 65
 state 66
 	relunits:  relunit relunits.    (71)
 
-	.  reduce 71 (src line 357)
+	.  reduce 71 (src line 363)
 
 
 state 67
@@ -636,13 +636,13 @@ state 68
 state 69
 	relunit:  A T_OFFSET.    (74)
 
-	.  reduce 74 (src line 366)
+	.  reduce 74 (src line 372)
 
 
 state 70
 	relunit:  A T_DAYS.    (77)
 
-	.  reduce 77 (src line 376)
+	.  reduce 77 (src line 382)
 
 
 state 71
@@ -789,7 +789,7 @@ state 86
 	day_or_month:  T_INTEGER T_DAYQUAL T_DAYNAME.of T_RELATIVE T_MONTHNAME 
 
 	O  shift 80
-	.  reduce 62 (src line 317)
+	.  reduce 62 (src line 323)
 
 	of  goto 116
 
@@ -855,19 +855,19 @@ state 94
 state 95
 	iso_8601_duration:  P ymd_units o_t_hms_units.    (82)
 
-	.  reduce 82 (src line 397)
+	.  reduce 82 (src line 403)
 
 
 state 96
 	ymd_units:  ymd_units ymd_unit.    (86)
 
-	.  reduce 86 (src line 407)
+	.  reduce 86 (src line 413)
 
 
 state 97
 	o_t_hms_units:  t_hms_units.    (95)
 
-	.  reduce 95 (src line 436)
+	.  reduce 95 (src line 442)
 
 
 state 98
@@ -882,19 +882,19 @@ state 98
 state 99
 	iso_8601_duration:  P T_INTEGER W.    (84)
 
-	.  reduce 84 (src line 400)
+	.  reduce 84 (src line 406)
 
 
 state 100
 	ymd_unit:  T_INTEGER T_ISOYD.    (87)
 
-	.  reduce 87 (src line 409)
+	.  reduce 87 (src line 415)
 
 
 state 101
 	ymd_unit:  T_INTEGER M.    (88)
 
-	.  reduce 88 (src line 414)
+	.  reduce 88 (src line 420)
 
 
 102: shift/reduce conflict (shift 104(0), red'n 93(0)) on T_INTEGER
@@ -903,14 +903,14 @@ state 102
 	t_hms_units:  T hms_units.    (93)
 
 	T_INTEGER  shift 104
-	.  reduce 93 (src line 431)
+	.  reduce 93 (src line 437)
 
 	hms_unit  goto 122
 
 state 103
 	hms_units:  hms_unit.    (89)
 
-	.  reduce 89 (src line 418)
+	.  reduce 89 (src line 424)
 
 
 state 104
@@ -1060,19 +1060,19 @@ state 121
 state 122
 	hms_units:  hms_units hms_unit.    (90)
 
-	.  reduce 90 (src line 420)
+	.  reduce 90 (src line 426)
 
 
 state 123
 	hms_unit:  T_INTEGER T_ISOHS.    (91)
 
-	.  reduce 91 (src line 422)
+	.  reduce 91 (src line 428)
 
 
 state 124
 	hms_unit:  T_INTEGER M.    (92)
 
-	.  reduce 92 (src line 427)
+	.  reduce 92 (src line 433)
 
 
 125: shift/reduce conflict (shift 43(0), red'n 23(0)) on T_PLUS
@@ -1156,13 +1156,13 @@ state 133
 	day_or_month:  T_INTEGER T_DAYQUAL T_DAYNAME of T_MONTHNAME.T_INTEGER 
 
 	T_INTEGER  shift 145
-	.  reduce 63 (src line 321)
+	.  reduce 63 (src line 327)
 
 
 state 134
 	day_or_month:  T_INTEGER T_DAYQUAL T_DAYNAME of T_INTEGER.    (64)
 
-	.  reduce 64 (src line 327)
+	.  reduce 64 (src line 333)
 
 
 state 135
@@ -1199,7 +1199,7 @@ state 139
 state 140
 	relunit:  o_sign_integer M $$80 o_sign_integer W.    (81)
 
-	.  reduce 81 (src line 392)
+	.  reduce 81 (src line 398)
 
 
 state 141
@@ -1239,13 +1239,13 @@ state 144
 state 145
 	day_or_month:  T_INTEGER T_DAYQUAL T_DAYNAME of T_MONTHNAME T_INTEGER.    (65)
 
-	.  reduce 65 (src line 331)
+	.  reduce 65 (src line 337)
 
 
 state 146
 	day_or_month:  T_INTEGER T_DAYQUAL T_DAYNAME of T_RELATIVE T_MONTHNAME.    (66)
 
-	.  reduce 66 (src line 337)
+	.  reduce 66 (src line 343)
 
 
 147: shift/reduce conflict (shift 43(0), red'n 23(0)) on T_PLUS

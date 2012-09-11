@@ -289,7 +289,13 @@ iso_8601_date_time:
 		// this goes here because the YYYYMMDD and HHMMSS forms of the
 		// ISO 8601 format date and time are handled by 'integer' below.
 		l := yylex.(*dateLexer)
-		l.setYMD($1.i, $1.l)
+		if $1.l == 8 {
+			// assume ISO 8601 YYYYMMDD
+			l.setYMD($1.i, $1.l)
+        } else if $1.l == 7 {
+            // assume ISO 8601 ordinal YYYYDDD
+			l.setDate($1.i / 1000, 1, $1.i % 1000)
+        }
 		l.setHMS($3.i, $3.l, $4)
 	};
 
@@ -441,6 +447,9 @@ integer:
 		if $1.l == 8 {
 			// assume ISO 8601 YYYYMMDD
 			l.setYMD($1.i, $1.l)
+        } else if $1.l == 7 {
+            // assume ISO 8601 ordinal YYYYDDD
+			l.setDate($1.i / 1000, 1, $1.i % 1000)
 		} else if $1.l == 6 {
 			// assume ISO 8601 HHMMSS with no zone
 			l.setHMS($1.i, $1.l, nil)
