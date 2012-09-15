@@ -65,7 +65,7 @@ const yyEofCode = 1
 const yyErrCode = 2
 const yyMaxDepth = 200
 
-//line datetime.y:463
+//line datetime.y:466
 
 
 //line yacctab:1
@@ -887,7 +887,10 @@ yydefault:
 			// and RubyTime formats fails as the year is after the time
 			// Probably should be HHMM instead...
 			l.setYear(yyS[yypt-0].tval.i)
-			}
+			} else if yyS[yypt-0].tval.l == 2 {
+	            // assume HH with no zone
+            l.setHMS(yyS[yypt-0].tval.i, yyS[yypt-0].tval.l, nil)
+	        }
 		}
 	}
 	goto yystack /* stack new state and value */

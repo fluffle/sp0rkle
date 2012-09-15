@@ -458,6 +458,9 @@ integer:
 			// and RubyTime formats fails as the year is after the time
 			// Probably should be HHMM instead...
 			l.setYear($1.i)
-		}
+		} else if $1.l == 2 {
+            // assume HH with no zone
+            l.setHMS($1.i, $1.l, nil)
+        }
 	};
 %%

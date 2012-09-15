@@ -51,6 +51,7 @@ func bot_connected(irc *client.Conn, line *client.Line) {
 		bot.l.Info("Joining %s on startup.\n", c)
 		irc.Join(c)
 	}
+	bot.Dispatch("bot_connected", &base.Line{Line: *line.Copy()})
 }
 
 func bot_disconnected(irc *client.Conn, line *client.Line) {

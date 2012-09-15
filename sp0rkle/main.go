@@ -15,6 +15,7 @@ import (
 	"github.com/fluffle/sp0rkle/sp0rkle/drivers/factdriver"
 	"github.com/fluffle/sp0rkle/sp0rkle/drivers/netdriver"
 	"github.com/fluffle/sp0rkle/sp0rkle/drivers/quotedriver"
+	"github.com/fluffle/sp0rkle/sp0rkle/drivers/reminddriver"
 	"github.com/fluffle/sp0rkle/sp0rkle/drivers/seendriver"
 	"github.com/fluffle/sp0rkle/sp0rkle/drivers/urldriver"
 	"net/http"
@@ -69,8 +70,9 @@ func main() {
 	bot.AddDriver(fd)
 	bot.AddDriver(calcdriver.CalcDriver(log))
 	bot.AddDriver(decisiondriver.DecisionDriver(log))
-	bot.AddDriver(quotedriver.QuoteDriver(db, log))
 	bot.AddDriver(netdriver.NetDriver(log))
+	bot.AddDriver(quotedriver.QuoteDriver(db, log))
+	bot.AddDriver(reminddriver.RemindDriver(db, log))
 	bot.AddDriver(seendriver.SeenDriver(db, log))
 	bot.AddDriver(urldriver.UrlDriver(db, log))
 
