@@ -116,9 +116,7 @@ Core
   as a design principle. Only goirc handlers should be in bot/handlers.go
 * Push this up into a layer in goirc.
 
-*Ticker for reminders
-  - probably implemented with go func(){ time.Sleep(t); ... }()
-  - it's the lazy way out :-)
+* Stop passing a logging object about, just use the "default" one. Srsly.
 
 *Help
   each plugin and command should implement a help function, e.g.
