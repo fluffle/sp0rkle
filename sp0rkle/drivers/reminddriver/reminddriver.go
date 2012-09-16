@@ -53,21 +53,21 @@ func (rd *remindDriver) Remind(r *reminders.Reminder) func(*bot.Sp0rkle) {
 				// TODO(fluffle): Tie this into state tracking properly.
 				b.Conn.Privmsg(r.Target.Nick, r.Reply())
 			}
-			rd.Delete(r, false)
+			rd.Delete(r.Id, false)
 		case <-c:
 			return
 		}
 	}
 }
 
-func (rd *remindDriver) Delete(r *reminders.Reminder, kill bool) {
-	c, ok := rd.kill[r.Id]
+func (rd *remindDriver) Delete(id bson.ObjectId, kill bool) {
+	c, ok := rd.kill[id]
 	if !ok { return }
-	delete(rd.kill, r.Id)
+	delete(rd.kill, id)
 	if kill {
 		c <- true
 	}
-	if err := rd.RemoveId(r.Id); err != nil {
-		rd.l.Error("Failure removing reminder %s: %v", r.Id, err)
+	if err := rd.RemoveId(id); err != nil {
+		rd.l.Error("Failure removing reminder %s: %v", id, err)
 	}
 }

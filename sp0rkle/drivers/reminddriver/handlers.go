@@ -7,7 +7,8 @@ import (
 	"github.com/fluffle/sp0rkle/lib/reminders"
 	"github.com/fluffle/sp0rkle/sp0rkle/base"
 	"github.com/fluffle/sp0rkle/sp0rkle/bot"
-//	"labix.org/v2/mgo/bson"
+	"labix.org/v2/mgo/bson"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -22,6 +23,10 @@ func rd_load(bot *bot.Sp0rkle, line *base.Line) {
 	// We're connected to IRC, so load saved reminders
 	r := rd.LoadAndPrune()
 	for i := range r {
+		if r[i] == nil {
+			rd.l.Warn("Nil reminder %d from LoadAndPrune", i)
+			continue
+		}
 		go rd.Remind(r[i])(bot)
 	}
 }
@@ -34,15 +39,64 @@ func rd_privmsg(bot *bot.Sp0rkle, line *base.Line) {
 	}
 
 	switch {
+	case strings.HasPrefix(line.Args[1], "tell "):
+		rd_tell(bot, rd, line)
+	case strings.HasPrefix(line.Args[1], "remind list"):
+		rd_list(bot, rd, line)
+	case strings.HasPrefix(line.Args[1], "remind del"):
+		rd_del(bot, rd, line)
 	case strings.HasPrefix(line.Args[1], "remind "):
-		rd_setremind(bot, rd, line)
+		rd_set(bot, rd, line)
 	}
 }
 
-func rd_setremind(bot *bot.Sp0rkle, rd *remindDriver, line *base.Line) {
+func rd_del(bot *bot.Sp0rkle, rd *remindDriver, line *base.Line) {
+	list, ok := rd.list[line.Nick]
+	if !ok {
+		bot.ReplyN(line, "Please use 'remind list' first, " +
+			"to be sure of what you're deleting.")
+		return
+	}
+	s := strings.Fields(line.Args[1])
+	idx, err := strconv.Atoi(s[len(s)-1])
+	if err != nil || idx > len(list) || idx <= 0 {
+		bot.ReplyN(line, "Invalid reminder index '%s'", s[len(s)-1])
+		return
+	}
+	idx--
+	rd.Delete(list[idx], true)
+	delete(rd.list, line.Nick)
+	bot.ReplyN(line, "I'll forget that one, then...")
+}
+
+func rd_list(bot *bot.Sp0rkle, rd *remindDriver, line *base.Line) {
+	r := rd.RemindersFor(line.Nick)
+	c := len(r)
+	if c == 0 {
+		bot.ReplyN(line, "You have no reminders set.")
+		return
+	}
+	if c > 5 && line.Args[0][0] == '#' {
+		bot.ReplyN(line, "You've got lots of reminders, ask me privately.")
+		return
+	}
+	// Save an ordered list of ObjectIds for easy reminder deletion
+	bot.ReplyN(line, "You have %d reminders set:", c)
+	list := make([]bson.ObjectId, c)
+	for i := range r {
+		bot.Reply(line, "%d: %s", i+1, r[i].List(line.Nick))
+		list[i] = r[i].Id
+	}
+	rd.list[line.Nick] = list
+}
+
+func rd_set(bot *bot.Sp0rkle, rd *remindDriver, line *base.Line) {
 	// s == remind <target> <reminder> in|at|on <time>
 	s := strings.Fields(line.Args[1])
-	target := s[1]
+	if len(s) < 5 {
+		bot.ReplyN(line, "Invalid remind syntax. Sucka.")
+		return
+	}
 	i := len(s)-1
 	for i > 0 {
 		lc := strings.ToLower(s[i])
@@ -51,7 +105,7 @@ func rd_setremind(bot *bot.Sp0rkle, rd *remindDriver, line *base.Line) {
 		}
 		i--
 	}
-	if i == 0 {
+	if i < 2 {
 		bot.ReplyN(line, "Invalid remind syntax. Sucka.")
 		return
 	}
@@ -68,9 +122,9 @@ func rd_setremind(bot *bot.Sp0rkle, rd *remindDriver, line *base.Line) {
 	if at.Before(now) && at.After(start) {
 		// Perform some basic hacky corrections before giving up
 		if strings.Contains(timestr, "am") || strings.Contains(timestr, "pm") {
-			at.Add(24 * time.Hour)
+			at = at.Add(24 * time.Hour)
 		} else {
-			at.Add(12 * time.Hour)
+			at = at.Add(12 * time.Hour)
 		}
 	}
 	if at.Before(now) {
@@ -79,8 +133,9 @@ func rd_setremind(bot *bot.Sp0rkle, rd *remindDriver, line *base.Line) {
 	}
 	n, c := line.Storable()
 	// TODO(fluffle): Use state tracking!
-	t := db.StorableNick{Nick: target}
-	if strings.ToLower(target) == strings.ToLower(line.Nick) {
+	t := db.StorableNick{Nick: s[1]}
+	if strings.ToLower(t.Nick) == strings.ToLower(line.Nick) ||
+		strings.ToLower(t.Nick) == "me" {
 		t = n
 	}
 	r := reminders.NewReminder(reminder, at, t, n, c)
@@ -88,6 +143,33 @@ func rd_setremind(bot *bot.Sp0rkle, rd *remindDriver, line *base.Line) {
 		bot.ReplyN(line, "Error saving reminder: %v", err)
 		return
 	}
+	// Any previously-generated list of reminders is now obsolete.
+	delete(rd.list, line.Nick)
 	bot.ReplyN(line, r.Acknowledge())
 	go rd.Remind(r)(bot)
+}
+
+func rd_tell(bot *bot.Sp0rkle, rd *remindDriver, line *base.Line) {
+	// s == tell <target> <stuff>
+	s := strings.Fields(line.Args[1])
+	if len(s) < 3 {
+		bot.ReplyN(line, "Tell who what?")
+		return
+	}
+	tell := strings.Join(s[2:], " ")
+	n, c := line.Storable()
+	t := db.StorableNick{Nick: s[1]}
+	if strings.ToLower(t.Nick) == strings.ToLower(line.Nick) ||
+		strings.ToLower(t.Nick) == "me" {
+		bot.ReplyN(line, "You're a dick. Oh, wait, that wasn't *quite* it...")
+		return
+	}
+	r := reminders.NewTell(tell, t, n, c)
+	if err := rd.Insert(r); err != nil {
+		bot.ReplyN(line, "Error saving reminder: %v", err)
+		return
+	}
+	// Any previously-generated list of reminders is now obsolete.
+	delete(rd.list, line.Nick)
+	bot.ReplyN(line, r.Acknowledge())
 }
