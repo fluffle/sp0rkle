@@ -154,3 +154,14 @@ func (rc *ReminderCollection) RemindersFor(nick string) []*Reminder {
 	}
 	return ret
 }
+
+func (rc *ReminderCollection) TellsFor(nick string) []*Reminder {
+	nick = strings.ToLower(nick)
+	q := rc.Find(bson.M{"$and": []bson.M{{"tell": true}, {"to": nick}}})
+	ret := make([]*Reminder, 0)
+	if err := q.All(&ret); err != nil {
+		rc.l.Error("Loading tells for %s returned error: %v", nick, err)
+		return nil
+	}
+	return ret
+}

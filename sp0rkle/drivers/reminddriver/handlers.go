@@ -16,6 +16,8 @@ import (
 func (rd *remindDriver) RegisterHandlers(r event.EventRegistry) {
 	r.AddHandler(bot.NewHandler(rd_load), "bot_connected")
 	r.AddHandler(bot.NewHandler(rd_privmsg), "bot_privmsg")
+	r.AddHandler(bot.NewHandler(rd_tell_check),
+		"bot_privmsg", "bot_action", "bot_join", "bot_nick")
 }
 
 func rd_load(bot *bot.Sp0rkle, line *base.Line) {
@@ -166,10 +168,33 @@ func rd_tell(bot *bot.Sp0rkle, rd *remindDriver, line *base.Line) {
 	}
 	r := reminders.NewTell(tell, t, n, c)
 	if err := rd.Insert(r); err != nil {
-		bot.ReplyN(line, "Error saving reminder: %v", err)
+		bot.ReplyN(line, "Error saving tell: %v", err)
 		return
 	}
 	// Any previously-generated list of reminders is now obsolete.
 	delete(rd.list, line.Nick)
 	bot.ReplyN(line, r.Acknowledge())
+}
+
+func rd_tell_check(bot *bot.Sp0rkle, line *base.Line) {
+	rd := bot.GetDriver(driverName).(*remindDriver)
+	nick := line.Nick
+	if line.Cmd == "NICK" {
+		// We want the destination nick, not the source.
+		nick = line.Args[0]
+	}
+	r := rd.TellsFor(nick)
+	for i := range r {
+		if line.Cmd == "NICK" {
+			bot.Conn.Privmsg(r[i].Chan, nick + ": " + r[i].Reply())
+			bot.Reply(line, r[i].Reply())
+		} else {
+			bot.Conn.Privmsg(line.Nick, r[i].Reply())
+			bot.ReplyN(line, r[i].Reply())
+		}
+		rd.RemoveId(r[i].Id)
+	}
+	if len(r) > 0 {
+		delete(rd.list, line.Nick)
+	}
 }
