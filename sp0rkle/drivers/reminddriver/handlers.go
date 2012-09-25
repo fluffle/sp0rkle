@@ -13,11 +13,33 @@ import (
 	"time"
 )
 
+type remindFn func(*remindDriver, *bot.Sp0rkle, *base.Line)
+
+type remindCommand struct {
+	rd *remindDriver
+	fn remindFn
+	help string
+}
+
+func (rc *remindCommand) Execute(b *bot.Sp0rkle, l *base.Line) {
+	rc.fn(rc.rd, b, l)
+}
+
+func (rc *remindCommand) Help() string {
+	return rc.help
+}
+
+func (rd *remindDriver) Cmd(fn remindFn, prefix, help string) {
+	bot.Cmd(prefix, &remindCommand{rd,fn,help})
+}
+
 func (rd *remindDriver) RegisterHandlers(r event.EventRegistry) {
 	r.AddHandler(bot.NewHandler(rd_load), "bot_connected")
 	r.AddHandler(bot.NewHandler(rd_privmsg), "bot_privmsg")
 	r.AddHandler(bot.NewHandler(rd_tell_check),
 		"bot_privmsg", "bot_action", "bot_join", "bot_nick")
+	rd.Cmd((*remindDriver).Tell, "tell", "tell <nick> <msg>  -- " +
+		"Stores a message for the (absent) nick.")
 }
 
 func rd_load(bot *bot.Sp0rkle, line *base.Line) {
@@ -41,8 +63,8 @@ func rd_privmsg(bot *bot.Sp0rkle, line *base.Line) {
 	}
 
 	switch {
-	case strings.HasPrefix(line.Args[1], "tell "):
-		rd_tell(bot, rd, line)
+//	case strings.HasPrefix(line.Args[1], "tell "):
+//		rd_tell(bot, rd, line)
 	case strings.HasPrefix(line.Args[1], "remind list"):
 		rd_list(bot, rd, line)
 	case strings.HasPrefix(line.Args[1], "remind del"):
@@ -151,7 +173,7 @@ func rd_set(bot *bot.Sp0rkle, rd *remindDriver, line *base.Line) {
 	go rd.Remind(r)(bot)
 }
 
-func rd_tell(bot *bot.Sp0rkle, rd *remindDriver, line *base.Line) {
+func (rd *remindDriver) Tell(bot *bot.Sp0rkle, line *base.Line) {
 	// s == tell <target> <stuff>
 	s := strings.Fields(line.Args[1])
 	if len(s) < 3 {

@@ -80,6 +80,9 @@ func bot_privmsg(irc *client.Conn, line *client.Line) {
 		nl.Addressed = true
 	}
 	bot.Dispatch("bot_privmsg", nl)
+	if cmd := commandMatch(nl.Args[1]); cmd != nil {
+		cmd.Execute(bot, nl)
+	}
 }
 
 // Retrieve the bot from irc.State.

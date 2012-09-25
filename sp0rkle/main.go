@@ -37,7 +37,7 @@ var (
 
 func main() {
 	flag.Parse()
-	log := logging.NewFromFlags()
+	log := logging.InitFromFlags()
 	reg := event.NewRegistry()
 
 	if *server == "" {
