@@ -82,7 +82,7 @@ func bot_privmsg(irc *client.Conn, line *client.Line) {
 		nl.Addressed = true
 	}
 	bot.Dispatch("bot_privmsg", nl)
-	if cmd := commandMatch(nl.Args[1]); cmd != nil {
+	if cmd := commandMatch(nl.Args[1]); nl.Addressed && cmd != nil {
 		cmd.Execute(bot, nl)
 	}
 }
