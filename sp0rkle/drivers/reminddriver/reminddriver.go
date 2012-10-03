@@ -53,14 +53,14 @@ func (rd *remindDriver) Remind(r *reminders.Reminder) func(*bot.Sp0rkle) {
 				// TODO(fluffle): Tie this into state tracking properly.
 				b.Conn.Privmsg(r.Target.Nick, r.Reply())
 			}
-			rd.Delete(r.Id, false)
+			rd.Forget(r.Id, false)
 		case <-c:
 			return
 		}
 	}
 }
 
-func (rd *remindDriver) Delete(id bson.ObjectId, kill bool) {
+func (rd *remindDriver) Forget(id bson.ObjectId, kill bool) {
 	c, ok := rd.kill[id]
 	if !ok { return }
 	delete(rd.kill, id)

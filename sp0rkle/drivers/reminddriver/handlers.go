@@ -35,11 +35,17 @@ func (rd *remindDriver) Cmd(fn remindFn, prefix, help string) {
 
 func (rd *remindDriver) RegisterHandlers(r event.EventRegistry) {
 	r.AddHandler(bot.NewHandler(rd_load), "bot_connected")
-	r.AddHandler(bot.NewHandler(rd_privmsg), "bot_privmsg")
 	r.AddHandler(bot.NewHandler(rd_tell_check),
 		"bot_privmsg", "bot_action", "bot_join", "bot_nick")
+
 	rd.Cmd((*remindDriver).Tell, "tell", "tell <nick> <msg>  -- " +
 		"Stores a message for the (absent) nick.")
+	rd.Cmd((*remindDriver).List, "remind list",
+		"remind list  -- Lists reminders set by or for your nick.")
+	rd.Cmd((*remindDriver).Del, "remind del",
+		"remind del <N>  -- Deletes (previously listed) reminder N.")
+	rd.Cmd((*remindDriver).Set, "remind", "remind <nick> <msg> " +
+		"in|at|on <time>  -- Reminds nick about msg at time.") 
 }
 
 func rd_load(bot *bot.Sp0rkle, line *base.Line) {
@@ -55,26 +61,7 @@ func rd_load(bot *bot.Sp0rkle, line *base.Line) {
 	}
 }
 
-func rd_privmsg(bot *bot.Sp0rkle, line *base.Line) {
-	rd := bot.GetDriver(driverName).(*remindDriver)
-
-	if !line.Addressed {
-		return
-	}
-
-	switch {
-//	case strings.HasPrefix(line.Args[1], "tell "):
-//		rd_tell(bot, rd, line)
-	case strings.HasPrefix(line.Args[1], "remind list"):
-		rd_list(bot, rd, line)
-	case strings.HasPrefix(line.Args[1], "remind del"):
-		rd_del(bot, rd, line)
-	case strings.HasPrefix(line.Args[1], "remind "):
-		rd_set(bot, rd, line)
-	}
-}
-
-func rd_del(bot *bot.Sp0rkle, rd *remindDriver, line *base.Line) {
+func (rd *remindDriver) Del(bot *bot.Sp0rkle, line *base.Line) {
 	list, ok := rd.list[line.Nick]
 	if !ok {
 		bot.ReplyN(line, "Please use 'remind list' first, " +
@@ -88,12 +75,12 @@ func rd_del(bot *bot.Sp0rkle, rd *remindDriver, line *base.Line) {
 		return
 	}
 	idx--
-	rd.Delete(list[idx], true)
+	rd.Forget(list[idx], true)
 	delete(rd.list, line.Nick)
 	bot.ReplyN(line, "I'll forget that one, then...")
 }
 
-func rd_list(bot *bot.Sp0rkle, rd *remindDriver, line *base.Line) {
+func (rd *remindDriver) List(bot *bot.Sp0rkle, line *base.Line) {
 	r := rd.RemindersFor(line.Nick)
 	c := len(r)
 	if c == 0 {
@@ -114,7 +101,7 @@ func rd_list(bot *bot.Sp0rkle, rd *remindDriver, line *base.Line) {
 	rd.list[line.Nick] = list
 }
 
-func rd_set(bot *bot.Sp0rkle, rd *remindDriver, line *base.Line) {
+func (rd *remindDriver) Set(bot *bot.Sp0rkle, line *base.Line) {
 	// s == remind <target> <reminder> in|at|on <time>
 	s := strings.Fields(line.Args[1])
 	if len(s) < 5 {
