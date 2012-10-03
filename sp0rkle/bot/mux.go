@@ -8,9 +8,10 @@ import (
 )
 
 // Mostly gratuitously stolen from net/http ;-)
+type cmdFn func(*Sp0rkle, *base.Line)
 
 type CommandFunc struct {
-	fn func(*Sp0rkle, *base.Line)
+	fn cmdFn
 	help string
 }
 
@@ -38,7 +39,7 @@ func NewCommandSet() *CommandSet {
 
 var commands = NewCommandSet()
 
-func Cmd(prefix string, cmd Command) {
+func Cmd(cmd Command, prefix string) {
 	if cmd == nil || prefix == "" {
 		logging.Error("Can't handle prefix '%s' with supplied order.", prefix)
 		return
@@ -52,12 +53,8 @@ func Cmd(prefix string, cmd Command) {
 	commands.set[prefix] = cmd
 }
 
-func CmdFunc(prefix string, fn func(*Sp0rkle, *base.Line), h ...string) {
-	help := "No help for this command :-("
-	if len(help) > 0 {
-		help = h[0]
-	}
-	Cmd(prefix, &CommandFunc{fn, help})
+func CmdFunc(fn cmdFn, prefix, help string) {
+	Cmd(&CommandFunc{fn, help}, prefix)
 }
 
 func commandMatch(txt string) Command {

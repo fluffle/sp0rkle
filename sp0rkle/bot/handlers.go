@@ -36,6 +36,8 @@ func (bot *Sp0rkle) RegisterHandlers(r event.EventRegistry) {
 	r.AddHandler(client.NewHandler(bot_rebuild), "notice")
 	// This is a special handler that triggers a shutdown and disconnect
 	r.AddHandler(client.NewHandler(bot_shutdown), "notice")
+
+	CmdFunc(bot_help, "help", "If you need to ask, you're beyond help.")
 }
 
 // Unboxer for bot handlers.
@@ -119,4 +121,16 @@ func bot_shutdown(irc *client.Conn, line *client.Line) {
 	if bot.rbpw != "" && line.Args[1] != "shutdown "+bot.rbpw { return }
 	bot.quit = true
 	bot.Conn.Quit("Shutting down.")
+}
+
+func bot_help(bot *Sp0rkle, line *base.Line) {
+	s := strings.Join(strings.Fields(line.Args[1])[1:], " ")
+	if cmd := commandMatch(s); cmd != nil {
+		bot.ReplyN(line, cmd.Help())
+	} else if len(s) == 0 {
+		bot.ReplyN(line, "https://github.com/fluffle/sp0rkle/wiki " +
+			"-- pull requests welcome ;-)")
+	} else {
+		bot.ReplyN(line, "Unrecognised command '%s'.", s)
+	}
 }

@@ -30,7 +30,7 @@ func (rc *remindCommand) Help() string {
 }
 
 func (rd *remindDriver) Cmd(fn remindFn, prefix, help string) {
-	bot.Cmd(prefix, &remindCommand{rd,fn,help})
+	bot.Cmd(&remindCommand{rd,fn,help}, prefix)
 }
 
 func (rd *remindDriver) RegisterHandlers(r event.EventRegistry) {
