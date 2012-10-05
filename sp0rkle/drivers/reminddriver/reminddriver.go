@@ -37,27 +37,27 @@ func (rd *remindDriver) Name() string {
 	return driverName
 }
 
-func (rd *remindDriver) Remind(r *reminders.Reminder) func(*bot.Sp0rkle) {
+func (rd *remindDriver) Remind(r *reminders.Reminder) {
 	delta := r.RemindAt.Sub(time.Now())
 	if delta < 0 {
-		return nil
+		return
 	}
 	c := make(chan bool)
 	rd.kill[r.Id] = c
-	return func(b *bot.Sp0rkle) {
+	go func() {
 		select {
 		case <-time.After(delta):
-			b.Conn.Privmsg(r.Chan, r.Reply())
+			bot.Privmsg(r.Chan, r.Reply())
 			if r.Target.Host != "" {
 				// At the time of the reminder being created, target existed
 				// TODO(fluffle): Tie this into state tracking properly.
-				b.Conn.Privmsg(r.Target.Nick, r.Reply())
+				bot.Privmsg(r.Target.Nick, r.Reply())
 			}
 			rd.Forget(r.Id, false)
 		case <-c:
 			return
 		}
-	}
+	}()
 }
 
 func (rd *remindDriver) Forget(id bson.ObjectId, kill bool) {

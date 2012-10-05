@@ -13,7 +13,7 @@ import (
 	"time"
 )
 
-type remindFn func(*remindDriver, *bot.Sp0rkle, *base.Line)
+type remindFn func(*remindDriver, *base.Line)
 
 type remindCommand struct {
 	rd *remindDriver
@@ -21,8 +21,8 @@ type remindCommand struct {
 	help string
 }
 
-func (rc *remindCommand) Execute(b *bot.Sp0rkle, l *base.Line) {
-	rc.fn(rc.rd, b, l)
+func (rc *remindCommand) Execute(l *base.Line) {
+	rc.fn(rc.rd, l)
 }
 
 func (rc *remindCommand) Help() string {
@@ -33,10 +33,14 @@ func (rd *remindDriver) Cmd(fn remindFn, prefix, help string) {
 	bot.Cmd(&remindCommand{rd,fn,help}, prefix)
 }
 
+func (rd *remindDriver) Handle(fn remindFn, event ...string) {
+	bot.Handle(&remindCommand{rd, fn, ""}, event...)
+}
+
 func (rd *remindDriver) RegisterHandlers(r event.EventRegistry) {
-	r.AddHandler(bot.NewHandler(rd_load), "bot_connected")
-	r.AddHandler(bot.NewHandler(rd_tell_check),
-		"bot_privmsg", "bot_action", "bot_join", "bot_nick")
+	rd.Handle((*remindDriver).Load, "connected")
+	rd.Handle((*remindDriver).TellCheck,
+		"privmsg", "action", "join", "nick")
 
 	rd.Cmd((*remindDriver).Tell, "tell", "tell <nick> <msg>  -- " +
 		"Stores a message for the (absent) nick.")
@@ -48,8 +52,7 @@ func (rd *remindDriver) RegisterHandlers(r event.EventRegistry) {
 		"in|at|on <time>  -- Reminds nick about msg at time.") 
 }
 
-func rd_load(bot *bot.Sp0rkle, line *base.Line) {
-	rd := bot.GetDriver(driverName).(*remindDriver)
+func (rd *remindDriver) Load(line *base.Line) {
 	// We're connected to IRC, so load saved reminders
 	r := rd.LoadAndPrune()
 	for i := range r {
@@ -57,11 +60,11 @@ func rd_load(bot *bot.Sp0rkle, line *base.Line) {
 			rd.l.Warn("Nil reminder %d from LoadAndPrune", i)
 			continue
 		}
-		go rd.Remind(r[i])(bot)
+		rd.Remind(r[i])
 	}
 }
 
-func (rd *remindDriver) Del(bot *bot.Sp0rkle, line *base.Line) {
+func (rd *remindDriver) Del(line *base.Line) {
 	list, ok := rd.list[line.Nick]
 	if !ok {
 		bot.ReplyN(line, "Please use 'remind list' first, " +
@@ -80,7 +83,7 @@ func (rd *remindDriver) Del(bot *bot.Sp0rkle, line *base.Line) {
 	bot.ReplyN(line, "I'll forget that one, then...")
 }
 
-func (rd *remindDriver) List(bot *bot.Sp0rkle, line *base.Line) {
+func (rd *remindDriver) List(line *base.Line) {
 	r := rd.RemindersFor(line.Nick)
 	c := len(r)
 	if c == 0 {
@@ -101,7 +104,7 @@ func (rd *remindDriver) List(bot *bot.Sp0rkle, line *base.Line) {
 	rd.list[line.Nick] = list
 }
 
-func (rd *remindDriver) Set(bot *bot.Sp0rkle, line *base.Line) {
+func (rd *remindDriver) Set(line *base.Line) {
 	// s == remind <target> <reminder> in|at|on <time>
 	s := strings.Fields(line.Args[1])
 	if len(s) < 5 {
@@ -157,10 +160,10 @@ func (rd *remindDriver) Set(bot *bot.Sp0rkle, line *base.Line) {
 	// Any previously-generated list of reminders is now obsolete.
 	delete(rd.list, line.Nick)
 	bot.ReplyN(line, r.Acknowledge())
-	go rd.Remind(r)(bot)
+	rd.Remind(r)
 }
 
-func (rd *remindDriver) Tell(bot *bot.Sp0rkle, line *base.Line) {
+func (rd *remindDriver) Tell(line *base.Line) {
 	// s == tell <target> <stuff>
 	s := strings.Fields(line.Args[1])
 	if len(s) < 3 {
@@ -185,8 +188,7 @@ func (rd *remindDriver) Tell(bot *bot.Sp0rkle, line *base.Line) {
 	bot.ReplyN(line, r.Acknowledge())
 }
 
-func rd_tell_check(bot *bot.Sp0rkle, line *base.Line) {
-	rd := bot.GetDriver(driverName).(*remindDriver)
+func (rd *remindDriver) TellCheck(line *base.Line) {
 	nick := line.Nick
 	if line.Cmd == "NICK" {
 		// We want the destination nick, not the source.
@@ -195,10 +197,10 @@ func rd_tell_check(bot *bot.Sp0rkle, line *base.Line) {
 	r := rd.TellsFor(nick)
 	for i := range r {
 		if line.Cmd == "NICK" {
-			bot.Conn.Privmsg(r[i].Chan, nick + ": " + r[i].Reply())
+			bot.Privmsg(r[i].Chan, nick + ": " + r[i].Reply())
 			bot.Reply(line, r[i].Reply())
 		} else {
-			bot.Conn.Privmsg(line.Nick, r[i].Reply())
+			bot.Privmsg(line.Nick, r[i].Reply())
 			bot.ReplyN(line, r[i].Reply())
 		}
 		rd.RemoveId(r[i].Id)

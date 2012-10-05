@@ -83,7 +83,7 @@ func bot_privmsg(irc *client.Conn, line *client.Line) {
 	}
 	bot.Dispatch("bot_privmsg", nl)
 	if cmd := commandMatch(nl.Args[1]); nl.Addressed && cmd != nil {
-		cmd.Execute(bot, nl)
+		cmd.Execute(nl)
 	}
 }
 
@@ -123,7 +123,7 @@ func bot_shutdown(irc *client.Conn, line *client.Line) {
 	bot.Conn.Quit("Shutting down.")
 }
 
-func bot_help(bot *Sp0rkle, line *base.Line) {
+func bot_help(line *base.Line) {
 	s := strings.Join(strings.Fields(line.Args[1])[1:], " ")
 	if cmd := commandMatch(s); cmd != nil {
 		bot.ReplyN(line, cmd.Help())

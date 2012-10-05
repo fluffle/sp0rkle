@@ -62,7 +62,7 @@ func main() {
 	irc.SSL = *ssl
 
 	// Initialise bot state
-	bot := bot.Bot(irc, fd, log)
+	bot := bot.Init(irc, fd, log)
 	bot.AddChannels(strings.Split(*channels, ","))
 
 	// Add drivers

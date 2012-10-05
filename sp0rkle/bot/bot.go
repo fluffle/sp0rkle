@@ -51,6 +51,16 @@ type Sp0rkle struct {
 	Quit chan bool
 }
 
+var bot *Sp0rkle
+
+func Init(c *client.Conn, pm base.PluginManager, l logging.Logger) *Sp0rkle {
+	// TODO(fluffle): fix race.
+	if bot == nil {
+		bot = Bot(c, pm, l)
+	}
+	return bot
+}
+
 func Bot(c *client.Conn, pm base.PluginManager, l logging.Logger) *Sp0rkle {
 	s := strings.Split(*rebuilder, ":")
 	bot := &Sp0rkle{
@@ -126,4 +136,22 @@ func (bot *Sp0rkle) ReplyN(line *base.Line, fm string, args ...interface{}) {
 // whereas Reply() does not.
 func (bot *Sp0rkle) Reply(line *base.Line, fm string, args ...interface{}) {
 	bot.Conn.Privmsg(line.Args[0], fmt.Sprintf(fm, args...))
+}
+
+// Currently makes the assumption that we're replying to line.Args[0] in every
+// instance. While this is normally the case, it may not be in some cases...
+// ReplyN() adds a prefix of "nick: " to the reply text,
+func ReplyN(line *base.Line, fm string, args ...interface{}) {
+	args = append([]interface{}{line.Nick}, args...)
+	Reply(line, "%s: "+fm, args...)
+}
+
+// whereas Reply() does not.
+func Reply(line *base.Line, fm string, args ...interface{}) {
+	Privmsg(line.Args[0], fmt.Sprintf(fm, args...))
+}
+
+// Hmmm.
+func Privmsg(ch, text string) {
+	bot.Conn.Privmsg(ch, text)
 }

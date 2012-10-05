@@ -1,6 +1,7 @@
 package bot
 
 import (
+	"github.com/fluffle/goirc/client"
 	"github.com/fluffle/golog/logging"
 	"github.com/fluffle/sp0rkle/sp0rkle/base"
 	"strings"
@@ -8,15 +9,15 @@ import (
 )
 
 // Mostly gratuitously stolen from net/http ;-)
-type cmdFn func(*Sp0rkle, *base.Line)
+type cmdFn func(*base.Line)
 
 type CommandFunc struct {
 	fn cmdFn
 	help string
 }
 
-func (cf CommandFunc) Execute(bot *Sp0rkle, line *base.Line) {
-	cf.fn(bot, line)
+func (cf CommandFunc) Execute(line *base.Line) {
+	cf.fn(line)
 }
 
 func (cf CommandFunc) Help() string {
@@ -24,7 +25,7 @@ func (cf CommandFunc) Help() string {
 }
 
 type Command interface {
-	Execute(*Sp0rkle, *base.Line)
+	Handler
 	Help() string
 }
 
@@ -73,4 +74,14 @@ func commandMatch(txt string) Command {
 		}
 	}
 	return final
+}
+
+type Handler interface {
+	Execute(*base.Line)
+}
+
+func Handle(h Handler, event ...string) {
+	bot.ER.AddHandler(client.NewHandler(func(_ *client.Conn, l *client.Line) {
+		h.Execute(&base.Line{Line: *l.Copy()})
+	}), event...)
 }
