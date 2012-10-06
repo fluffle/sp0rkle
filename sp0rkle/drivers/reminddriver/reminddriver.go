@@ -28,8 +28,8 @@ func (rc *remindCommand) Help() string {
 }
 
 // These two shim the remind driver into the command / handler
-func (rd *remindDriver) Cmd(fn remindFn, prefix, help string) {
-	bot.Cmd(&remindCommand{rd,fn,help}, prefix)
+func (rd *remindDriver) Command(fn remindFn, prefix, help string) {
+	bot.Command(&remindCommand{rd,fn,help}, prefix)
 }
 
 func (rd *remindDriver) Handle(fn remindFn, event ...string) {
@@ -58,13 +58,13 @@ func Init(db *db.Database) *remindDriver {
 	rd.Handle((*remindDriver).TellCheck,
 		"privmsg", "action", "join", "nick")
 
-	rd.Cmd((*remindDriver).Tell, "tell", "tell <nick> <msg>  -- " +
+	rd.Command((*remindDriver).Tell, "tell", "tell <nick> <msg>  -- " +
 		"Stores a message for the (absent) nick.")
-	rd.Cmd((*remindDriver).List, "remind list",
+	rd.Command((*remindDriver).List, "remind list",
 		"remind list  -- Lists reminders set by or for your nick.")
-	rd.Cmd((*remindDriver).Del, "remind del",
+	rd.Command((*remindDriver).Del, "remind del",
 		"remind del <N>  -- Deletes (previously listed) reminder N.")
-	rd.Cmd((*remindDriver).Set, "remind", "remind <nick> <msg> " +
+	rd.Command((*remindDriver).Set, "remind", "remind <nick> <msg> " +
 		"in|at|on <time>  -- Reminds nick about msg at time.")
 	return rd
 }

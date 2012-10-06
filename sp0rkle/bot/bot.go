@@ -52,12 +52,26 @@ type Sp0rkle struct {
 }
 
 var bot *Sp0rkle
+var irc *client.Conn
 
 func Init(c *client.Conn, pm base.PluginManager, l logging.Logger) *Sp0rkle {
 	// TODO(fluffle): fix race.
 	if bot == nil {
 		bot = Bot(c, pm, l)
+		irc = c
 	}
+
+	HandleFunc(bot_connected, "connected")
+	HandleFunc(bot_disconnected, "disconnected")
+
+	// This is a special handler that dispatches commands from the command set
+	HandleFunc(bot_command, "privmsg")
+	// This is a special handler that triggers a rebuild and re-exec
+	HandleFunc(bot_rebuild, "notice")
+	// This is a special handler that triggers a shutdown and disconnect
+	HandleFunc(bot_shutdown, "notice")
+
+	CommandFunc(bot_help, "help", "If you need to ask, you're beyond help.")
 	return bot
 }
 
@@ -80,6 +94,40 @@ func Bot(c *client.Conn, pm base.PluginManager, l logging.Logger) *Sp0rkle {
 	}
 	c.State = bot
 	return bot
+}
+
+type botFn func(*base.Line)
+type botCommand struct {
+	fn botFn
+	help string
+}
+
+func (bc *botCommand) Execute(line *base.Line) {
+	bc.fn(line)
+}
+
+func (bc *botCommand) Help() string {
+	return bc.help
+}
+
+func Handle(h base.Handler, event ...string) {
+	bot.ER.AddHandler(client.NewHandler(func(_ *client.Conn, l *client.Line) {
+		h.Execute(&base.Line{Line: *l.Copy()})
+	}), event...)
+}
+
+func HandleFunc(fn botFn, event ...string) {
+	Handle(&botCommand{fn, ""}, event...)
+}
+
+var commands = base.NewCommandSet()
+
+func Command(cmd base.Command, prefix string) {
+	commands.Add(cmd, prefix)
+}
+
+func CommandFunc(fn botFn, prefix, help string) {
+	Command(&botCommand{fn, help}, prefix)
 }
 
 func (bot *Sp0rkle) Name() string {
@@ -153,5 +201,5 @@ func Reply(line *base.Line, fm string, args ...interface{}) {
 
 // Hmmm.
 func Privmsg(ch, text string) {
-	bot.Conn.Privmsg(ch, text)
+	irc.Privmsg(ch, text)
 }
