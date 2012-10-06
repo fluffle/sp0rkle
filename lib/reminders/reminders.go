@@ -105,17 +105,15 @@ func (r *Reminder) List(nick string) string {
 
 type ReminderCollection struct {
 	*mgo.Collection
-	l logging.Logger
 }
 
-func Collection(dbh *db.Database, l logging.Logger) *ReminderCollection {
+func Collection(dbh *db.Database) *ReminderCollection {
 	rc := &ReminderCollection{
 		Collection: dbh.C(COLLECTION),
-		l: l,
 	}
 	for _, k := range []string{"remindat", "from", "to", "tell"} {
 		if err := rc.EnsureIndexKey(k); err != nil {
-			l.Error("Couldn't create %s index on sp0rkle.reminders: %v", k, err)
+			logging.Error("Couldn't create %s index on sp0rkle.reminders: %v", k, err)
 		}
 	}
 	return rc
@@ -128,16 +126,16 @@ func (rc *ReminderCollection) LoadAndPrune() []*Reminder {
 		{"tell": false},
 	}})
 	if err != nil {
-		rc.l.Error("Pruning reminders returned error: %v", err)
+		logging.Error("Pruning reminders returned error: %v", err)
 	}
 	if ci.Removed > 0 {
-		rc.l.Info("Removed %d old reminders", ci.Removed)
+		logging.Info("Removed %d old reminders", ci.Removed)
 	}
 	// Now, load the remainder; the db is just used for persistence
 	q := rc.Find(bson.M{"tell": false})
 	ret := make([]*Reminder, 0)
 	if err := q.All(&ret); err != nil {
-		rc.l.Error("Loading reminders returned error: %v", err)
+		logging.Error("Loading reminders returned error: %v", err)
 		return nil
 	}
 	return ret
@@ -149,7 +147,7 @@ func (rc *ReminderCollection) RemindersFor(nick string) []*Reminder {
 	q.Sort("remindat")
 	ret := make([]*Reminder, 0)
 	if err := q.All(&ret); err != nil {
-		rc.l.Error("Loading reminders for %s returned error: %v", nick, err)
+		logging.Error("Loading reminders for %s returned error: %v", nick, err)
 		return nil
 	}
 	return ret
@@ -160,7 +158,7 @@ func (rc *ReminderCollection) TellsFor(nick string) []*Reminder {
 	q := rc.Find(bson.M{"$and": []bson.M{{"tell": true}, {"to": nick}}})
 	ret := make([]*Reminder, 0)
 	if err := q.All(&ret); err != nil {
-		rc.l.Error("Loading tells for %s returned error: %v", nick, err)
+		logging.Error("Loading tells for %s returned error: %v", nick, err)
 		return nil
 	}
 	return ret

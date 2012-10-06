@@ -72,9 +72,10 @@ func main() {
 	bot.AddDriver(decisiondriver.DecisionDriver(log))
 	bot.AddDriver(netdriver.NetDriver(log))
 	bot.AddDriver(quotedriver.QuoteDriver(db, log))
-	bot.AddDriver(reminddriver.RemindDriver(db, log))
 	bot.AddDriver(seendriver.SeenDriver(db, log))
 	bot.AddDriver(urldriver.UrlDriver(db, log))
+
+	reminddriver.Init(db)
 
 	// Register everything (including http handlers)
 	bot.RegisterAll()

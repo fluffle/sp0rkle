@@ -4,12 +4,37 @@ import (
 	"github.com/fluffle/golog/logging"
 	"github.com/fluffle/sp0rkle/lib/db"
 	"github.com/fluffle/sp0rkle/lib/reminders"
+	"github.com/fluffle/sp0rkle/sp0rkle/base"
 	"github.com/fluffle/sp0rkle/sp0rkle/bot"
 	"labix.org/v2/mgo/bson"
 	"time"
 )
 
-const driverName = "reminders"
+type remindFn func(*remindDriver, *base.Line)
+
+// A remindCommand fulfils base.Handler and base.Command
+type remindCommand struct {
+	rd *remindDriver
+	fn remindFn
+	help string
+}
+
+func (rc *remindCommand) Execute(l *base.Line) {
+	rc.fn(rc.rd, l)
+}
+
+func (rc *remindCommand) Help() string {
+	return rc.help
+}
+
+// These two shim the remind driver into the command / handler
+func (rd *remindDriver) Cmd(fn remindFn, prefix, help string) {
+	bot.Cmd(&remindCommand{rd,fn,help}, prefix)
+}
+
+func (rd *remindDriver) Handle(fn remindFn, event ...string) {
+	bot.Handle(&remindCommand{rd, fn, ""}, event...)
+}
 
 type remindDriver struct {
 	*reminders.ReminderCollection
@@ -19,22 +44,29 @@ type remindDriver struct {
 
 	// And it's useful to index them for deletion per-person
 	list map[string][]bson.ObjectId
-
-	l logging.Logger
 }
 
-func RemindDriver(db *db.Database, l logging.Logger) *remindDriver {
-	rc := reminders.Collection(db, l)
-	return &remindDriver{
-		ReminderCollection: rc,
+func Init(db *db.Database) *remindDriver {
+	rd := &remindDriver{
+		ReminderCollection: reminders.Collection(db),
 		kill: make(map[bson.ObjectId]chan bool),
 		list: make(map[string][]bson.ObjectId),
-		l: l,
 	}
-}
 
-func (rd *remindDriver) Name() string {
-	return driverName
+	// Set up the handlers and commands.
+	rd.Handle((*remindDriver).Load, "connected")
+	rd.Handle((*remindDriver).TellCheck,
+		"privmsg", "action", "join", "nick")
+
+	rd.Cmd((*remindDriver).Tell, "tell", "tell <nick> <msg>  -- " +
+		"Stores a message for the (absent) nick.")
+	rd.Cmd((*remindDriver).List, "remind list",
+		"remind list  -- Lists reminders set by or for your nick.")
+	rd.Cmd((*remindDriver).Del, "remind del",
+		"remind del <N>  -- Deletes (previously listed) reminder N.")
+	rd.Cmd((*remindDriver).Set, "remind", "remind <nick> <msg> " +
+		"in|at|on <time>  -- Reminds nick about msg at time.")
+	return rd
 }
 
 func (rd *remindDriver) Remind(r *reminders.Reminder) {
@@ -68,6 +100,6 @@ func (rd *remindDriver) Forget(id bson.ObjectId, kill bool) {
 		c <- true
 	}
 	if err := rd.RemoveId(id); err != nil {
-		rd.l.Error("Failure removing reminder %s: %v", id, err)
+		logging.Error("Failure removing reminder %s: %v", id, err)
 	}
 }
