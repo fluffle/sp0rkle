@@ -5,7 +5,6 @@ import (
 	"github.com/fluffle/goevent/event"
 	"github.com/fluffle/goirc/client"
 	"github.com/fluffle/golog/logging"
-	"github.com/fluffle/sp0rkle/lib/util"
 	"github.com/fluffle/sp0rkle/sp0rkle/base"
 	"os/exec"
 	"strings"
@@ -18,11 +17,11 @@ func (bot *Sp0rkle) RegisterHandlers(r event.EventRegistry) {
 	// Generic shim to wrap an irc event into a bot event.
 	forward_event := func(name string) event.Handler {
 		return client.NewHandler(func(irc *client.Conn, line *client.Line) {
-			getState(irc).Dispatch("bot_"+name, &base.Line{Line: *line.Copy()})
+			getState(irc).Dispatch("bot_"+name, Line(line))
 		})
 	}
 
-	r.AddHandler(client.NewHandler(bot_privmsg), "privmsg")
+	r.AddHandler(forward_event("privmsg"), "privmsg")
 	r.AddHandler(forward_event("action"), "action")
 	// These are mostly for the seen plugin.
 	r.AddHandler(forward_event("join"), "join")
@@ -52,47 +51,10 @@ func bot_disconnected(line *base.Line) {
 	logging.Info("Disconnected...")
 }
 
-func bot_command(line *base.Line) {
-	l, p := util.RemovePrefixedNick(strings.TrimSpace(line.Args[1]), irc.Me.Nick)
-	// We want line.Args[1] to contain the (possibly) stripped version of itself
-	// but modifying the pointer will result in other goroutines seeing the
-	// change, so we need to copy line for our own edification.
-	nl := line.Copy()
-	nl.Args[1] = l
-	nl.Addressed = p
-	// If we're being talked to in private, line.Args[0] will contain our Nick.
-	// To ensure the replies go to the right place (without performing this
-	// check everywhere) test for this and set line.Args[0] == line.Nick.
-	// We should consider this as "addressing" us too, and set Addressed = true
-	if nl.Args[0] == irc.Me.Nick {
-		nl.Args[0] = nl.Nick
-		nl.Addressed = true
+func bot_command(l *base.Line) {
+	if cmd := commands.Match(l.Args[1]); l.Addressed && cmd != nil {
+		cmd.Execute(l)
 	}
-	if cmd := commands.Match(nl.Args[1]); nl.Addressed && cmd != nil {
-		cmd.Execute(nl)
-	}
-}
-
-// Do some standard processing on incoming lines and dispatch a bot_privmsg
-func bot_privmsg(irc *client.Conn, line *client.Line) {
-	bot := getState(irc)
-
-	l, p := util.RemovePrefixedNick(strings.TrimSpace(line.Args[1]), irc.Me.Nick)
-	// We want line.Args[1] to contain the (possibly) stripped version of itself
-	// but modifying the pointer will result in other goroutines seeing the
-	// change, so we need to copy line for our own edification.
-	nl := &base.Line{Line: *line.Copy()}
-	nl.Args[1] = l
-	nl.Addressed = p
-	// If we're being talked to in private, line.Args[0] will contain our Nick.
-	// To ensure the replies go to the right place (without performing this
-	// check everywhere) test for this and set line.Args[0] == line.Nick.
-	// We should consider this as "addressing" us too, and set Addressed = true
-	if nl.Args[0] == irc.Me.Nick {
-		nl.Args[0] = nl.Nick
-		nl.Addressed = true
-	}
-	bot.Dispatch("bot_privmsg", nl)
 }
 
 // Retrieve the bot from irc.State.

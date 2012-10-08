@@ -6,6 +6,7 @@ import (
 	"github.com/fluffle/goevent/event"
 	"github.com/fluffle/goirc/client"
 	"github.com/fluffle/golog/logging"
+	"github.com/fluffle/sp0rkle/lib/util"
 	"github.com/fluffle/sp0rkle/sp0rkle/base"
 	"strings"
 )
@@ -112,7 +113,7 @@ func (bc *botCommand) Help() string {
 
 func Handle(h base.Handler, event ...string) {
 	bot.ER.AddHandler(client.NewHandler(func(_ *client.Conn, l *client.Line) {
-		h.Execute(&base.Line{Line: *l.Copy()})
+		h.Execute(Line(l))
 	}), event...)
 }
 
@@ -128,6 +129,27 @@ func Command(cmd base.Command, prefix string) {
 
 func CommandFunc(fn botFn, prefix, help string) {
 	Command(&botCommand{fn, help}, prefix)
+}
+
+func Line(line *client.Line) *base.Line {
+	// We want line.Args[1] to contain the (possibly) stripped version of itself
+	// but modifying the pointer will result in other goroutines seeing the
+	// change, so we need to copy line for our own edification.
+	nl := &base.Line{Line: line.Copy()}
+	if nl.Cmd != "PRIVMSG" {
+		return nl
+	}
+	nl.Args[1], nl.Addressed = util.RemovePrefixedNick(
+		strings.TrimSpace(line.Args[1]), irc.Me.Nick)
+	// If we're being talked to in private, line.Args[0] will contain our Nick.
+	// To ensure the replies go to the right place (without performing this
+	// check everywhere) test for this and set line.Args[0] == line.Nick.
+	// We should consider this as "addressing" us too, and set Addressed = true
+	if nl.Args[0] == irc.Me.Nick {
+		nl.Args[0] = nl.Nick
+		nl.Addressed = true
+	}
+	return nl
 }
 
 func (bot *Sp0rkle) Name() string {
@@ -202,4 +224,8 @@ func Reply(line *base.Line, fm string, args ...interface{}) {
 // Hmmm.
 func Privmsg(ch, text string) {
 	irc.Privmsg(ch, text)
+}
+
+func Action(ch, text string) {
+	irc.Action(ch, text)
 }
