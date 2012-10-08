@@ -30,7 +30,7 @@ type Factoid struct {
 	Type                        FactoidType
 	Created, Modified, Accessed *FactoidStat
 	Perms                       *FactoidPerms
-	Id                          bson.ObjectId "_id"
+	Id                          bson.ObjectId `bson:"_id,omitempty"`
 }
 
 // Represent info about things that happened to the factoid
@@ -91,21 +91,17 @@ type FactoidCollection struct {
 
 	// cache of objectIds for PseudoRand
 	seen map[string][]bson.ObjectId
-
-	// logging object
-	l logging.Logger
 }
 
 // Wrapper to get hold of a factoid collection handle
-func Collection(dbh *db.Database, l logging.Logger) *FactoidCollection {
+func Collection(dbh *db.Database) *FactoidCollection {
 	fc := &FactoidCollection{
 		Collection: dbh.C(COLLECTION),
 		seen:       make(map[string][]bson.ObjectId),
-		l:          l,
 	}
 	err := fc.EnsureIndex(mgo.Index{Key: []string{"key"}})
 	if err != nil {
-		l.Error("Couldn't create index on sp0rkle.factoids: %v", err)
+		logging.Error("Couldn't create index on sp0rkle.factoids: %v", err)
 	}
 	return fc
 }
@@ -138,13 +134,13 @@ func (fc *FactoidCollection) GetPseudoRand(key string) *Factoid {
 	lookup := lookup(key)
 	ids, ok := fc.seen[key]
 	if ok && len(ids) > 0 {
-		fc.l.Debug("Seen '%s' before, %d stored id's", key, len(ids))
+		logging.Debug("Seen '%s' before, %d stored id's", key, len(ids))
 		lookup["_id"] = bson.M{"$nin": ids}
 	}
 	query := fc.Find(lookup)
 	count, err := query.Count()
 	if err != nil {
-		fc.l.Debug("Counting for key failed: %v", err)
+		logging.Debug("Counting for key failed: %v", err)
 		return nil
 	}
 	if count == 0 {
@@ -159,21 +155,21 @@ func (fc *FactoidCollection) GetPseudoRand(key string) *Factoid {
 		query = query.Skip(util.RNG.Intn(count))
 	}
 	if err = query.One(&res); err != nil {
-		fc.l.Warn("Fetching factoid for key failed: %v", err)
+		logging.Warn("Fetching factoid for key failed: %v", err)
 		return nil
 	}
 	if count != 1 {
 		if !ok {
 			// only store seen for keys that have more than one factoid
-			fc.l.Debug("Creating seen data for key '%s'.", key)
+			logging.Debug("Creating seen data for key '%s'.", key)
 			fc.seen[key] = make([]bson.ObjectId, 0, count)
 		}
-		fc.l.Debug("Storing id %v for key '%s'.", res.Id, key)
+		logging.Debug("Storing id %v for key '%s'.", res.Id, key)
 		fc.seen[key] = append(fc.seen[key], res.Id)
 	} else if ok {
 		// if the count of results is 1 and we're storing seen data for key
 		// then we've exhausted the possible results and should wipe it
-		fc.l.Debug("Zeroing seen data for key '%s'.", key)
+		logging.Debug("Zeroing seen data for key '%s'.", key)
 		delete(fc.seen, key)
 	}
 	return &res
@@ -183,7 +179,7 @@ func (fc *FactoidCollection) GetKeysMatching(regex string) []string {
 	var res []string
 	query := fc.Find(bson.M{"key": bson.M{"$regex": regex}})
 	if err := query.Distinct("key", &res); err != nil {
-		fc.l.Warn("Distinct regex query for '%s' failed: %v\n", regex, err)
+		logging.Warn("Distinct regex query for '%s' failed: %v\n", regex, err)
 		return nil
 	}
 	return res
@@ -218,15 +214,15 @@ func (fc *FactoidCollection) InfoMR(key string) *FactoidInfo {
 		}`,
 	}
 	var res []struct {
-		Id    int "_id"
+		Id    int `bson:"_id"`
 		Value FactoidInfo
 	}
 	info, err := fc.Find(lookup(key)).MapReduce(mr, &res)
 	if err != nil || len(res) == 0 {
-		fc.l.Warn("Info MR for '%s' failed: %v", key, err)
+		logging.Warn("Info MR for '%s' failed: %v", key, err)
 		return nil
 	} else {
-		fc.l.Debug("Info MR mapped %d, emitted %d, produced %d in %d ms.",
+		logging.Debug("Info MR mapped %d, emitted %d, produced %d in %d ms.",
 			info.InputCount, info.EmitCount, info.OutputCount, info.Time/1e6)
 	}
 	return &res[0].Value

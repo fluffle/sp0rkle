@@ -5,7 +5,6 @@ package main
 import (
 	_ "expvar"
 	"flag"
-	"github.com/fluffle/goevent/event"
 	"github.com/fluffle/goirc/client"
 	"github.com/fluffle/golog/logging"
 	"github.com/fluffle/sp0rkle/lib/db"
@@ -38,7 +37,6 @@ var (
 func main() {
 	flag.Parse()
 	log := logging.InitFromFlags()
-	reg := event.NewRegistry()
 
 	if *server == "" {
 		//Don't call log.Fatal as we don't want a backtrace in this case
@@ -55,10 +53,10 @@ func main() {
 	defer db.Session.Close()
 
 	// Initialise the factoid driver (which currently acts as a plugin mgr too).
-	fd := factdriver.FactoidDriver(db, log)
+	fd := factdriver.FactoidDriver(db)
 
 	// Configure IRC client
-	irc := client.Client(*nick, "boing", "not really sp0rkle", reg, log)
+	irc := client.SimpleClient(*nick, "boing", "not really sp0rkle")
 	irc.SSL = *ssl
 
 	// Initialise bot state

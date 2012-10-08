@@ -155,7 +155,7 @@ func toString(s interface{}) string {
 
 func main() {
 	flag.Parse()
-	log = logging.NewFromFlags()
+	logging.InitFromFlags()
 
 	// Let's go find some mongo.
 	mdb, err := db.Connect("localhost")
@@ -163,7 +163,7 @@ func main() {
 		log.Fatal("Oh no: %v", err)
 	}
 	defer mdb.Session.Close()
-	fc := factoids.Collection(mdb, log)
+	fc := factoids.Collection(mdb)
 
 	// A communication channel of Factoids.
 	facts := make(chan *factoids.Factoid)
@@ -178,9 +178,9 @@ func main() {
 	db_query := func(dbh *sqlite3.Database) {
 		n, err := dbh.Execute("SELECT * FROM Factoids;", row_feeder)
 		if err == nil {
-			log.Info("Read %d rows from database.\n", n)
+			logging.Info("Read %d rows from database.\n", n)
 		} else {
-			log.Error("DB error: %s\n", err)
+			logging.Error("DB error: %s\n", err)
 		}
 	}
 
@@ -208,7 +208,7 @@ func main() {
 		// ... push each fact into mongo
 		err = fc.Insert(fact)
 		if err != nil {
-			log.Error("Awww: %v\n", err)
+			logging.Error("Awww: %v\n", err)
 		} else {
 			if count%1000 == 0 {
 				fmt.Printf("%d...", count)
@@ -217,5 +217,5 @@ func main() {
 		}
 	}
 	fmt.Println("done.")
-	log.Info("Inserted %d factoids.\n", count)
+	logging.Info("Inserted %d factoids.\n", count)
 }
