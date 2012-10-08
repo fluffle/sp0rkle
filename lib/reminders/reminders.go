@@ -54,53 +54,60 @@ func NewTell(msg string, t, n db.StorableNick, c db.StorableChan) *Reminder {
 	}
 }
 
-func (r *Reminder) Reply() string {
-	if r.Tell {
-		return fmt.Sprintf("%s asked me to tell you %s at %s",
+func (r *Reminder) Reply() (s string) {
+	switch {
+	case r.Tell:
+		s = fmt.Sprintf("%s asked me to tell you %s at %s",
 			r.Nick, r.Reminder, r.Created.Format(RemindTimeFormat))
-	} else if r.Nick == r.Target.Nick {
-		return fmt.Sprintf("%s, you asked me to remind you %s",
+	case r.Nick == r.Target.Nick:
+		s = fmt.Sprintf("%s, you asked me to remind you %s",
 			r.Nick, r.Reminder)
+	default:
+		s = fmt.Sprintf("%s, %s asked me to remind you %s",
+			r.Target.Nick, r.Nick, r.Reminder)
 	}
-	return fmt.Sprintf("%s, %s asked me to remind you %s",
-		r.Target.Nick, r.Nick, r.Reminder)
+	return
 }
 
-func (r *Reminder) Acknowledge() string {
-	if r.Tell {
-		return fmt.Sprintf("okay, i'll tell %s %s when I see them",
+func (r *Reminder) Acknowledge() (s string) {
+	switch {
+	case r.Tell:
+		s = fmt.Sprintf("okay, i'll tell %s %s when I see them",
 			r.Target.Nick, r.Reminder)
-	} else if r.Nick == r.Target.Nick {
-		return fmt.Sprintf("okay, i'll remind you %s at %s",
+	case r.Nick == r.Target.Nick:
+		s = fmt.Sprintf("okay, i'll remind you %s at %s",
 			r.Reminder, r.RemindAt.Format(RemindTimeFormat))
+	default:
+		s = fmt.Sprintf("okay, i'll remind %s %s at %s",
+			r.Target.Nick, r.Reminder, r.RemindAt.Format(RemindTimeFormat))
 	}
-	return fmt.Sprintf("okay, i'll remind %s %s at %s",
-		r.Target.Nick, r.Reminder, r.RemindAt.Format(RemindTimeFormat))
+	return
 }
 
-func (r *Reminder) List(nick string) string {
+func (r *Reminder) List(nick string) (s string) {
 	nick = strings.ToLower(nick)
-	if r.Tell {
-		if nick == r.From {
-			return fmt.Sprintf("you asked me to tell %s %s",
-				r.Target.Nick, r.Reminder)
-		} else if nick == r.To {
-			// this is somewhat unlikely, as it should have triggered already
-			return fmt.Sprintf("%s asked me to tell you %s -- and now I have!",
-				r.Nick, r.Reminder)
-		}
-	} else if nick == r.From && nick == r.To {
-		return fmt.Sprintf("you asked me to remind you %s, at %s",
+	switch {
+	case r.Tell && nick == r.From:
+		s = fmt.Sprintf("you asked me to tell %s %s",
+			r.Target.Nick, r.Reminder)
+	case r.Tell && nick == r.To:
+		// this is somewhat unlikely, as it should have triggered already
+		s = fmt.Sprintf("%s asked me to tell you %s -- and now I have!",
+			r.Nick, r.Reminder)
+	case nick == r.From && nick == r.To:
+		s = fmt.Sprintf("you asked me to remind you %s, at %s",
 			r.Reminder, r.RemindAt.Format(RemindTimeFormat))
-	} else if nick == r.From {
-		return fmt.Sprintf("you asked me to remind %s %s, at %s",
+	case nick == r.From:
+		s = fmt.Sprintf("you asked me to remind %s %s, at %s",
 			r.Target.Nick, r.Reminder, r.RemindAt.Format(RemindTimeFormat))
-	} else if nick == r.To {
-		return fmt.Sprintf("%s asked me to remind you %s, at %s",
+	case nick == r.To:
+		s = fmt.Sprintf("%s asked me to remind you %s, at %s",
 			r.Nick, r.Reminder, r.RemindAt.Format(RemindTimeFormat))
+	default:
+		s = fmt.Sprintf("%s asked me to remind %s %s, at %s",
+			r.Nick, r.Target, r.Reminder, r.RemindAt.Format(RemindTimeFormat))
 	}
-	return fmt.Sprintf("%s asked me to remind %s %s, at %s",
-		r.Nick, r.Target, r.Reminder, r.RemindAt.Format(RemindTimeFormat))
+	return
 }
 
 type ReminderCollection struct {
