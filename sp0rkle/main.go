@@ -60,12 +60,9 @@ func main() {
 	bot := bot.Init(irc, log)
 	bot.AddChannels(strings.Split(*channels, ","))
 
-	// Initialise the factoid driver (which currently acts as a plugin mgr too).
-	fd := factdriver.FactoidDriver(db)
 
 	// Add drivers
 	bot.AddDriver(bot)
-	bot.AddDriver(fd)
 	bot.AddDriver(calcdriver.CalcDriver(log))
 	bot.AddDriver(decisiondriver.DecisionDriver(log))
 	bot.AddDriver(netdriver.NetDriver(log))
@@ -73,6 +70,7 @@ func main() {
 	bot.AddDriver(seendriver.SeenDriver(db, log))
 	bot.AddDriver(urldriver.UrlDriver(db, log))
 
+	factdriver.Init(db)
 	reminddriver.Init(db)
 
 	// Register everything (including http handlers)

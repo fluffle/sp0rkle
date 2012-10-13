@@ -6,23 +6,9 @@ import (
 	"time"
 )
 
-func (fd *factoidDriver) RegisterPlugins(pm base.PluginManager) {
-	// pm == fd in this case, but meh.
-	pm.Add(&FactoidPlugin{fd, fd_identifiers})
-}
-
-type FactoidPlugin struct {
-	provider  *factoidDriver
-	processor func(*factoidDriver, string, *base.Line) string
-}
-
-func (fp *FactoidPlugin) Apply(val string, line *base.Line) string {
-	return fp.processor(fp.provider, val, line)
-}
-
 // Replicate perlfu's $<stuff> identifiers
-func fd_identifiers(fd *factoidDriver, val string, line *base.Line) string {
-	return id_replacer(val, line, time.Now())
+func replaceIdentifiers(in string, line *base.Line) string {
+	return id_replacer(in, line, time.Now())
 }
 
 // Split this out so we can inject a deterministic time for testing.

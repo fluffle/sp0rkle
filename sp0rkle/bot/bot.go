@@ -94,9 +94,20 @@ func Bot(c *client.Conn, l logging.Logger) *Sp0rkle {
 }
 
 type botFn func(*base.Line)
+
+type botPl func(string, *base.Line) string
+
 type botCommand struct {
 	fn botFn
 	help string
+}
+
+func (bf botFn) Execute(line *base.Line) {
+	bf(line)
+}
+
+func (bp botPl) Apply(in string, line *base.Line) string {
+	return bp(in, line)
 }
 
 func (bc *botCommand) Execute(line *base.Line) {
@@ -114,7 +125,7 @@ func Handle(h base.Handler, event ...string) {
 }
 
 func HandleFunc(fn botFn, event ...string) {
-	Handle(&botCommand{fn, ""}, event...)
+	Handle(fn, event...)
 }
 
 var commands = base.NewCommandSet()
@@ -131,6 +142,10 @@ var plugins = base.NewPluginSet()
 
 func Plugin(p base.Plugin) {
 	plugins.Add(p)
+}
+
+func PluginFunc(fn botPl) {
+	Plugin(fn)
 }
 
 func Line(line *client.Line) *base.Line {
@@ -231,11 +246,19 @@ func Do(line *base.Line, fm string, args ...interface{}) {
 	Action(line.Args[0], plugins.Apply(fmt.Sprintf(fm, args...), line))
 }
 
-// Hmmm.
+// Hmmm. Fix these later.
 func Privmsg(ch, text string) {
 	irc.Privmsg(ch, text)
 }
 
 func Action(ch, text string) {
 	irc.Action(ch, text)
+}
+
+func Flood(f bool) {
+	irc.Flood = f
+}
+
+func Nick() string {
+	return irc.Me.Nick
 }

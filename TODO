@@ -90,11 +90,12 @@ Drivers
     + each factoid has "owner" == creator initially
     + owner can set factoid read-only, prevents others modifying/deleting
     + need some mechanism for giving/taking ownership (someone needs "root")
+  - The ability to apply commands to something other than the last factoid seen
+    via "literal" to list then s/that/N/ in command to apply.
   - Something that utilises the access count to help prune unseen factoids
   - Regex factoid value editing: edit that =~ s/// => applies regex to factoid
   - Some clever way of flattening *pointer values when needed on import
   - Pointer handling for those that aren't flattened on import
-  - Help, as mentioned below
   - More unit tests
   - Pruning of 404'd F_URL factoids
 

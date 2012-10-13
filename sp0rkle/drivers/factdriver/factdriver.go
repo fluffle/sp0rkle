@@ -4,11 +4,36 @@ import (
 	"github.com/fluffle/sp0rkle/lib/db"
 	"github.com/fluffle/sp0rkle/lib/factoids"
 	"github.com/fluffle/sp0rkle/lib/util"
+	"github.com/fluffle/sp0rkle/sp0rkle/base"
+	"github.com/fluffle/sp0rkle/sp0rkle/bot"
 	"labix.org/v2/mgo/bson"
 	"strings"
 )
 
-const driverName string = "factoids"
+type factoidFn func(*factoidDriver, *base.Line)
+
+// A factoidCommand fulfills base.Handler and base.Command
+type factoidCommand struct {
+	fd *factoidDriver
+	fn factoidFn
+	help string
+}
+
+func (fc *factoidCommand) Execute(l *base.Line) {
+	fc.fn(fc.fd, l)
+}
+
+func (fc *factoidCommand) Help() string {
+	return fc.help
+}
+
+func (fd *factoidDriver) Command(fn factoidFn, prefix, help string) {
+	bot.Command(&factoidCommand{fd, fn, help}, prefix)
+}
+
+func (fd *factoidDriver) Handle(fn factoidFn, event ...string) {
+	bot.Handle(&factoidCommand{fd, fn, ""}, event...)
+}
 
 type factoidDriver struct {
 	*factoids.FactoidCollection
@@ -19,16 +44,32 @@ type factoidDriver struct {
 	lastseen map[string]bson.ObjectId
 }
 
-func FactoidDriver(db *db.Database) *factoidDriver {
-	fc := factoids.Collection(db)
-	return &factoidDriver{
-		FactoidCollection: fc,
+func Init(db *db.Database) *factoidDriver {
+	fd := &factoidDriver{
+		FactoidCollection: factoids.Collection(db),
 		lastseen:          make(map[string]bson.ObjectId),
 	}
-}
 
-func (fd *factoidDriver) Name() string {
-	return driverName
+	fd.Handle((*factoidDriver).Add, "privmsg")
+	fd.Handle((*factoidDriver).Lookup, "privmsg", "action")
+
+	bot.PluginFunc(replaceIdentifiers)
+
+	fd.Command((*factoidDriver).Chance, "chance of that is",
+		"chance  -- Sets trigger chance of the last displayed factoid value.")
+	fd.Command((*factoidDriver).Delete, "delete that",
+		"delete  -- Forgets the last displayed factoid value.")
+	fd.Command((*factoidDriver).Delete, "forget that",
+		"forget  -- Forgets the last displayed factoid value.")
+	fd.Command((*factoidDriver).Info, "fact info",
+		"fact info <key>  -- Displays some stats about factoid <key>.")
+	fd.Command((*factoidDriver).Literal, "literal",
+		"literal <key>  -- Displays the factoid values stored for <key>.")
+	fd.Command((*factoidDriver).Replace, "replace that with",
+		"replace  -- Replaces the last displayed factoid value.")
+	fd.Command((*factoidDriver).Search, "fact search",
+		"fact search <regexp>  -- Searches for factoids matching <regexp>.")
+	return fd
 }
 
 func (fd *factoidDriver) Lastseen(ch string, id ...bson.ObjectId) bson.ObjectId {
