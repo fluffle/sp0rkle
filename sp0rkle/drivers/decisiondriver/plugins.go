@@ -10,8 +10,8 @@ import (
 )
 
 func (dd *decisionDriver) RegisterPlugins(pm base.PluginManager) {
-	pm.AddPlugin(&DecisionPlugin{dd, dd_rand})
-	pm.AddPlugin(&DecisionPlugin{dd, dd_decider})
+	pm.Add(&DecisionPlugin{dd, dd_rand})
+	pm.Add(&DecisionPlugin{dd, dd_decider})
 }
 
 type DecisionPlugin struct {

@@ -8,7 +8,7 @@ import (
 
 func (fd *factoidDriver) RegisterPlugins(pm base.PluginManager) {
 	// pm == fd in this case, but meh.
-	pm.AddPlugin(&FactoidPlugin{fd, fd_identifiers})
+	pm.Add(&FactoidPlugin{fd, fd_identifiers})
 }
 
 type FactoidPlugin struct {

@@ -4,7 +4,6 @@ import (
 	"github.com/fluffle/sp0rkle/lib/db"
 	"github.com/fluffle/sp0rkle/lib/factoids"
 	"github.com/fluffle/sp0rkle/lib/util"
-	"github.com/fluffle/sp0rkle/sp0rkle/base"
 	"labix.org/v2/mgo/bson"
 	"strings"
 )
@@ -18,9 +17,6 @@ type factoidDriver struct {
 	// for use with 'edit that' and 'delete that' commands.
 	// Do this on a per-channel basis to avoid (too much) confusion.
 	lastseen map[string]bson.ObjectId
-
-	// A list of text processing plugins to apply to factoid values
-	plugins []base.Plugin
 }
 
 func FactoidDriver(db *db.Database) *factoidDriver {
@@ -28,23 +24,11 @@ func FactoidDriver(db *db.Database) *factoidDriver {
 	return &factoidDriver{
 		FactoidCollection: fc,
 		lastseen:          make(map[string]bson.ObjectId),
-		plugins:           make([]base.Plugin, 0),
 	}
 }
 
 func (fd *factoidDriver) Name() string {
 	return driverName
-}
-
-func (fd *factoidDriver) AddPlugin(p base.Plugin) {
-	fd.plugins = append(fd.plugins, p)
-}
-
-func (fd *factoidDriver) ApplyPlugins(val string, line *base.Line) string {
-	for _, p := range fd.plugins {
-		val = p.Apply(val, line)
-	}
-	return val
 }
 
 func (fd *factoidDriver) Lastseen(ch string, id ...bson.ObjectId) bson.ObjectId {

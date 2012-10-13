@@ -269,13 +269,11 @@ func fd_lookup(bot *bot.Sp0rkle, fd *factoidDriver, line *base.Line) {
 				fact.Key, fact.Id, err)
 		}
 
-		// Apply the list of factoid plugins to the factoid value.
-		val := fd.ApplyPlugins(fact.Value, line)
 		switch fact.Type {
 		case factoids.F_ACTION:
-			bot.Conn.Action(line.Args[0], val)
+			bot.Do(line, fact.Value)
 		default:
-			bot.Conn.Privmsg(line.Args[0], val)
+			bot.Reply(line, fact.Value)
 		}
 	}
 }

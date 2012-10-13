@@ -29,9 +29,6 @@ type Sp0rkle struct {
 	ED event.EventDispatcher
 	ER event.EventRegistry
 
-	// And a plugin manager.
-	PM base.PluginManager
-
 	// And a logger.
 	l logging.Logger
 
@@ -55,10 +52,10 @@ type Sp0rkle struct {
 var bot *Sp0rkle
 var irc *client.Conn
 
-func Init(c *client.Conn, pm base.PluginManager, l logging.Logger) *Sp0rkle {
+func Init(c *client.Conn, l logging.Logger) *Sp0rkle {
 	// TODO(fluffle): fix race.
 	if bot == nil {
-		bot = Bot(c, pm, l)
+		bot = Bot(c, l)
 		irc = c
 	}
 
@@ -76,13 +73,12 @@ func Init(c *client.Conn, pm base.PluginManager, l logging.Logger) *Sp0rkle {
 	return bot
 }
 
-func Bot(c *client.Conn, pm base.PluginManager, l logging.Logger) *Sp0rkle {
+func Bot(c *client.Conn, l logging.Logger) *Sp0rkle {
 	s := strings.Split(*rebuilder, ":")
 	bot := &Sp0rkle{
 		Conn:     c,
 		ER:       c.ER,
 		ED:       c.ED,
-		PM:       pm,
 		l:        l,
 		drivers:  make(map[string]base.Driver),
 		channels: make([]string, 0, 1),
@@ -131,6 +127,12 @@ func CommandFunc(fn botFn, prefix, help string) {
 	Command(&botCommand{fn, help}, prefix)
 }
 
+var plugins = base.NewPluginSet()
+
+func Plugin(p base.Plugin) {
+	plugins.Add(p)
+}
+
 func Line(line *client.Line) *base.Line {
 	// We want line.Args[1] to contain the (possibly) stripped version of itself
 	// but modifying the pointer will result in other goroutines seeing the
@@ -163,7 +165,7 @@ func (bot *Sp0rkle) RegisterAll() {
 		// If the driver provides FactoidPlugins to change factoid output
 		// register them with the PluginManager here too.
 		if pp, ok := d.(base.PluginProvider); ok {
-			pp.RegisterPlugins(bot.PM)
+			pp.RegisterPlugins(plugins)
 		}
 		// If the driver wants to handle any HTTP paths, register them.
 		if hp, ok := d.(base.HttpProvider); ok {
@@ -205,7 +207,11 @@ func (bot *Sp0rkle) ReplyN(line *base.Line, fm string, args ...interface{}) {
 
 // whereas Reply() does not.
 func (bot *Sp0rkle) Reply(line *base.Line, fm string, args ...interface{}) {
-	bot.Conn.Privmsg(line.Args[0], fmt.Sprintf(fm, args...))
+	bot.Conn.Privmsg(line.Args[0], plugins.Apply(fmt.Sprintf(fm, args...), line))
+}
+
+func (bot *Sp0rkle) Do(line *base.Line, fm string, args ...interface{}) {
+	bot.Conn.Action(line.Args[0], plugins.Apply(fmt.Sprintf(fm, args...), line))
 }
 
 // Currently makes the assumption that we're replying to line.Args[0] in every
@@ -218,7 +224,11 @@ func ReplyN(line *base.Line, fm string, args ...interface{}) {
 
 // whereas Reply() does not.
 func Reply(line *base.Line, fm string, args ...interface{}) {
-	Privmsg(line.Args[0], fmt.Sprintf(fm, args...))
+	Privmsg(line.Args[0], plugins.Apply(fmt.Sprintf(fm, args...), line))
+}
+
+func Do(line *base.Line, fm string, args ...interface{}) {
+	Action(line.Args[0], plugins.Apply(fmt.Sprintf(fm, args...), line))
 }
 
 // Hmmm.

@@ -10,13 +10,9 @@ type Driver interface {
 	RegisterHandlers(event.EventRegistry)
 }
 
-type Plugin interface {
-	Apply(string, *Line) string
-}
-
 type PluginManager interface {
-	AddPlugin(p Plugin)
-	ApplyPlugins(string, *Line) string
+	Add(p Plugin)
+	Apply(string, *Line) string
 }
 
 type PluginProvider interface {

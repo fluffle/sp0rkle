@@ -52,16 +52,16 @@ func main() {
 	}
 	defer db.Session.Close()
 
-	// Initialise the factoid driver (which currently acts as a plugin mgr too).
-	fd := factdriver.FactoidDriver(db)
-
 	// Configure IRC client
 	irc := client.SimpleClient(*nick, "boing", "not really sp0rkle")
 	irc.SSL = *ssl
 
 	// Initialise bot state
-	bot := bot.Init(irc, fd, log)
+	bot := bot.Init(irc, log)
 	bot.AddChannels(strings.Split(*channels, ","))
+
+	// Initialise the factoid driver (which currently acts as a plugin mgr too).
+	fd := factdriver.FactoidDriver(db)
 
 	// Add drivers
 	bot.AddDriver(bot)

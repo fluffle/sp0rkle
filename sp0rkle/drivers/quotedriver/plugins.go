@@ -8,7 +8,7 @@ import (
 )
 
 func (qd *quoteDriver) RegisterPlugins(pm base.PluginManager) {
-	pm.AddPlugin(&QuotePlugin{qd, qd_plugin_lookup})
+	pm.Add(&QuotePlugin{qd, qd_plugin_lookup})
 }
 
 type QuotePlugin struct {
