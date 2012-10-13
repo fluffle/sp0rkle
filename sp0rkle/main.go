@@ -25,6 +25,8 @@ import (
 )
 
 var (
+	database *string = flag.String("database", "localhost",
+		"Address of MongoDB server to connect to, defaults to localhost.")
 	server *string = flag.String("server", "", "IRC server to connect to.")
 	ssl *bool = flag.Bool("ssl", false, "Use SSL when connecting.")
 	httpPort *string = flag.String("http", ":6666", "Port to serve HTTP requests on.")
@@ -46,7 +48,7 @@ func main() {
 	}
 
 	// Connect to mongo
-	db, err := db.Connect("localhost")
+	db, err := db.Connect(*database)
 	if err != nil {
 		log.Fatal("mongo dial failed: %v\n", err)
 	}
