@@ -5,8 +5,8 @@ import (
 	"flag"
 	"fmt"
 	"github.com/fluffle/golog/logging"
+	"github.com/fluffle/sp0rkle/bot"
 	"github.com/fluffle/sp0rkle/collections/urls"
-	"github.com/fluffle/sp0rkle/db"
 	"github.com/fluffle/sp0rkle/util"
 	"hash/crc32"
 	"io"
@@ -17,7 +17,6 @@ import (
 	"time"
 )
 
-const driverName string = "urls"
 const shortenPath string = "/s/"
 const cachePath string = "/c/"
 const autoShortenLimit int = 120
@@ -30,26 +29,53 @@ var urlCacheDir *string = flag.String("url_cache_dir",
 	util.JoinPath(os.Getenv("HOME"), ".sp0rkle"),
 	"Path to store cached content under.")
 
-type urlDriver struct {
-	*urls.UrlCollection
-	// Remember the last url seen on a per-channel basis
-	lastseen map[string]bson.ObjectId
-	l logging.Logger
-}
+var uc *urls.Collection
 
-func UrlDriver(db *db.Database, l logging.Logger) *urlDriver {
-	return &urlDriver{
-		UrlCollection: urls.Collection(db, l),
-		lastseen: make(map[string]bson.ObjectId),
-		l: l,
+// Remember the last url seen on a per-channel basis
+var lastseen = map[string]bson.ObjectId {}
+
+func Init() {
+	uc = urls.Init()
+
+	if err := os.MkdirAll(*urlCacheDir, 0700); err != nil {
+		logging.Fatal("Couldn't create URL cache dir: %v", err)
 	}
+
+	bot.HandleFunc(urlScan, "privmsg")
+	
+	bot.CommandFunc(find, "urlfind", "urlfind <regex>  -- " +
+		"searches for previously mentioned URLs matching <regex>")
+	bot.CommandFunc(find, "url find", "url find <regex>  -- " +
+		"searches for previously mentioned URLs matching <regex>")
+	bot.CommandFunc(find, "urlsearch", "urlsearch <regex>  -- " +
+		"searches for previously mentioned URLs matching <regex>")
+	bot.CommandFunc(find, "url search", "url search <regex>  -- " +
+		"searches for previously mentioned URLs matching <regex>")
+
+	bot.CommandFunc(find, "randurl", "randurl  -- displays a random URL")
+	bot.CommandFunc(find, "random url", "random url  -- displays a random URL")
+
+	bot.CommandFunc(shorten, "shorten that", "shorten that  -- " +
+		"shortens the last mentioned URL.")
+	bot.CommandFunc(shorten, "shorten", "shorten <url>  -- shortens <url>")
+
+	bot.CommandFunc(cache, "cache that", "cache that  -- " +
+		"caches the last mentioned URL.")
+	bot.CommandFunc(cache, "cache", "cache <url>  -- caches <url>")
+	bot.CommandFunc(cache, "save that", "save that  -- " +
+		"caches the last mentioned URL.")
+	bot.CommandFunc(cache, "save", "save <url>  -- caches <url>")
+
+	// This serves "shortened" urls 
+	http.Handle(shortenPath, http.StripPrefix(shortenPath,
+		http.HandlerFunc(shortenedServer)))
+
+	// This serves "cached" urls
+	http.Handle(cachePath, http.StripPrefix(cachePath,
+		http.FileServer(http.Dir(*urlCacheDir))))
 }
 
-func (ud *urlDriver) Name() string {
-	return driverName
-}
-
-func (ud *urlDriver) Encode(url string) string {
+func Encode(url string) string {
 	// We shorten/cache a url with it's base-64 encoded CRC32 hash
 	crc := crc32.ChecksumIEEE([]byte(url))
 	crcb := make([]byte, 4)
@@ -62,26 +88,26 @@ func (ud *urlDriver) Encode(url string) string {
 		// resulting in 5 1/3 bytes of encoded data, we can drop
 		// the two padding equals signs for brevity.
 		s := (base64.URLEncoding.EncodeToString(crcb))[:6]
-		q := ud.Find(bson.M{"$or": []bson.M{
+		q := uc.Find(bson.M{"$or": []bson.M{
 			bson.M{"cachedas": s}, bson.M{"shortened": s}}})
 		if n, err := q.Count(); n == 0 && err == nil {
 			return s
 		}
 		crcb[util.RNG.Intn(4)]++
 	}
-	ud.l.Warn("Collided ten times while encoding URL.")
+	logging.Warn("Collided ten times while encoding URL.")
 	return ""
 }
 
-func (ud *urlDriver) Shorten(u *urls.Url) error {
-	u.Shortened = ud.Encode(u.Url)
-	if _, err := ud.Upsert(bson.M{"url": u.Url}, u); err != nil {
+func Shorten(u *urls.Url) error {
+	u.Shortened = Encode(u.Url)
+	if _, err := uc.UpsertId(u.Id, u); err != nil {
 		return err
 	}
 	return nil
 }
 
-func (ud *urlDriver) Cache(u *urls.Url) error {
+func Cache(u *urls.Url) error {
 	for _, s := range badUrlStrings {
 		if strings.Index(u.Url, s) != -1 {
 			return fmt.Errorf("Url contains bad substring '%s'.", s)
@@ -101,7 +127,7 @@ func (ud *urlDriver) Cache(u *urls.Url) error {
 		return fmt.Errorf("Response too large (%d MB) to cache safely.",
 			res.ContentLength/1024/1024)
 	}
-	u.CachedAs = ud.Encode(u.Url)
+	u.CachedAs = Encode(u.Url)
 	fh, err := os.OpenFile(util.JoinPath(*urlCacheDir, u.CachedAs),
 		os.O_WRONLY|os.O_CREATE|os.O_TRUNC, os.FileMode(0600))
 	defer fh.Close()
@@ -113,7 +139,7 @@ func (ud *urlDriver) Cache(u *urls.Url) error {
 	}
 	u.CacheTime = time.Now()
 	u.MimeType = res.Header.Get("Content-Type")
-	if _, err := ud.Upsert(bson.M{"url": u.Url}, u); err != nil {
+	if _, err := uc.UpsertId(u.Id, u); err != nil {
 		return err
 	}
 	return nil

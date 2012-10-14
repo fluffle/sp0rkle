@@ -23,7 +23,7 @@ type Url struct {
 	Hash      []byte
 	MimeType  string
 	Shortened string
-	Id        bson.ObjectId "_id"
+	Id        bson.ObjectId `bson:"_id,omitempty"`
 }
 
 func NewUrl(u string, n base.Nick, c base.Chan) *Url {
@@ -46,27 +46,26 @@ func (u Url) String() string {
 	return u.Url
 }
 
-type UrlCollection struct {
+type Collection struct {
 	*mgo.Collection
-	l logging.Logger
 }
 
-func Collection(dbh *mgo.Database, l logging.Logger) *UrlCollection {
-	uc := &UrlCollection{dbh.C(collection), l}
+func Init() *Collection {
+	uc := &Collection{db.Init().C(collection)}
 	err := uc.EnsureIndex(mgo.Index{Key: []string{"url"}, Unique: true})
 	if err != nil {
-		l.Error("Couldn't create url index on sp0rkle.urls: %s", err)
+		logging.Error("Couldn't create url index on sp0rkle.urls: %s", err)
 	}
 	for _, idx := range []string{"cachedas", "shortened"} {
 		err := uc.EnsureIndex(mgo.Index{Key: []string{idx}})
 		if err != nil {
-			l.Error("Couldn't create %s index on sp0rkle.urls: %s", idx, err)
+			logging.Error("Couldn't create %s index on sp0rkle.urls: %s", idx, err)
 		}
 	}
 	return uc
 }
 
-func (uc *UrlCollection) GetById(id bson.ObjectId) *Url {
+func (uc *Collection) GetById(id bson.ObjectId) *Url {
 	var res Url
 	if err := uc.Find(bson.M{"_id": id}).One(&res); err == nil {
 		return &res
@@ -74,7 +73,7 @@ func (uc *UrlCollection) GetById(id bson.ObjectId) *Url {
 	return nil
 }
 
-func (uc *UrlCollection) GetByUrl(u string) *Url {
+func (uc *Collection) GetByUrl(u string) *Url {
 	var res Url
 	if err := uc.Find(bson.M{"url": u}).One(&res); err == nil {
 		return &res
@@ -83,7 +82,7 @@ func (uc *UrlCollection) GetByUrl(u string) *Url {
 }
 
 // TODO(fluffle): thisisn't quite PseudoRand but still ...
-func (uc *UrlCollection) GetRand(regex string) *Url {
+func (uc *Collection) GetRand(regex string) *Url {
 	lookup := bson.M{}
 	if regex != "" {
 		// Perform a regex lookup if we have one
@@ -92,7 +91,7 @@ func (uc *UrlCollection) GetRand(regex string) *Url {
 	query := uc.Find(lookup)
 	count, err := query.Count()
 	if err != nil {
-		uc.l.Warn("Count for URL lookup '%s' failed: %s", regex, err)
+		logging.Warn("Count for URL lookup '%s' failed: %s", regex, err)
 		return nil
 	}
 	if count == 0 {
@@ -103,13 +102,13 @@ func (uc *UrlCollection) GetRand(regex string) *Url {
 		query.Skip(util.RNG.Intn(count))
 	}
 	if err = query.One(&res); err != nil {
-		uc.l.Warn("Fetch for URL lookup '%s' failed: %s", regex, err)
+		logging.Warn("Fetch for URL lookup '%s' failed: %s", regex, err)
 		return nil
 	}
 	return &res
 }
 
-func (uc *UrlCollection) GetCached(c string) *Url {
+func (uc *Collection) GetCached(c string) *Url {
 	var res Url
 	if err := uc.Find(bson.M{"cachedas": c}).One(&res); err == nil {
 		return &res
@@ -117,7 +116,7 @@ func (uc *UrlCollection) GetCached(c string) *Url {
 	return nil
 }
 
-func (uc *UrlCollection) GetShortened(s string) *Url {
+func (uc *Collection) GetShortened(s string) *Url {
 	var res Url
 	if err := uc.Find(bson.M{"shortened": s}).One(&res); err == nil {
 		return &res

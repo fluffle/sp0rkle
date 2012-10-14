@@ -14,8 +14,8 @@ import (
 var (
 	rebuilder *string = flag.String("rebuilder", "",
 		"Nick[:password] to accept rebuild command from.")
-	prefix *string = flag.String("http_prefix", "http://sp0rk.ly",
-		"Prefix for HTTP paths served by bot.")
+	httpHost *string = flag.String("http_host", "http://sp0rk.ly",
+		"Hostname for HTTP paths served by bot.")
 )
 
 // The bot is called sp0rkle...
@@ -40,9 +40,6 @@ type Sp0rkle struct {
 
 	// nick and password for rebuild command
 	rbnick, rbpw string
-
-	// prefix for HTTP paths served
-	Prefix string
 
 	// and we need to kill it occasionally.
 	reexec, quit bool
@@ -83,7 +80,6 @@ func Bot(c *client.Conn, l logging.Logger) *Sp0rkle {
 		drivers:  make(map[string]base.Driver),
 		channels: make([]string, 0, 1),
 		rbnick:   s[0],
-		Prefix:   *prefix,
 		Quit:     make(chan bool),
 	}
 	if len(s) > 1 {
@@ -261,4 +257,8 @@ func Flood(f bool) {
 
 func Nick() string {
 	return irc.Me.Nick
+}
+
+func HttpHost() string {
+	return *httpHost
 }
