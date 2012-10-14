@@ -1,15 +1,12 @@
 package seendriver
 
 import (
-	"github.com/fluffle/golog/logging"
-	"github.com/fluffle/sp0rkle/db"
-	"github.com/fluffle/sp0rkle/collections/seen"
 	"github.com/fluffle/sp0rkle/base"
+	"github.com/fluffle/sp0rkle/bot"
+	"github.com/fluffle/sp0rkle/collections/seen"
 	"regexp"
 	"time"
 )
-
-const driverName string = "seen"
 
 var smokeRx *regexp.Regexp = regexp.MustCompile(`(?i)^(?:->\s*?)?(?:s(?:c?h)?m[o0]keh?|cig|fag|spliff|ch[o0]ng|t[o0]ke?)(?:s|z?[0o]r)?\W*?(\?)?$`)
 
@@ -40,24 +37,32 @@ func init() {
 	}
 }
 
-type seenDriver struct {
-	*seen.SeenCollection
-	l logging.Logger
-}
+var sc *seen.Collection
 
-func SeenDriver(db *db.Database, l logging.Logger) *seenDriver {
-	sc := seen.Collection(db, l)
-	return &seenDriver{sc, l}
-}
+func Init() {
+	sc = seen.Init()
 
-func (sd *seenDriver) Name() string {
-	return driverName
+	bot.HandleFunc(smoke, "privmsg", "action")
+	bot.HandleFunc(recordLines, "privmsg", "action")
+	bot.HandleFunc(recordPrivmsg, "privmsg", "action")
+	bot.HandleFunc(recordJoin, "join", "part")
+	bot.HandleFunc(recordNick, "nick", "quit")
+	bot.HandleFunc(recordKick, "kick")
+
+	bot.CommandFunc(seenCmd, "seen", "seen <nick> [action]  -- " +
+		"display the last time <nick> was seen on IRC [doing action]")
+	bot.CommandFunc(lines, "lines", "lines [nick]  -- " +
+		"display how many lines you [or nick] has said in the channel")
+	bot.CommandFunc(topten, "topten", "topten  -- " +
+		"display the nicks who have said the most in the channel")
+	bot.CommandFunc(topten, "top10", "top10  -- " +
+		"display the nicks who have said the most in the channel")
 }
 
 // Look up or create a "seen" entry for the line.
 // Explicitly don't handle updating line.Text or line.OtherNick
-func (sd *seenDriver) SeenNickFromLine(line *base.Line) *seen.Nick {
-	sn := sd.LastSeenDoing(line.Nick, line.Cmd)
+func seenNickFromLine(line *base.Line) *seen.Nick {
+	sn := sc.LastSeenDoing(line.Nick, line.Cmd)
 	n, c := line.Storable()
 	if sn == nil {
 		sn = seen.SawNick(n, c, line.Cmd, "")
