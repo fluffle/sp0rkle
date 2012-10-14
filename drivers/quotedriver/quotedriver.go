@@ -1,47 +1,45 @@
 package quotedriver
 
 import (
-	"github.com/fluffle/golog/logging"
+	"github.com/fluffle/sp0rkle/bot"
 	"github.com/fluffle/sp0rkle/collections/quotes"
-	"github.com/fluffle/sp0rkle/db"
 	"time"
 )
 
-const driverName string = "quotes"
+var qc *quotes.Collection
 
+func Init() {
+	qc = quotes.Init()
+
+	bot.PluginFunc(quotePlugin)
+	bot.CommandFunc(add, "qadd", "qadd <quote>  -- Adds a quote to the db.")
+	bot.CommandFunc(add, "quote add",
+		"quote add <quote>  -- Adds a quote to the db.")
+	bot.CommandFunc(add, "add quote",
+		"add quote <quote>  -- Adds a quote to the db.")
+	bot.CommandFunc(del, "qdel", "qdel #<qID>  -- Deletes a quote from the db.")
+	bot.CommandFunc(del, "quote del",
+		"quote del #<qID>  -- Deletes a quote from the db.")
+	bot.CommandFunc(del, "del quote",
+		"del quote #<qID>  -- Deletes a quote from the db.")
+	bot.CommandFunc(fetch, "quote #", "quote #<qID>  -- Displays quote <qID>.")
+	bot.CommandFunc(lookup, "quote",
+		"quote <regex>  -- Displays quotes matching <regex>")
+}
+
+// Data for rate limiting quote lookups per-nick
 type rateLimit struct {
 	badness  time.Duration
 	lastsent time.Time
 }
 
-type quoteDriver struct {
-	*quotes.QuoteCollection
+var limits = map[string]*rateLimit {}
 
-	// Data for rate limiting quote lookups per-nick
-	limits map[string]*rateLimit
-
-	// logging object
-	l logging.Logger
-}
-
-func QuoteDriver(db *db.Database, l logging.Logger) *quoteDriver {
-	qc := quotes.Collection(db, l)
-	return &quoteDriver{
-		QuoteCollection: qc,
-		limits:          make(map[string]*rateLimit),
-		l:               l,
-	}
-}
-
-func (qd *quoteDriver) Name() string {
-	return driverName
-}
-
-func (qd *quoteDriver) rateLimit(nick string) bool {
-	lim, ok := qd.limits[nick]
+func RateLimit(nick string) bool {
+	lim, ok := limits[nick]
 	if !ok {
 		lim = new(rateLimit)
-		qd.limits[nick] = lim
+		limits[nick] = lim
 	}
 	// limit to 1 quote every 15 seconds, burst to 4 quotes
 	elapsed := time.Now().Sub(lim.lastsent)
