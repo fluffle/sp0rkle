@@ -3,7 +3,8 @@ package reminders
 import (
 	"fmt"
 	"github.com/fluffle/golog/logging"
-	"github.com/fluffle/sp0rkle/lib/db"
+	"github.com/fluffle/sp0rkle/base"
+	"github.com/fluffle/sp0rkle/db"
 	"labix.org/v2/mgo"
 	"labix.org/v2/mgo/bson"
 	"strings"
@@ -14,9 +15,9 @@ const COLLECTION = "reminders"
 const RemindTimeFormat = "15:04:05, Monday 2 January 2006"
 
 type Reminder struct {
-	db.StorableChan
-	db.StorableNick
-	Target    db.StorableNick
+	Source    base.Nick
+	Target    base.Nick
+	Chan      base.Chan
 	From, To  string
 	Reminder  string
 	Created   time.Time
@@ -25,13 +26,13 @@ type Reminder struct {
 	Id        bson.ObjectId `bson:"_id,omitempty"`
 }
 
-func NewReminder(r string, at time.Time, t, n db.StorableNick, c db.StorableChan) *Reminder {
+func NewReminder(r string, at time.Time, t, n base.Nick, c base.Chan) *Reminder {
 	return &Reminder{
-		StorableChan: c,
-		StorableNick: n,
+		Source: n,
 		Target: t,
-		From: strings.ToLower(n.Nick),
-		To: strings.ToLower(t.Nick),
+		Chan: c,
+		From: n.Lower(),
+		To: t.Lower(),
 		Reminder: r,
 		Created: time.Now(),
 		RemindAt: at,
@@ -40,13 +41,13 @@ func NewReminder(r string, at time.Time, t, n db.StorableNick, c db.StorableChan
 	}
 }
 
-func NewTell(msg string, t, n db.StorableNick, c db.StorableChan) *Reminder {
+func NewTell(msg string, t, n base.Nick, c base.Chan) *Reminder {
 	return &Reminder{
-		StorableNick: n,
-		StorableChan: c,
+		Chan: c,
+		Source: n,
 		Target: t,
-		From: strings.ToLower(n.Nick),
-		To: strings.ToLower(t.Nick),
+		From: n.Lower(),
+		To: t.Lower(),
 		Reminder: msg,
 		Created: time.Now(),
 		Tell: true,
@@ -58,13 +59,13 @@ func (r *Reminder) Reply() (s string) {
 	switch {
 	case r.Tell:
 		s = fmt.Sprintf("%s asked me to tell you %s at %s",
-			r.Nick, r.Reminder, r.Created.Format(RemindTimeFormat))
-	case r.Nick == r.Target.Nick:
+			r.Source, r.Reminder, r.Created.Format(RemindTimeFormat))
+	case r.From == r.To:
 		s = fmt.Sprintf("%s, you asked me to remind you %s",
-			r.Nick, r.Reminder)
+			r.Source, r.Reminder)
 	default:
 		s = fmt.Sprintf("%s, %s asked me to remind you %s",
-			r.Target.Nick, r.Nick, r.Reminder)
+			r.Target, r.Source, r.Reminder)
 	}
 	return
 }
@@ -73,13 +74,13 @@ func (r *Reminder) Acknowledge() (s string) {
 	switch {
 	case r.Tell:
 		s = fmt.Sprintf("okay, i'll tell %s %s when I see them",
-			r.Target.Nick, r.Reminder)
-	case r.Nick == r.Target.Nick:
+			r.Target, r.Reminder)
+	case r.From == r.To:
 		s = fmt.Sprintf("okay, i'll remind you %s at %s",
 			r.Reminder, r.RemindAt.Format(RemindTimeFormat))
 	default:
 		s = fmt.Sprintf("okay, i'll remind %s %s at %s",
-			r.Target.Nick, r.Reminder, r.RemindAt.Format(RemindTimeFormat))
+			r.Target, r.Reminder, r.RemindAt.Format(RemindTimeFormat))
 	}
 	return
 }
@@ -89,23 +90,23 @@ func (r *Reminder) List(nick string) (s string) {
 	switch {
 	case r.Tell && nick == r.From:
 		s = fmt.Sprintf("you asked me to tell %s %s",
-			r.Target.Nick, r.Reminder)
+			r.Target, r.Reminder)
 	case r.Tell && nick == r.To:
 		// this is somewhat unlikely, as it should have triggered already
 		s = fmt.Sprintf("%s asked me to tell you %s -- and now I have!",
-			r.Nick, r.Reminder)
+			r.Source, r.Reminder)
 	case nick == r.From && nick == r.To:
 		s = fmt.Sprintf("you asked me to remind you %s, at %s",
 			r.Reminder, r.RemindAt.Format(RemindTimeFormat))
 	case nick == r.From:
 		s = fmt.Sprintf("you asked me to remind %s %s, at %s",
-			r.Target.Nick, r.Reminder, r.RemindAt.Format(RemindTimeFormat))
+			r.Target, r.Reminder, r.RemindAt.Format(RemindTimeFormat))
 	case nick == r.To:
 		s = fmt.Sprintf("%s asked me to remind you %s, at %s",
-			r.Nick, r.Reminder, r.RemindAt.Format(RemindTimeFormat))
+			r.Source, r.Reminder, r.RemindAt.Format(RemindTimeFormat))
 	default:
 		s = fmt.Sprintf("%s asked me to remind %s %s, at %s",
-			r.Nick, r.Target, r.Reminder, r.RemindAt.Format(RemindTimeFormat))
+			r.Source, r.Target, r.Reminder, r.RemindAt.Format(RemindTimeFormat))
 	}
 	return
 }

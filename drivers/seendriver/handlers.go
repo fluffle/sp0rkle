@@ -3,11 +3,10 @@ package seendriver
 import (
 	"fmt"
 	"github.com/fluffle/goevent/event"
-	"github.com/fluffle/sp0rkle/lib/db"
-	"github.com/fluffle/sp0rkle/lib/seen"
-	"github.com/fluffle/sp0rkle/lib/util"
-	"github.com/fluffle/sp0rkle/sp0rkle/base"
-	"github.com/fluffle/sp0rkle/sp0rkle/bot"
+	"github.com/fluffle/sp0rkle/base"
+	"github.com/fluffle/sp0rkle/bot"
+	"github.com/fluffle/sp0rkle/collections/seen"
+	"github.com/fluffle/sp0rkle/util"
 	"strings"
 	"time"
 )
@@ -32,7 +31,7 @@ func sd_smoke(bot *bot.Sp0rkle, line *base.Line) {
 	if sn != nil {
 		bot.ReplyN(line, "You last went for a smoke %s ago...",
 			util.TimeSince(sn.Timestamp))
-		sn.StorableNick, sn.StorableChan = n, c
+		sn.Nick, sn.Chan = n, c
 		sn.Timestamp = time.Now()
 	} else {
 		sn = seen.SawNick(n, c, "SMOKE", "")
@@ -179,14 +178,14 @@ func sd_record_nick(bot *bot.Sp0rkle, line *base.Line) {
 func sd_record_kick(bot *bot.Sp0rkle, line *base.Line) {
 	sd := bot.GetDriver(driverName).(*seenDriver)
 	n, c := line.Storable()
-	kn := db.StorableNick{Nick: line.Args[1]}
+	kn := base.Nick(line.Args[1])
 	// SeenNickFromLine doesn't work with the hacks for KICKING and KICKED
 	// First, handle KICKING
 	kr := sd.LastSeenDoing(line.Nick, "KICKING")
 	if kr == nil {
 		kr = seen.SawNick(n, c, "KICKING", line.Args[2])
 	} else {
-		kr.StorableNick, kr.StorableChan = n, c
+		kr.Nick, kr.Chan = n, c
 		kr.Timestamp, kr.Text = time.Now(), line.Args[2]
 	}
 	kr.OtherNick = kn
@@ -199,7 +198,7 @@ func sd_record_kick(bot *bot.Sp0rkle, line *base.Line) {
 	if ke == nil {
 		ke = seen.SawNick(kn, c, "KICKED", line.Args[2])
 	} else {
-		ke.StorableNick, ke.StorableChan = kn, c
+		ke.Nick, ke.Chan = kn, c
 		ke.Timestamp, ke.Text = time.Now(), line.Args[2]
 	}
 	ke.OtherNick = n

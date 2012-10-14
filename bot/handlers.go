@@ -5,7 +5,7 @@ import (
 	"github.com/fluffle/goevent/event"
 	"github.com/fluffle/goirc/client"
 	"github.com/fluffle/golog/logging"
-	"github.com/fluffle/sp0rkle/sp0rkle/base"
+	"github.com/fluffle/sp0rkle/base"
 	"os/exec"
 	"strings"
 )
@@ -69,7 +69,7 @@ func bot_rebuild(line *base.Line) {
 
 	// Ok, we should be good to rebuild now.
 	irc.Notice(line.Nick, "Beginning rebuild")
-	cmd := exec.Command("go", "get", "-u", "github.com/fluffle/sp0rkle/sp0rkle")
+	cmd := exec.Command("go", "get", "-u", "github.com/fluffle/sp0rkle")
 	out, err := cmd.CombinedOutput()
 	if err != nil {
 		irc.Notice(line.Nick, fmt.Sprintf("Rebuild failed: %s", err))

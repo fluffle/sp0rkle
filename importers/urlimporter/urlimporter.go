@@ -4,8 +4,9 @@ import (
 	"flag"
 	"fmt"
 	"github.com/fluffle/golog/logging"
-	"github.com/fluffle/sp0rkle/lib/db"
-	"github.com/fluffle/sp0rkle/lib/urls"
+	"github.com/fluffle/sp0rkle/base"
+	"github.com/fluffle/sp0rkle/collections/urls"
+	"github.com/fluffle/sp0rkle/db"
 	"github.com/kuroneko/gosqlite3"
 	"labix.org/v2/mgo/bson"
 	"net/http"
@@ -19,8 +20,6 @@ var check *bool = flag.Bool("check", false,
 var workq *int = flag.Int("workers", 8,
 	"How many HEAD requests to run in parallel.")
 
-var log logging.Logger
-
 const (
 	// The URL table columns are:
 	cNick = iota
@@ -31,8 +30,8 @@ const (
 
 func parseUrl(row []interface{}) *urls.Url {
 	return &urls.Url{
-		StorableNick: db.StorableNick{Nick: row[cNick].(string)},
-		StorableChan: db.StorableChan{Chan: row[cChannel].(string)},
+		Nick:         base.Nick(row[cNick].(string)),
+		Chan:         base.Chan(row[cChannel].(string)),
 		Url:          row[cUrl].(string),
 		Timestamp:    time.Unix(row[cTime].(int64), 0),
 		Id:           bson.NewObjectId(),
@@ -41,14 +40,11 @@ func parseUrl(row []interface{}) *urls.Url {
 
 func main() {
 	flag.Parse()
-	log = logging.NewFromFlags()
+	log := logging.InitFromFlags()
 
 	// Let's go find some mongo.
-	mdb, err := db.Connect("localhost")
-	if err != nil {
-		log.Fatal("Oh no: %v", err)
-	}
-	defer mdb.Session.Close()
+	mdb := db.Init()
+	defer mdb.Close()
 	uc := urls.Collection(mdb, log)
 
 	work := make(chan *urls.Url)

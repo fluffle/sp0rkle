@@ -1,13 +1,14 @@
 package main
 
-// Imports perlfu's SQLite quote database into mongodb using lib/quotes
+// Imports perlfu's SQLite quote database into a quotes collection
 
 import (
 	"flag"
 	"fmt"
 	"github.com/fluffle/golog/logging"
-	"github.com/fluffle/sp0rkle/lib/db"
-	"github.com/fluffle/sp0rkle/lib/quotes"
+	"github.com/fluffle/sp0rkle/base"
+	"github.com/fluffle/sp0rkle/collections/quotes"
+	"github.com/fluffle/sp0rkle/db"
 	"github.com/kuroneko/gosqlite3"
 	"labix.org/v2/mgo/bson"
 	"time"
@@ -15,8 +16,6 @@ import (
 
 var file *string = flag.String("db", "Quotes.db",
 	"SQLite database to import quotes from.")
-
-var log logging.Logger
 
 const (
 	// The Quotes table columns are:
@@ -31,8 +30,8 @@ func parseQuote(row []interface{}, out chan *quotes.Quote) {
 	out <- &quotes.Quote{
 		Quote:        row[cQuote].(string),
 		QID:          int(row[cID].(int64)),
-		StorableNick: db.StorableNick{Nick: row[cNick].(string)},
-		StorableChan: db.StorableChan{Chan: row[cChannel].(string)},
+		Nick:         base.Nick(row[cNick].(string)),
+		Chan:         base.Chan(row[cChannel].(string)),
 		Accessed:     0,
 		Timestamp:    time.Unix(row[cTime].(int64), 0),
 		Id:           bson.NewObjectId(),
@@ -41,14 +40,11 @@ func parseQuote(row []interface{}, out chan *quotes.Quote) {
 
 func main() {
 	flag.Parse()
-	log = logging.NewFromFlags()
+	log := logging.InitFromFlags()
 
 	// Let's go find some mongo.
-	mdb, err := db.Connect("localhost")
-	if err != nil {
-		log.Fatal("Oh no: %v", err)
-	}
-	defer mdb.Session.Close()
+	mdb := db.Init()
+	defer mdb.Close()
 	qc := quotes.Collection(mdb, log)
 
 	// A communication channel of Quotes.

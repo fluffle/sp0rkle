@@ -1,10 +1,10 @@
 package factdriver
 
 import (
-	"github.com/fluffle/sp0rkle/lib/factoids"
-	"github.com/fluffle/sp0rkle/lib/util"
-	"github.com/fluffle/sp0rkle/sp0rkle/base"
-	"github.com/fluffle/sp0rkle/sp0rkle/bot"
+	"github.com/fluffle/sp0rkle/base"
+	"github.com/fluffle/sp0rkle/bot"
+	"github.com/fluffle/sp0rkle/collections/factoids"
+	"github.com/fluffle/sp0rkle/util"
 	"labix.org/v2/mgo/bson"
 	"math/rand"
 	"strings"

@@ -3,9 +3,9 @@ package calcdriver
 import (
 	"fmt"
 	"github.com/fluffle/goevent/event"
-	"github.com/fluffle/sp0rkle/lib/calc"
-	"github.com/fluffle/sp0rkle/sp0rkle/base"
-	"github.com/fluffle/sp0rkle/sp0rkle/bot"
+	"github.com/fluffle/sp0rkle/util/calc"
+	"github.com/fluffle/sp0rkle/base"
+	"github.com/fluffle/sp0rkle/bot"
 	"net"
 	"strings"
 	"strconv"

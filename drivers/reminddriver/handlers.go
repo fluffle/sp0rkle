@@ -2,8 +2,8 @@ package reminddriver
 
 import (
 	"github.com/fluffle/golog/logging"
-	"github.com/fluffle/sp0rkle/sp0rkle/base"
-	"github.com/fluffle/sp0rkle/sp0rkle/bot"
+	"github.com/fluffle/sp0rkle/base"
+	"github.com/fluffle/sp0rkle/bot"
 )
 
 func (rd *remindDriver) Load(line *base.Line) {
@@ -27,7 +27,7 @@ func (rd *remindDriver) TellCheck(line *base.Line) {
 	r := rd.TellsFor(nick)
 	for i := range r {
 		if line.Cmd == "NICK" {
-			bot.Privmsg(r[i].Chan, nick + ": " + r[i].Reply())
+			bot.Privmsg(string(r[i].Chan), nick + ": " + r[i].Reply())
 			bot.Reply(line, r[i].Reply())
 		} else {
 			bot.Privmsg(line.Nick, r[i].Reply())

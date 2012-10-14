@@ -2,8 +2,9 @@ package quotes
 
 import (
 	"github.com/fluffle/golog/logging"
-	"github.com/fluffle/sp0rkle/lib/db"
-	"github.com/fluffle/sp0rkle/lib/util"
+	"github.com/fluffle/sp0rkle/base"
+	"github.com/fluffle/sp0rkle/db"
+	"github.com/fluffle/sp0rkle/util"
 	"labix.org/v2/mgo"
 	"labix.org/v2/mgo/bson"
 	"sync/atomic"
@@ -15,14 +16,14 @@ const COLLECTION string = "quotes"
 type Quote struct {
 	Quote string
 	QID   int
-	db.StorableNick
-	db.StorableChan
+	Nick  base.Nick
+	Chan  base.Chan
 	Accessed  int
 	Timestamp time.Time
 	Id        bson.ObjectId "_id"
 }
 
-func NewQuote(q string, n db.StorableNick, c db.StorableChan) *Quote {
+func NewQuote(q string, n base.Nick, c base.Chan) *Quote {
 	return &Quote{q, 0, n, c, 0, time.Now(), bson.NewObjectId()}
 }
 

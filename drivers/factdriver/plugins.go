@@ -1,7 +1,7 @@
 package factdriver
 
 import (
-	"github.com/fluffle/sp0rkle/sp0rkle/base"
+	"github.com/fluffle/sp0rkle/base"
 	"strings"
 	"time"
 )

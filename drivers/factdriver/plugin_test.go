@@ -2,7 +2,7 @@ package factdriver
 
 import (
 	"github.com/fluffle/goirc/client"
-	"github.com/fluffle/sp0rkle/sp0rkle/base"
+	"github.com/fluffle/sp0rkle/base"
 	"testing"
 	"time"
 )

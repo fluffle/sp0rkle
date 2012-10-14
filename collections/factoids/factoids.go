@@ -1,11 +1,10 @@
 package factoids
 
-// This might get ODM-ish in the future.
-
 import (
 	"github.com/fluffle/golog/logging"
-	"github.com/fluffle/sp0rkle/lib/db"
-	"github.com/fluffle/sp0rkle/lib/util"
+	"github.com/fluffle/sp0rkle/base"
+	"github.com/fluffle/sp0rkle/db"
+	"github.com/fluffle/sp0rkle/util"
 	"labix.org/v2/mgo"
 	"labix.org/v2/mgo/bson"
 	"strings"
@@ -38,9 +37,9 @@ type FactoidStat struct {
 	// When <thing> happened
 	Timestamp time.Time
 	// Who did <thing>
-	db.StorableNick
+	Nick base.Nick
 	// Where they did <thing>
-	db.StorableChan
+	Chan base.Chan
 	// How many times <thing> has been done before
 	Count int
 }
@@ -48,7 +47,7 @@ type FactoidStat struct {
 // Represent info about things that can be done to the factoid
 type FactoidPerms struct {
 	ReadOnly bool
-	db.StorableNick
+	Nick base.Nick
 }
 
 // Represent info returned from the Info MapReduce
@@ -57,7 +56,7 @@ type FactoidInfo struct {
 }
 
 // Helper to make the work of putting together a completely new *Factoid easier
-func NewFactoid(key, value string, n db.StorableNick, c db.StorableChan) *Factoid {
+func NewFactoid(key, value string, n base.Nick, c base.Chan) *Factoid {
 	ts := time.Now()
 	ft, fv := ParseValue(value)
 	return &Factoid{
@@ -70,17 +69,17 @@ func NewFactoid(key, value string, n db.StorableNick, c db.StorableChan) *Factoi
 	}
 }
 
-func (f *Factoid) Access(n db.StorableNick, c db.StorableChan) {
+func (f *Factoid) Access(n base.Nick, c base.Chan) {
 	f.Accessed.Timestamp = time.Now()
-	f.Accessed.StorableNick = n
-	f.Accessed.StorableChan = c
+	f.Accessed.Nick = n
+	f.Accessed.Chan = c
 	f.Accessed.Count++
 }
 
-func (f *Factoid) Modify(n db.StorableNick, c db.StorableChan) {
+func (f *Factoid) Modify(n base.Nick, c base.Chan) {
 	f.Modified.Timestamp = time.Now()
-	f.Modified.StorableNick = n
-	f.Modified.StorableChan = c
+	f.Modified.Nick = n
+	f.Modified.Chan = c
 	f.Modified.Count++
 }
 

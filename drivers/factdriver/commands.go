@@ -2,9 +2,9 @@ package factdriver
 
 import (
 	"fmt"
-	"github.com/fluffle/sp0rkle/lib/factoids"
-	"github.com/fluffle/sp0rkle/sp0rkle/base"
-	"github.com/fluffle/sp0rkle/sp0rkle/bot"
+	"github.com/fluffle/sp0rkle/collections/factoids"
+	"github.com/fluffle/sp0rkle/base"
+	"github.com/fluffle/sp0rkle/bot"
 	"labix.org/v2/mgo/bson"
 	"strconv"
 	"strings"

@@ -5,7 +5,7 @@ package decisiondriver
 import (
 	"fmt"
 	"github.com/fluffle/golog/logging"
-	"github.com/fluffle/sp0rkle/lib/util"
+	"github.com/fluffle/sp0rkle/util"
 	"math/rand"
 	"strconv"
 	"strings"

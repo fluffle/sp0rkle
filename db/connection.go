@@ -1,25 +1,44 @@
 package db
 
 // Wraps an mgo connection and db object for convenience
+// Yes, these are globals. I'm undecided, but let's see how it goes.
 
-import "labix.org/v2/mgo"
+import (
+	"github.com/fluffle/golog/logging"
+	"labix.org/v2/mgo"
+	"sync"
+)
 
 const DATABASE string = "sp0rkle"
 
-type Database struct {
-	// We're wrapping mgo.Database here so we can provide our own methods.
-	*mgo.Database
+var database *string = flag.String("database", "localhost",
+		"Address of MongoDB server to connect to, defaults to localhost.")
 
-	// But unlike mgo.Database, it'd be useful to keep an internal session
-	// reference around, so we can close things out later.
-	Session *mgo.Session
-}
+var lock sync.Mutex
+var db *mgo.Database
+var session *mgo.Session
 
 // Wraps connecting to mongo and selecting the "sp0rkle" database.
-func Connect(resource string) (*Database, error) {
-	sess, err := mgo.Dial(resource)
-	if err != nil {
-		return nil, err
+func Init() (*mgo.Database) {
+	lock.Lock()
+	defer lock.Unlock()
+	if db != nil {
+		return db
 	}
-	return &Database{Database: sess.DB(DATABASE), Session: sess}, nil
+	s, err := mgo.Dial(*database)
+	if err != nil {
+		logging.Fatal("Unable to connect to MongoDB: %s", err)
+	}
+	session, db = s, s.DB(DATABASE)
+	return db
+}
+
+func Close() {
+	lock.Lock()
+	defer lock.Unlock()
+	if db == nil {
+		return
+	}
+	session.Close()
+	session, db = nil, nil
 }

@@ -1,11 +1,10 @@
 package reminddriver
 
 import (
-	"github.com/fluffle/sp0rkle/lib/datetime"
-	"github.com/fluffle/sp0rkle/lib/db"
-	"github.com/fluffle/sp0rkle/lib/reminders"
-	"github.com/fluffle/sp0rkle/sp0rkle/base"
-	"github.com/fluffle/sp0rkle/sp0rkle/bot"
+	"github.com/fluffle/sp0rkle/base"
+	"github.com/fluffle/sp0rkle/bot"
+	"github.com/fluffle/sp0rkle/collections/reminders"
+	"github.com/fluffle/sp0rkle/util/datetime"
 	"labix.org/v2/mgo/bson"
 	"strconv"
 	"strings"
@@ -97,10 +96,10 @@ func (rd *remindDriver) Set(line *base.Line) {
 		return
 	}
 	n, c := line.Storable()
-	// TODO(fluffle): Use state tracking!
-	t := db.StorableNick{Nick: s[1]}
-	if strings.ToLower(t.Nick) == strings.ToLower(line.Nick) ||
-		strings.ToLower(t.Nick) == "me" {
+	// TODO(fluffle): Use state tracking! And do this better.
+	t := base.Nick(s[1])
+	if t.Lower() == strings.ToLower(line.Nick) ||
+		t.Lower() == "me" {
 		t = n
 	}
 	r := reminders.NewReminder(reminder, at, t, n, c)
@@ -124,9 +123,9 @@ func (rd *remindDriver) Tell(line *base.Line) {
 	}
 	tell := strings.Join(s[2:], " ")
 	n, c := line.Storable()
-	t := db.StorableNick{Nick: s[1]}
-	if strings.ToLower(t.Nick) == strings.ToLower(line.Nick) ||
-		strings.ToLower(t.Nick) == "me" {
+	t := base.Nick(s[1])
+	if t.Lower() == strings.ToLower(line.Nick) ||
+		t.Lower() == "me" {
 		bot.ReplyN(line, "You're a dick. Oh, wait, that wasn't *quite* it...")
 		return
 	}

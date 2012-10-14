@@ -2,12 +2,8 @@ package quotedriver
 
 import (
 	"github.com/fluffle/golog/logging"
-	"github.com/fluffle/sp0rkle/lib/db"
-	"github.com/fluffle/sp0rkle/lib/quotes"
-	//	"github.com/fluffle/sp0rkle/lib/util"
-	//	"github.com/fluffle/sp0rkle/sp0rkle/base"
-	//	"labix.org/v2/mgo/bson"
-	//	"strings"
+	"github.com/fluffle/sp0rkle/collections/quotes"
+	"github.com/fluffle/sp0rkle/db"
 	"time"
 )
 

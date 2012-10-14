@@ -2,10 +2,10 @@ package reminddriver
 
 import (
 	"github.com/fluffle/golog/logging"
-	"github.com/fluffle/sp0rkle/lib/db"
-	"github.com/fluffle/sp0rkle/lib/reminders"
-	"github.com/fluffle/sp0rkle/sp0rkle/base"
-	"github.com/fluffle/sp0rkle/sp0rkle/bot"
+	"github.com/fluffle/sp0rkle/base"
+	"github.com/fluffle/sp0rkle/bot"
+	"github.com/fluffle/sp0rkle/collections/reminders"
+	"github.com/fluffle/sp0rkle/db"
 	"labix.org/v2/mgo/bson"
 	"time"
 )
@@ -79,12 +79,9 @@ func (rd *remindDriver) Remind(r *reminders.Reminder) {
 	go func() {
 		select {
 		case <-time.After(delta):
-			bot.Privmsg(r.Chan, r.Reply())
-			if r.Target.Host != "" {
-				// At the time of the reminder being created, target existed
-				// TODO(fluffle): Tie this into state tracking properly.
-				bot.Privmsg(r.Target.Nick, r.Reply())
-			}
+			bot.Privmsg(string(r.Chan), r.Reply())
+			// TODO(fluffle): Tie this into state tracking properly.
+			bot.Privmsg(string(r.Target), r.Reply())
 			rd.Forget(r.Id, false)
 		case <-c:
 			return

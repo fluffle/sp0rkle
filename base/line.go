@@ -2,8 +2,21 @@ package base
 
 import (
 	"github.com/fluffle/goirc/client"
-	"github.com/fluffle/sp0rkle/lib/db"
+	"strings"
 )
+
+// Basic types representing the information we want to store about IRC things
+type Nick string
+
+func (n Nick) Lower() string {
+	return strings.ToLower(string(n))
+}
+
+type Chan string
+
+func (c Chan) Lower() string {
+	return strings.ToLower(string(c))
+}
 
 // Extend goirc's Line with useful extra information
 type Line struct {
@@ -15,7 +28,6 @@ func (line *Line) Copy() *Line {
 	return &Line{Line: line.Line.Copy(), Addressed: line.Addressed}
 }
 
-func (line *Line) Storable() (db.StorableNick, db.StorableChan) {
-	return db.StorableNick{line.Nick, line.Ident, line.Host},
-		db.StorableChan{line.Args[0]}
+func (line *Line) Storable() (Nick, Chan) {
+	return Nick(line.Nick), Chan(line.Args[0])
 }

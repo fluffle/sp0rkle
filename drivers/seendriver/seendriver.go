@@ -2,9 +2,9 @@ package seendriver
 
 import (
 	"github.com/fluffle/golog/logging"
-	"github.com/fluffle/sp0rkle/lib/db"
-	"github.com/fluffle/sp0rkle/lib/seen"
-	"github.com/fluffle/sp0rkle/sp0rkle/base"
+	"github.com/fluffle/sp0rkle/db"
+	"github.com/fluffle/sp0rkle/collections/seen"
+	"github.com/fluffle/sp0rkle/base"
 	"regexp"
 	"time"
 )
@@ -62,7 +62,7 @@ func (sd *seenDriver) SeenNickFromLine(line *base.Line) *seen.Nick {
 	if sn == nil {
 		sn = seen.SawNick(n, c, line.Cmd, "")
 	} else {
-		sn.StorableNick, sn.StorableChan = n, c
+		sn.Nick, sn.Chan = n, c
 		sn.Timestamp = time.Now()
 	}
 	return sn

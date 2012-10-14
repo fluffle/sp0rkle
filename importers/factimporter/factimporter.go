@@ -1,13 +1,14 @@
 package main
 
-// Imports perlfu's SQLite factoid database into mongodb using lib/factoids
+// Imports perlfu's SQLite factoid database into a factoids collection
 
 import (
 	"flag"
 	"fmt"
 	"github.com/fluffle/golog/logging"
-	"github.com/fluffle/sp0rkle/lib/db"
-	"github.com/fluffle/sp0rkle/lib/factoids"
+	"github.com/fluffle/sp0rkle/base"
+	"github.com/fluffle/sp0rkle/collections/factoids"
+	"github.com/fluffle/sp0rkle/db"
 	"github.com/kuroneko/gosqlite3"
 	"labix.org/v2/mgo/bson"
 	"strconv"
@@ -17,8 +18,6 @@ import (
 
 var file *string = flag.String("db", "Facts.db",
 	"SQLite database to import factoids from.")
-
-var log logging.Logger
 
 const (
 	// The Factoids table columns are:
@@ -36,23 +35,23 @@ const (
 func parseFactoid(row []interface{}, out chan *factoids.Factoid) {
 	values := parseMultipleValues(toString(row[cValue]))
 	c := &factoids.FactoidStat{
-		StorableNick: db.StorableNick{toString(row[cCreator]), "", ""},
-		StorableChan: db.StorableChan{""},
+		Nick: base.Nick(toString(row[cCreator])),
+		Chan: "",
 		Count: 1,
 	}
 	c.Timestamp, _ = parseTimestamp(row[cCreated])
-	m := &factoids.FactoidStat{StorableChan: db.StorableChan{""}, Count: 0}
+	m := &factoids.FactoidStat{Chan: "", Count: 0}
 	if ts, ok := parseTimestamp(row[cModified]); ok {
 		m.Timestamp = ts
-		m.StorableNick = db.StorableNick{toString(row[cModifier]), "", ""}
+		m.Nick = base.Nick(toString(row[cModifier]))
 		m.Count = 1
 	} else {
 		m.Timestamp = c.Timestamp
-		m.StorableNick = c.StorableNick
+		m.Nick = c.Nick
 	}
 	p := &factoids.FactoidPerms{
 		parseReadOnly(row[cAccess]),
-		db.StorableNick{toString(row[cCreator]), "", ""},
+		base.Nick(toString(row[cCreator])),
 	}
 	for _, val := range values {
 		t, v := parseValue(toString(row[cKey]), toString(row[cRel]), val)
@@ -115,7 +114,7 @@ func parseTimestamp(ts interface{}) (time.Time, bool) {
 		if tm, err := strconv.ParseInt(ts.(string), 10, 64); err == nil {
 			return time.Unix(tm, 0), true
 		} else {
-			log.Warn("ParseInt error: (%s) %v", ts, err)
+			logging.Warn("parseTimestamp: %s", err)
 		}
 	}
 	return time.Now(), false
@@ -158,11 +157,8 @@ func main() {
 	logging.InitFromFlags()
 
 	// Let's go find some mongo.
-	mdb, err := db.Connect("localhost")
-	if err != nil {
-		log.Fatal("Oh no: %v", err)
-	}
-	defer mdb.Session.Close()
+	mdb := db.Init()
+	defer db.Close()
 	fc := factoids.Collection(mdb)
 
 	// A communication channel of Factoids.

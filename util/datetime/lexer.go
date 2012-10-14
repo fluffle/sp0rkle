@@ -2,7 +2,7 @@ package datetime
 
 import (
 	"fmt"
-	"github.com/fluffle/sp0rkle/lib/util"
+	"github.com/fluffle/sp0rkle/util"
 	"strconv"
 	"strings"
 	"time"

@@ -2,10 +2,10 @@ package urldriver
 
 import (
 	"github.com/fluffle/goevent/event"
-	"github.com/fluffle/sp0rkle/lib/urls"
-	"github.com/fluffle/sp0rkle/lib/util"
-	"github.com/fluffle/sp0rkle/sp0rkle/base"
-	"github.com/fluffle/sp0rkle/sp0rkle/bot"
+	"github.com/fluffle/sp0rkle/base"
+	"github.com/fluffle/sp0rkle/bot"
+	"github.com/fluffle/sp0rkle/collections/urls"
+	"github.com/fluffle/sp0rkle/util"
 	"strings"
 	"time"
 )
