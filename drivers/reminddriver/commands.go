@@ -12,8 +12,8 @@ import (
 )
 
 // remind del
-func (rd *remindDriver) Del(line *base.Line) {
-	list, ok := rd.list[line.Nick]
+func del(line *base.Line) {
+	list, ok := listed[line.Nick]
 	if !ok {
 		bot.ReplyN(line, "Please use 'remind list' first, " +
 			"to be sure of what you're deleting.")
@@ -26,14 +26,14 @@ func (rd *remindDriver) Del(line *base.Line) {
 		return
 	}
 	idx--
-	rd.Forget(list[idx], true)
-	delete(rd.list, line.Nick)
+	Forget(list[idx], true)
+	delete(listed, line.Nick)
 	bot.ReplyN(line, "I'll forget that one, then...")
 }
 
 // remind list
-func (rd *remindDriver) List(line *base.Line) {
-	r := rd.RemindersFor(line.Nick)
+func list(line *base.Line) {
+	r := rc.RemindersFor(line.Nick)
 	c := len(r)
 	if c == 0 {
 		bot.ReplyN(line, "You have no reminders set.")
@@ -50,11 +50,11 @@ func (rd *remindDriver) List(line *base.Line) {
 		bot.Reply(line, "%d: %s", i+1, r[i].List(line.Nick))
 		list[i] = r[i].Id
 	}
-	rd.list[line.Nick] = list
+	listed[line.Nick] = list
 }
 
 // remind 
-func (rd *remindDriver) Set(line *base.Line) {
+func set(line *base.Line) {
 	// s == remind <target> <reminder> in|at|on <time>
 	s := strings.Fields(line.Args[1])
 	if len(s) < 5 {
@@ -103,18 +103,18 @@ func (rd *remindDriver) Set(line *base.Line) {
 		t = n
 	}
 	r := reminders.NewReminder(reminder, at, t, n, c)
-	if err := rd.Insert(r); err != nil {
+	if err := rc.Insert(r); err != nil {
 		bot.ReplyN(line, "Error saving reminder: %v", err)
 		return
 	}
 	// Any previously-generated list of reminders is now obsolete.
-	delete(rd.list, line.Nick)
+	delete(listed, line.Nick)
 	bot.ReplyN(line, r.Acknowledge())
-	rd.Remind(r)
+	Remind(r)
 }
 
 // tell
-func (rd *remindDriver) Tell(line *base.Line) {
+func tell(line *base.Line) {
 	// s == tell <target> <stuff>
 	s := strings.Fields(line.Args[1])
 	if len(s) < 3 {
@@ -130,11 +130,11 @@ func (rd *remindDriver) Tell(line *base.Line) {
 		return
 	}
 	r := reminders.NewTell(tell, t, n, c)
-	if err := rd.Insert(r); err != nil {
+	if err := rc.Insert(r); err != nil {
 		bot.ReplyN(line, "Error saving tell: %v", err)
 		return
 	}
 	// Any previously-generated list of reminders is now obsolete.
-	delete(rd.list, line.Nick)
+	delete(listed, line.Nick)
 	bot.ReplyN(line, r.Acknowledge())
 }

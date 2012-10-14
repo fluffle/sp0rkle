@@ -88,7 +88,7 @@ type SeenCollection struct {
 	l logging.Logger
 }
 
-func Collection(dbh *db.Database, l logging.Logger) *SeenCollection {
+func Collection(dbh *mgo.Database, l logging.Logger) *SeenCollection {
 	sc := &SeenCollection{
 		Collection: dbh.C(COLLECTION),
 		l:          l,

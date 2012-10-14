@@ -4,6 +4,7 @@ package db
 // Yes, these are globals. I'm undecided, but let's see how it goes.
 
 import (
+	"flag"
 	"github.com/fluffle/golog/logging"
 	"labix.org/v2/mgo"
 	"sync"

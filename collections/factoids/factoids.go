@@ -3,7 +3,7 @@ package factoids
 import (
 	"github.com/fluffle/golog/logging"
 	"github.com/fluffle/sp0rkle/base"
-	"github.com/fluffle/sp0rkle/db"
+	_ "github.com/fluffle/sp0rkle/db"
 	"github.com/fluffle/sp0rkle/util"
 	"labix.org/v2/mgo"
 	"labix.org/v2/mgo/bson"
@@ -93,7 +93,7 @@ type FactoidCollection struct {
 }
 
 // Wrapper to get hold of a factoid collection handle
-func Collection(dbh *db.Database) *FactoidCollection {
+func Collection(dbh *mgo.Database) *FactoidCollection {
 	fc := &FactoidCollection{
 		Collection: dbh.C(COLLECTION),
 		seen:       make(map[string][]bson.ObjectId),

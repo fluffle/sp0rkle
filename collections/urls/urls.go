@@ -51,7 +51,7 @@ type UrlCollection struct {
 	l logging.Logger
 }
 
-func Collection(dbh *db.Database, l logging.Logger) *UrlCollection {
+func Collection(dbh *mgo.Database, l logging.Logger) *UrlCollection {
 	uc := &UrlCollection{dbh.C(collection), l}
 	err := uc.EnsureIndex(mgo.Index{Key: []string{"url"}, Unique: true})
 	if err != nil {

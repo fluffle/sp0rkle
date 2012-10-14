@@ -111,13 +111,13 @@ func (r *Reminder) List(nick string) (s string) {
 	return
 }
 
-type ReminderCollection struct {
+type Collection struct {
 	*mgo.Collection
 }
 
-func Collection(dbh *db.Database) *ReminderCollection {
-	rc := &ReminderCollection{
-		Collection: dbh.C(COLLECTION),
+func Init() *Collection {
+	rc := &Collection{
+		Collection: db.Init().C(COLLECTION),
 	}
 	for _, k := range []string{"remindat", "from", "to", "tell"} {
 		if err := rc.EnsureIndexKey(k); err != nil {
@@ -127,7 +127,7 @@ func Collection(dbh *db.Database) *ReminderCollection {
 	return rc
 }
 
-func (rc *ReminderCollection) LoadAndPrune() []*Reminder {
+func (rc *Collection) LoadAndPrune() []*Reminder {
 	// First, drop any reminders where RemindAt < time.Now()
 	ci, err := rc.RemoveAll(bson.M{"$and": []bson.M{
 		{"remindat": bson.M{"$lt": time.Now()}},
@@ -149,7 +149,7 @@ func (rc *ReminderCollection) LoadAndPrune() []*Reminder {
 	return ret
 }
 
-func (rc *ReminderCollection) RemindersFor(nick string) []*Reminder {
+func (rc *Collection) RemindersFor(nick string) []*Reminder {
 	nick = strings.ToLower(nick)
 	q := rc.Find(bson.M{"$or": []bson.M{{"from": nick}, {"to": nick}}})
 	q.Sort("remindat")
@@ -161,7 +161,7 @@ func (rc *ReminderCollection) RemindersFor(nick string) []*Reminder {
 	return ret
 }
 
-func (rc *ReminderCollection) TellsFor(nick string) []*Reminder {
+func (rc *Collection) TellsFor(nick string) []*Reminder {
 	nick = strings.ToLower(nick)
 	q := rc.Find(bson.M{"$and": []bson.M{{"tell": true}, {"to": nick}}})
 	ret := make([]*Reminder, 0)
