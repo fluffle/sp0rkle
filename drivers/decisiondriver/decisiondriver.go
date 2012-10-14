@@ -4,7 +4,7 @@ package decisiondriver
 
 import (
 	"fmt"
-	"github.com/fluffle/golog/logging"
+	"github.com/fluffle/sp0rkle/bot"
 	"github.com/fluffle/sp0rkle/util"
 	"math/rand"
 	"strconv"
@@ -13,18 +13,14 @@ import (
 	"unicode/utf8"
 )
 
-const driverName string = "decisions"
+func Init() {
+	bot.PluginFunc(randPlugin)
+	bot.PluginFunc(decidePlugin)
 
-type decisionDriver struct {
-	l logging.Logger
-}
-
-func DecisionDriver(l logging.Logger) *decisionDriver {
-	return &decisionDriver{l}
-}
-
-func (dd *decisionDriver) Name() string {
-	return driverName
+	bot.CommandFunc(randCmd, "rand", "rand <range>  -- " +
+		"choose a random number in range [lo-]hi")
+	bot.CommandFunc(decideCmd, "decide", "decide <options>  -- " +
+		"choose one of the (space, pipe, quote) delimited options at random")
 }
 
 func randomFloatAsString(val string, r *rand.Rand) string {
