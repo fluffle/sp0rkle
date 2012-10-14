@@ -19,10 +19,9 @@ func del(line *base.Line) {
 			"to be sure of what you're deleting.")
 		return
 	}
-	s := strings.Fields(line.Args[1])
-	idx, err := strconv.Atoi(s[len(s)-1])
+	idx, err := strconv.Atoi(line.Args[1])
 	if err != nil || idx > len(list) || idx <= 0 {
-		bot.ReplyN(line, "Invalid reminder index '%s'", s[len(s)-1])
+		bot.ReplyN(line, "Invalid reminder index '%s'", line.Args[1])
 		return
 	}
 	idx--
@@ -55,9 +54,9 @@ func list(line *base.Line) {
 
 // remind 
 func set(line *base.Line) {
-	// s == remind <target> <reminder> in|at|on <time>
+	// s == <target> <reminder> in|at|on <time>
 	s := strings.Fields(line.Args[1])
-	if len(s) < 5 {
+	if len(s) < 4 {
 		bot.ReplyN(line, "Invalid remind syntax. Sucka.")
 		return
 	}
@@ -69,11 +68,11 @@ func set(line *base.Line) {
 		}
 		i--
 	}
-	if i < 2 {
+	if i < 1 {
 		bot.ReplyN(line, "Invalid remind syntax. Sucka.")
 		return
 	}
-	reminder := strings.Join(s[2:i], " ")
+	reminder := strings.Join(s[1:i], " ")
 	timestr := strings.ToLower(strings.Join(s[i+1:], " "))
 	// TODO(fluffle): surface better errors from datetime.Parse
 	at, ok := datetime.Parse(timestr)
@@ -97,7 +96,7 @@ func set(line *base.Line) {
 	}
 	n, c := line.Storable()
 	// TODO(fluffle): Use state tracking! And do this better.
-	t := base.Nick(s[1])
+	t := base.Nick(s[0])
 	if t.Lower() == strings.ToLower(line.Nick) ||
 		t.Lower() == "me" {
 		t = n
@@ -115,15 +114,15 @@ func set(line *base.Line) {
 
 // tell
 func tell(line *base.Line) {
-	// s == tell <target> <stuff>
-	s := strings.Fields(line.Args[1])
-	if len(s) < 3 {
+	// s == <target> <stuff>
+	idx := strings.Index(line.Args[1], " ")
+	if idx == -1 {
 		bot.ReplyN(line, "Tell who what?")
 		return
 	}
-	tell := strings.Join(s[2:], " ")
+	tell := line.Args[1][idx+1:]
 	n, c := line.Storable()
-	t := base.Nick(s[1])
+	t := base.Nick(line.Args[1][:idx])
 	if t.Lower() == strings.ToLower(line.Nick) ||
 		t.Lower() == "me" {
 		bot.ReplyN(line, "You're a dick. Oh, wait, that wasn't *quite* it...")

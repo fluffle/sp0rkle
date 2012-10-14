@@ -39,12 +39,10 @@ func (cs *commandSet) Add(cmd Command, prefix string) {
 	cs.set[prefix] = cmd
 }
 
-func (cs *commandSet) Match(txt string) Command {
+func (cs *commandSet) Match(txt string) (final Command, prefixlen int) {
 	cs.RLock()
 	defer cs.RUnlock()
 
-	var final Command
-	prefixlen := 0
 	for prefix, cmd := range cs.set {
 		if !strings.HasPrefix(txt, prefix) {
 			continue
@@ -54,5 +52,5 @@ func (cs *commandSet) Match(txt string) Command {
 			final = cmd
 		}
 	}
-	return final
+	return
 }

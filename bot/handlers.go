@@ -52,7 +52,8 @@ func bot_disconnected(line *base.Line) {
 }
 
 func bot_command(l *base.Line) {
-	if cmd := commands.Match(l.Args[1]); l.Addressed && cmd != nil {
+	if cmd, ln := commands.Match(l.Args[1]); l.Addressed && cmd != nil {
+		l.Args[1] = strings.TrimSpace(l.Args[1][ln:])
 		cmd.Execute(l)
 	}
 }
@@ -93,7 +94,7 @@ func bot_shutdown(line *base.Line) {
 
 func bot_help(line *base.Line) {
 	s := strings.Join(strings.Fields(line.Args[1])[1:], " ")
-	if cmd := commands.Match(s); cmd != nil {
+	if cmd, _ := commands.Match(s); cmd != nil {
 		bot.ReplyN(line, cmd.Help())
 	} else if len(s) == 0 {
 		bot.ReplyN(line, "https://github.com/fluffle/sp0rkle/wiki " +
