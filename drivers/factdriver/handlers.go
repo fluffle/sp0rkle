@@ -11,7 +11,7 @@ import (
 )
 
 // Factoid add: 'key := value' or 'key :is value'
-func (fd *factoidDriver) Add(line *base.Line) {
+func insert(line *base.Line) {
 	if !line.Addressed ||
 		!util.ContainsAny(line.Args[1], []string{":=", ":is"}) {
 		return
@@ -31,25 +31,25 @@ func (fd *factoidDriver) Add(line *base.Line) {
 	}
 	n, c := line.Storable()
 	fact := factoids.NewFactoid(key, val, n, c)
-	if err := fd.Insert(fact); err == nil {
-		count := fd.GetCount(key)
+	if err := fc.Insert(fact); err == nil {
+		count := fc.GetCount(key)
 		bot.ReplyN(line, "Woo, I now know %d things about '%s'.", count, key)
 	} else {
 		bot.ReplyN(line, "Error storing factoid: %s.", err)
 	}
 }
 
-func (fd *factoidDriver) Lookup(line *base.Line) {
+func lookup(line *base.Line) {
 	// Only perform extra prefix removal if we weren't addressed directly
 	key := ToKey(line.Args[1], !line.Addressed)
 	var fact *factoids.Factoid
 
-	if fact = fd.GetPseudoRand(key); fact == nil && line.Cmd == "ACTION" {
+	if fact = fc.GetPseudoRand(key); fact == nil && line.Cmd == "ACTION" {
 		// Support sp0rkle's habit of stripping off it's own nick
 		// but only for actions, not privmsgs.
 		if strings.HasSuffix(key, bot.Nick()) {
 			key = strings.TrimSpace(key[:len(key)-len(bot.Nick())])
-			fact = fd.GetPseudoRand(key)
+			fact = fc.GetPseudoRand(key)
 		}
 	}
 	if fact == nil {
@@ -66,12 +66,12 @@ func (fd *factoidDriver) Lookup(line *base.Line) {
 	}
 	if rand.Float64() < chance {
 		// Store this as the last seen factoid
-		fd.Lastseen(line.Args[0], fact.Id)
+		LastSeen(line.Args[0], fact.Id)
 		// Update the Accessed field
 		// TODO(fluffle): fd should take care of updating Accessed internally
 		fact.Access(line.Storable())
 		// And store the new factoid data
-		if err := fd.Update(bson.M{"_id": fact.Id}, fact); err != nil {
+		if err := fc.Update(bson.M{"_id": fact.Id}, fact); err != nil {
 			bot.ReplyN(line, "I failed to update '%s' (%s): %s ",
 				fact.Key, fact.Id, err)
 		}

@@ -1,86 +1,54 @@
 package factdriver
 
 import (
-	"github.com/fluffle/sp0rkle/base"
 	"github.com/fluffle/sp0rkle/bot"
 	"github.com/fluffle/sp0rkle/collections/factoids"
-	"github.com/fluffle/sp0rkle/db"
 	"github.com/fluffle/sp0rkle/util"
 	"labix.org/v2/mgo/bson"
 	"strings"
 )
 
-type factoidFn func(*factoidDriver, *base.Line)
+// We talk to the factoids collection
+var fc *factoids.Collection
 
-// A factoidCommand fulfills base.Handler and base.Command
-type factoidCommand struct {
-	fd *factoidDriver
-	fn factoidFn
-	help string
-}
+// Keep a reference to the last factoid looked up around
+// for use with 'edit that' and 'delete that' commands.
+// Do this on a per-channel basis to avoid (too much) confusion.
+var lastSeen = map[string]bson.ObjectId {}
 
-func (fc *factoidCommand) Execute(l *base.Line) {
-	fc.fn(fc.fd, l)
-}
+func Init() {
+	fc = factoids.Init()
 
-func (fc *factoidCommand) Help() string {
-	return fc.help
-}
-
-func (fd *factoidDriver) Command(fn factoidFn, prefix, help string) {
-	bot.Command(&factoidCommand{fd, fn, help}, prefix)
-}
-
-func (fd *factoidDriver) Handle(fn factoidFn, event ...string) {
-	bot.Handle(&factoidCommand{fd, fn, ""}, event...)
-}
-
-type factoidDriver struct {
-	*factoids.FactoidCollection
-
-	// Keep a reference to the last factoid looked up around
-	// for use with 'edit that' and 'delete that' commands.
-	// Do this on a per-channel basis to avoid (too much) confusion.
-	lastseen map[string]bson.ObjectId
-}
-
-func Init(db *db.Database) *factoidDriver {
-	fd := &factoidDriver{
-		FactoidCollection: factoids.Collection(db),
-		lastseen:          make(map[string]bson.ObjectId),
-	}
-
-	fd.Handle((*factoidDriver).Add, "privmsg")
-	fd.Handle((*factoidDriver).Lookup, "privmsg", "action")
+	bot.HandleFunc(insert, "privmsg")
+	bot.HandleFunc(lookup, "privmsg", "action")
 
 	bot.PluginFunc(replaceIdentifiers)
 
-	fd.Command((*factoidDriver).Chance, "chance of that is",
+	bot.CommandFunc(chance, "chance of that is",
 		"chance  -- Sets trigger chance of the last displayed factoid value.")
-	fd.Command((*factoidDriver).Delete, "delete that",
+	bot.CommandFunc(forget, "delete that",
 		"delete  -- Forgets the last displayed factoid value.")
-	fd.Command((*factoidDriver).Delete, "forget that",
+	bot.CommandFunc(forget, "forget that",
 		"forget  -- Forgets the last displayed factoid value.")
-	fd.Command((*factoidDriver).Info, "fact info",
+	bot.CommandFunc(info, "fact info",
 		"fact info <key>  -- Displays some stats about factoid <key>.")
-	fd.Command((*factoidDriver).Literal, "literal",
+	bot.CommandFunc(literal, "literal",
 		"literal <key>  -- Displays the factoid values stored for <key>.")
-	fd.Command((*factoidDriver).Replace, "replace that with",
+	bot.CommandFunc(replace, "replace that with",
 		"replace  -- Replaces the last displayed factoid value.")
-	fd.Command((*factoidDriver).Search, "fact search",
+	bot.CommandFunc(search, "fact search",
 		"fact search <regexp>  -- Searches for factoids matching <regexp>.")
-	return fd
 }
 
-func (fd *factoidDriver) Lastseen(ch string, id ...bson.ObjectId) bson.ObjectId {
+func LastSeen(ch string, id ...bson.ObjectId) bson.ObjectId {
 	if len(id) > 0 {
-		old, ok := fd.lastseen[ch]
-		fd.lastseen[ch] = id[0]
+		old, ok := lastSeen[ch]
+		lastSeen[ch] = id[0]
 		if ok && old != "" {
 			return old
 		}
-	} else if lastseen, ok := fd.lastseen[ch]; ok {
-		return lastseen
+	} else if ls, ok := lastSeen[ch]; ok {
+		return ls
 	}
 	return ""
 }

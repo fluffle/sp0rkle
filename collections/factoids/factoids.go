@@ -3,7 +3,7 @@ package factoids
 import (
 	"github.com/fluffle/golog/logging"
 	"github.com/fluffle/sp0rkle/base"
-	_ "github.com/fluffle/sp0rkle/db"
+	"github.com/fluffle/sp0rkle/db"
 	"github.com/fluffle/sp0rkle/util"
 	"labix.org/v2/mgo"
 	"labix.org/v2/mgo/bson"
@@ -84,7 +84,7 @@ func (f *Factoid) Modify(n base.Nick, c base.Chan) {
 }
 
 // Factoids are stored in a mongo collection of Factoid structs
-type FactoidCollection struct {
+type Collection struct {
 	// We're wrapping mgo.Collection so we can provide our own methods.
 	*mgo.Collection
 
@@ -93,9 +93,9 @@ type FactoidCollection struct {
 }
 
 // Wrapper to get hold of a factoid collection handle
-func Collection(dbh *mgo.Database) *FactoidCollection {
-	fc := &FactoidCollection{
-		Collection: dbh.C(COLLECTION),
+func Init() *Collection {
+	fc := &Collection{
+		Collection: db.Init().C(COLLECTION),
 		seen:       make(map[string][]bson.ObjectId),
 	}
 	err := fc.EnsureIndex(mgo.Index{Key: []string{"key"}})
@@ -106,14 +106,14 @@ func Collection(dbh *mgo.Database) *FactoidCollection {
 }
 
 // Can't call this Count because that'd override mgo.Collection.Count()
-func (fc *FactoidCollection) GetCount(key string) int {
+func (fc *Collection) GetCount(key string) int {
 	if num, err := fc.Find(lookup(key)).Count(); err == nil {
 		return num
 	}
 	return 0
 }
 
-func (fc *FactoidCollection) GetById(id bson.ObjectId) *Factoid {
+func (fc *Collection) GetById(id bson.ObjectId) *Factoid {
 	var res Factoid
 	if err := fc.Find(bson.M{"_id": id}).One(&res); err == nil {
 		return &res
@@ -121,7 +121,7 @@ func (fc *FactoidCollection) GetById(id bson.ObjectId) *Factoid {
 	return nil
 }
 
-func (fc *FactoidCollection) GetFirst(key string) *Factoid {
+func (fc *Collection) GetFirst(key string) *Factoid {
 	var res Factoid
 	if err := fc.Find(lookup(key)).One(&res); err == nil {
 		return &res
@@ -129,7 +129,7 @@ func (fc *FactoidCollection) GetFirst(key string) *Factoid {
 	return nil
 }
 
-func (fc *FactoidCollection) GetPseudoRand(key string) *Factoid {
+func (fc *Collection) GetPseudoRand(key string) *Factoid {
 	lookup := lookup(key)
 	ids, ok := fc.seen[key]
 	if ok && len(ids) > 0 {
@@ -174,7 +174,7 @@ func (fc *FactoidCollection) GetPseudoRand(key string) *Factoid {
 	return &res
 }
 
-func (fc *FactoidCollection) GetKeysMatching(regex string) []string {
+func (fc *Collection) GetKeysMatching(regex string) []string {
 	var res []string
 	query := fc.Find(bson.M{"key": bson.M{"$regex": regex}})
 	if err := query.Distinct("key", &res); err != nil {
@@ -184,7 +184,7 @@ func (fc *FactoidCollection) GetKeysMatching(regex string) []string {
 	return res
 }
 
-func (fc *FactoidCollection) GetLast(op, key string) *Factoid {
+func (fc *Collection) GetLast(op, key string) *Factoid {
 	var res Factoid
 	// op == "modified", "accessed", "created"
 	op = op + ".timestamp"
@@ -195,7 +195,7 @@ func (fc *FactoidCollection) GetLast(op, key string) *Factoid {
 	return nil
 }
 
-func (fc *FactoidCollection) InfoMR(key string) *FactoidInfo {
+func (fc *Collection) InfoMR(key string) *FactoidInfo {
 	mr := &mgo.MapReduce{
 		Map: `function() { emit("count", {
 			accessed: this.accessed.count,
