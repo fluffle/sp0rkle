@@ -8,6 +8,12 @@ type Plugin interface {
 	Apply(string, *Line) string
 }
 
+type PluginFunc func(string, *Line) string
+
+func (pf PluginFunc) Apply(in string, line *Line) string {
+	return pf(in, line)
+}
+
 type pluginSet struct {
 	sync.RWMutex
 	set []Plugin

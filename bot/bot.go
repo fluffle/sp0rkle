@@ -3,58 +3,48 @@ package bot
 import (
 	"flag"
 	"fmt"
-	"github.com/fluffle/goevent/event"
 	"github.com/fluffle/goirc/client"
 	"github.com/fluffle/golog/logging"
 	"github.com/fluffle/sp0rkle/util"
 	"github.com/fluffle/sp0rkle/base"
+	"os"
 	"strings"
+	"sync"
+	"time"
 )
 
 var (
-	rebuilder *string = flag.String("rebuilder", "",
-		"Nick[:password] to accept rebuild command from.")
+	nick *string = flag.String("nick", "sp0rklf",
+		"Name of bot, defaults to 'sp0rklf'")
+	server *string = flag.String("server", "", "IRC server to connect to.")
+	ssl *bool = flag.Bool("ssl", false, "Use SSL when connecting.")
 	httpHost *string = flag.String("http_host", "http://sp0rk.ly",
 		"Hostname for HTTP paths served by bot.")
 )
 
-// The bot is called sp0rkle...
-const botName string = "sp0rkle"
-
-type Sp0rkle struct {
-	// Embed a connection to IRC.
-	Conn *client.Conn
-
-	// And an event registry / dispatcher
-	ED event.EventDispatcher
-	ER event.EventRegistry
-
-	// And a logger.
-	l logging.Logger
-
-	// it's got a bunch of drivers that register event handlers
-	drivers map[string]base.Driver
-
-	// channel to join on start up
-	channels []string
-
-	// nick and password for rebuild command
-	rbnick, rbpw string
-
-	// and we need to kill it occasionally.
-	reexec, quit bool
-	Quit chan bool
-}
-
-var bot *Sp0rkle
+// These package globals are an experiment. They have radically simplified some
+// of the code in the drivers, and so i'm reserving judgement on the usual
+// knee-jerk EWW reaction for the moment. Please don't hate me.
 var irc *client.Conn
+var lock sync.Mutex
 
-func Init(c *client.Conn, l logging.Logger) *Sp0rkle {
-	// TODO(fluffle): fix race.
-	if bot == nil {
-		bot = Bot(c, l)
-		irc = c
+func Init() {
+	lock.Lock()
+	defer lock.Unlock()
+	if irc != nil {
+		return
 	}
+
+	if *server == "" {
+		// Don't call logging.Fatal as we don't want a backtrace in this case
+		logging.Error("--server option required. \nOptions are:\n")
+		flag.PrintDefaults()
+		os.Exit(1)
+	}
+
+	// Configure IRC client
+	irc = client.SimpleClient(*nick, "boing", "not really sp0rkle")
+	irc.SSL = *ssl
 
 	HandleFunc(bot_connected, "connected")
 	HandleFunc(bot_disconnected, "disconnected")
@@ -67,60 +57,50 @@ func Init(c *client.Conn, l logging.Logger) *Sp0rkle {
 	HandleFunc(bot_shutdown, "notice")
 
 	CommandFunc(bot_help, "help", "If you need to ask, you're beyond help.")
-	return bot
 }
 
-func Bot(c *client.Conn, l logging.Logger) *Sp0rkle {
-	s := strings.Split(*rebuilder, ":")
-	bot := &Sp0rkle{
-		Conn:     c,
-		ER:       c.ER,
-		ED:       c.ED,
-		l:        l,
-		drivers:  make(map[string]base.Driver),
-		channels: make([]string, 0, 1),
-		rbnick:   s[0],
-		Quit:     make(chan bool),
+func Connect() bool {
+	lock.Lock()
+	defer lock.Unlock()
+	if irc == nil {
+		logging.Fatal("Called Connect() before Init().")
 	}
-	if len(s) > 1 {
-		bot.rbpw = s[1]
+	return connectLoop()
+}
+
+var shutdown, reexec bool
+var disconnected = make(chan bool)
+
+func connectLoop() bool {
+	var retries uint32
+	for {
+		if err := irc.Connect(*server); err != nil {
+			logging.Error("Connection error: %s", err)
+			retries++
+			if retries > 10 {
+				logging.Error("Giving up connection after 10 failed retries.")
+				return false
+			}
+			<-time.After(time.Second * 1<<retries)
+		} else {
+			retries, shutdown, reexec = 0, false, false
+			// Wait here for a signal from bot_disconnected
+			<-disconnected
+			if shutdown {
+				return reexec
+			}
+		}
 	}
-	c.State = bot
-	return bot
-}
-
-type botFn func(*base.Line)
-
-type botPl func(string, *base.Line) string
-
-type botCommand struct {
-	fn botFn
-	help string
-}
-
-func (bf botFn) Execute(line *base.Line) {
-	bf(line)
-}
-
-func (bp botPl) Apply(in string, line *base.Line) string {
-	return bp(in, line)
-}
-
-func (bc *botCommand) Execute(line *base.Line) {
-	bc.fn(line)
-}
-
-func (bc *botCommand) Help() string {
-	return bc.help
 }
 
 func Handle(h base.Handler, event ...string) {
-	bot.ER.AddHandler(client.NewHandler(func(_ *client.Conn, l *client.Line) {
-		h.Execute(Line(l))
+	// TODO(fluffle): push CommandSet way of doing things down into goirc
+	irc.ER.AddHandler(client.NewHandler(func(_ *client.Conn, l *client.Line) {
+		h.Execute(transformLine(l))
 	}), event...)
 }
 
-func HandleFunc(fn botFn, event ...string) {
+func HandleFunc(fn base.HandlerFunc, event ...string) {
 	Handle(fn, event...)
 }
 
@@ -130,8 +110,8 @@ func Command(cmd base.Command, prefix string) {
 	commands.Add(cmd, prefix)
 }
 
-func CommandFunc(fn botFn, prefix, help string) {
-	Command(&botCommand{fn, help}, prefix)
+func CommandFunc(fn base.HandlerFunc, prefix, help string) {
+	Command(base.NewCommand(fn, help), prefix)
 }
 
 var plugins = base.NewPluginSet()
@@ -140,11 +120,11 @@ func Plugin(p base.Plugin) {
 	plugins.Add(p)
 }
 
-func PluginFunc(fn botPl) {
+func PluginFunc(fn base.PluginFunc) {
 	Plugin(fn)
 }
 
-func Line(line *client.Line) *base.Line {
+func transformLine(line *client.Line) *base.Line {
 	// We want line.Args[1] to contain the (possibly) stripped version of itself
 	// but modifying the pointer will result in other goroutines seeing the
 	// change, so we need to copy line for our own edification.
@@ -163,66 +143,6 @@ func Line(line *client.Line) *base.Line {
 		nl.Addressed = true
 	}
 	return nl
-}
-
-func (bot *Sp0rkle) Name() string {
-	return botName
-}
-
-func (bot *Sp0rkle) RegisterAll() {
-	for _, d := range bot.drivers {
-		// Register the driver's event handlers with the event registry.
-		d.RegisterHandlers(bot.ER)
-		// If the driver provides FactoidPlugins to change factoid output
-		// register them with the PluginManager here too.
-		if pp, ok := d.(base.PluginProvider); ok {
-			pp.RegisterPlugins(plugins)
-		}
-		// If the driver wants to handle any HTTP paths, register them.
-		if hp, ok := d.(base.HttpProvider); ok {
-			hp.RegisterHttpHandlers()
-		}
-	}
-}
-
-func (bot *Sp0rkle) Dispatch(name string, ev ...interface{}) {
-	// Shim the bot into the parameter list of every event dispatched via it.
-	ev = append([]interface{}{bot}, ev...)
-	bot.ED.Dispatch(name, ev...)
-}
-
-func (bot *Sp0rkle) AddDriver(d base.Driver) {
-	bot.drivers[d.Name()] = d
-}
-
-func (bot *Sp0rkle) GetDriver(name string) base.Driver {
-	// Callers will have to unbox the returned driver themselves
-	return bot.drivers[name]
-}
-
-func (bot *Sp0rkle) AddChannels(c []string) {
-	bot.channels = append(bot.channels, c...)
-}
-
-func (bot *Sp0rkle) ReExec() bool {
-	return bot.reexec
-}
-
-// Currently makes the assumption that we're replying to line.Args[0] in every
-// instance. While this is normally the case, it may not be in some cases...
-// ReplyN() adds a prefix of "nick: " to the reply text,
-func (bot *Sp0rkle) ReplyN(line *base.Line, fm string, args ...interface{}) {
-	args = append([]interface{}{line.Nick}, args...)
-	bot.Reply(line, "%s: "+fm, args...)
-}
-
-// whereas Reply() does not.
-func (bot *Sp0rkle) Reply(line *base.Line, fm string, args ...interface{}) {
-	bot.Conn.Privmsg(line.Args[0], plugins.Apply(fmt.Sprintf(fm, args...), line))
-}
-
-func (bot *Sp0rkle) Do(line *base.Line, fm string, args ...interface{}) {
-	bot.Conn.Action(line.Args[0], plugins.Apply(fmt.Sprintf(fm, args...), line))
 }
 
 // Currently makes the assumption that we're replying to line.Args[0] in every

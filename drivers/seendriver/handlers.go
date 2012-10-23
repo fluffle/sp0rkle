@@ -61,7 +61,7 @@ func recordJoin(line *base.Line) {
 		// If we have a PART message
 		sn.Text = line.Args[1]
 	}
-	if _, err := sc.Upsert(sn.Id, sn); err != nil {
+	if _, err := sc.UpsertId(sn.Id, sn); err != nil {
 		bot.Reply(line, "Failed to store seen data: %v", err)
 	}
 }

@@ -20,7 +20,7 @@ type Quote struct {
 	Chan  base.Chan
 	Accessed  int
 	Timestamp time.Time
-	Id        bson.ObjectId `bson;"_id,omitempty"`
+	Id        bson.ObjectId `bson:"_id,omitempty"`
 }
 
 func NewQuote(q string, n base.Nick, c base.Chan) *Quote {
