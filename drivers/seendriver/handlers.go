@@ -23,7 +23,7 @@ func smoke(line *base.Line) {
 	} else {
 		sn = seen.SawNick(n, c, "SMOKE", "")
 	}
-	if _, err := sc.UpsertId(sn.Id, sn); err != nil {
+	if _, err := sc.Upsert(sn.Id(), sn); err != nil {
 		bot.Reply(line, "Failed to store smoke data: %v", err)
 	}
 }
@@ -42,7 +42,7 @@ func recordLines(line *base.Line) {
 				line.Nick, sn.Lines)
 		}
 	}
-	if _, err := sc.UpsertId(sn.Id, sn); err != nil {
+	if _, err := sc.Upsert(sn.Id(), sn); err != nil {
 		bot.Reply(line, "Failed to store seen data: %v", err)
 	}
 }
@@ -50,7 +50,7 @@ func recordLines(line *base.Line) {
 func recordPrivmsg(line *base.Line) {
 	sn := seenNickFromLine(line)
 	sn.Text = line.Args[1]
-	if _, err := sc.UpsertId(sn.Id, sn); err != nil {
+	if _, err := sc.Upsert(sn.Id(), sn); err != nil {
 		bot.Reply(line, "Failed to store seen data: %v", err)
 	}
 }
@@ -61,7 +61,7 @@ func recordJoin(line *base.Line) {
 		// If we have a PART message
 		sn.Text = line.Args[1]
 	}
-	if _, err := sc.UpsertId(sn.Id, sn); err != nil {
+	if _, err := sc.Upsert(sn.Id(), sn); err != nil {
 		bot.Reply(line, "Failed to store seen data: %v", err)
 	}
 }
@@ -70,7 +70,7 @@ func recordNick(line *base.Line) {
 	sn := seenNickFromLine(line)
 	sn.Chan = ""
 	sn.Text = line.Args[0]
-	if _, err := sc.UpsertId(sn.Id, sn); err != nil {
+	if _, err := sc.Upsert(sn.Id(), sn); err != nil {
 		// We don't have anyone to reply to in this case, so log instead.
 		logging.Warn("Failed to store seen data: %v", err)
 	}
@@ -89,7 +89,7 @@ func recordKick(line *base.Line) {
 		kr.Timestamp, kr.Text = time.Now(), line.Args[2]
 	}
 	kr.OtherNick = kn
-	_, err := sc.UpsertId(kr.Id, kr)
+	_, err := sc.Upsert(kr.Id(), kr)
 	if err != nil {
 		bot.Reply(line, "Failed to store seen data: %v", err)
 	}
@@ -102,7 +102,7 @@ func recordKick(line *base.Line) {
 		ke.Timestamp, ke.Text = time.Now(), line.Args[2]
 	}
 	ke.OtherNick = n
-	_, err = sc.UpsertId(ke.Id, ke)
+	_, err = sc.Upsert(ke.Id(), ke)
 	if err != nil {
 		bot.Reply(line, "Failed to store seen data: %v", err)
 	}
