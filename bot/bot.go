@@ -91,6 +91,7 @@ func connectLoop() bool {
 			}
 		}
 	}
+	panic("unreachable")
 }
 
 func Handle(h base.Handler, event ...string) {
