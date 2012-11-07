@@ -157,9 +157,9 @@ func main() {
 	logging.InitFromFlags()
 
 	// Let's go find some mongo.
-	mdb := db.Init()
+	db.Init()
 	defer db.Close()
-	fc := factoids.Collection(mdb)
+	fc := factoids.Init()
 
 	// A communication channel of Factoids.
 	facts := make(chan *factoids.Factoid)
@@ -200,6 +200,7 @@ func main() {
 
 	// And finally...
 	count := 0
+	var err error
 	for fact := range facts {
 		// ... push each fact into mongo
 		err = fc.Insert(fact)

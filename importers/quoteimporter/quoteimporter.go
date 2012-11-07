@@ -40,12 +40,12 @@ func parseQuote(row []interface{}, out chan *quotes.Quote) {
 
 func main() {
 	flag.Parse()
-	log := logging.InitFromFlags()
+	logging.InitFromFlags()
 
 	// Let's go find some mongo.
-	mdb := db.Init()
-	defer mdb.Close()
-	qc := quotes.Collection(mdb, log)
+	db.Init()
+	defer db.Close()
+	qc := quotes.Init()
 
 	// A communication channel of Quotes.
 	quotes := make(chan *quotes.Quote)
@@ -60,9 +60,9 @@ func main() {
 	db_query := func(dbh *sqlite3.Database) {
 		n, err := dbh.Execute("SELECT * FROM Quotes;", row_feeder)
 		if err == nil {
-			log.Info("Read %d rows from database.\n", n)
+			logging.Info("Read %d rows from database.\n", n)
 		} else {
-			log.Error("DB error: %s\n", err)
+			logging.Error("DB error: %s\n", err)
 		}
 	}
 
@@ -86,11 +86,12 @@ func main() {
 
 	// And finally...
 	count := 0
+	var err error
 	for quote := range quotes {
 		// ... push each quote into mongo
 		err = qc.Insert(quote)
 		if err != nil {
-			log.Error("Awww: %v\n", err)
+			logging.Error("Awww: %v\n", err)
 		} else {
 			if count%1000 == 0 {
 				fmt.Printf("%d...", count)
@@ -99,5 +100,5 @@ func main() {
 		}
 	}
 	fmt.Println("done.")
-	log.Info("Inserted %d quotes.\n", count)
+	logging.Info("Inserted %d quotes.\n", count)
 }

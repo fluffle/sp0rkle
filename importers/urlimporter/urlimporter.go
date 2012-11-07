@@ -40,12 +40,12 @@ func parseUrl(row []interface{}) *urls.Url {
 
 func main() {
 	flag.Parse()
-	log := logging.InitFromFlags()
+	logging.InitFromFlags()
 
 	// Let's go find some mongo.
-	mdb := db.Init()
-	defer mdb.Close()
-	uc := urls.Collection(mdb, log)
+	db.Init()
+	defer db.Close()
+	uc := urls.Init()
 
 	work := make(chan *urls.Url)
 	quit := make(chan bool)
@@ -60,9 +60,9 @@ func main() {
 				count := 0
 				for u := range work {
 					count++
-					log.Debug("w%02d r%04d: Fetching '%s'", n, count, u.Url)
+					logging.Debug("w%02d r%04d: Fetching '%s'", n, count, u.Url)
 					res, err := http.Head(u.Url)
-					log.Debug("w%02d r%04d: Response '%s'", n, count, res.Status)
+					logging.Debug("w%02d r%04d: Response '%s'", n, count, res.Status)
 					if err == nil && res.StatusCode == 200 {
 						urls <- u
 					} else {
@@ -83,9 +83,9 @@ func main() {
 	db_query := func(dbh *sqlite3.Database) {
 		n, err := dbh.Execute("SELECT * FROM urls;", row_feeder)
 		if err == nil {
-			log.Info("Read %d rows from database.\n", n)
+			logging.Info("Read %d rows from database.\n", n)
 		} else {
-			log.Error("DB error: %s\n", err)
+			logging.Error("DB error: %s\n", err)
 		}
 	}
 
@@ -120,11 +120,12 @@ func main() {
 
 	// And finally...
 	count := 0
+	var err error
 	for u := range urls {
 		// ... push each url into mongo
 		err = uc.Insert(u)
 		if err != nil {
-			log.Error("Awww: %v\n", err)
+			logging.Error("Awww: %v\n", err)
 		} else {
 			if count%1000 == 0 {
 				fmt.Printf("%d...", count)
@@ -134,7 +135,7 @@ func main() {
 	}
 	fmt.Println("done.")
 	if *check {
-		log.Info("Dropped %d non-200 urls.", failed)
+		logging.Info("Dropped %d non-200 urls.", failed)
 	}
-	log.Info("Inserted %d urls.", count)
+	logging.Info("Inserted %d urls.", count)
 }
