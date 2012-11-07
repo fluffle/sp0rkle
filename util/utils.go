@@ -20,6 +20,9 @@ func RemovePrefixedNick(text, nick string) (string, bool) {
 
 func HasPrefixedNick(text, nick string) bool {
 	prefixed := false
+	if len(text) <= len(nick) {
+		return false
+	}
 	if strings.HasPrefix(strings.ToLower(text), strings.ToLower(nick)) {
 		switch text[len(nick)] {
 		// This is nicer than an if statement :-)
