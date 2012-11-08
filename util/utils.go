@@ -166,17 +166,17 @@ func FactPointer(val string) (key string, start, end int) {
 		end = strings.Index(val[start:], "}") + start + 1
 		// TrimSpace since it's not possible to have a fact key that
 		// starts/ends with a space, but someone *could* write *{ foo }
-		key = strings.TrimSpace(val[start+2:end-1])
+		key = strings.ToLower(strings.TrimSpace(val[start+2:end-1]))
 	} else {
 		// util.Lexer helps find the next char that isn't alphabetical
 		l := &Lexer{Input: val}
 		l.Pos(start+1)
-		key = l.Scan(func (r rune) bool {
+		key = strings.ToLower(l.Scan(func (r rune) bool {
 			if unicode.IsLetter(r) || unicode.IsNumber(r) {
 				return true
 			}
 			return false
-		})
+		}))
 		end = l.Pos()
 		// Special case handling because *pointer might be *emphasis*
 		// perlfu's designer has a lot to answer for :-/

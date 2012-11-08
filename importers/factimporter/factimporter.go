@@ -9,6 +9,7 @@ import (
 	"github.com/fluffle/sp0rkle/base"
 	"github.com/fluffle/sp0rkle/collections/factoids"
 	"github.com/fluffle/sp0rkle/db"
+	"github.com/fluffle/sp0rkle/util"
 	"github.com/kuroneko/gosqlite3"
 	"labix.org/v2/mgo/bson"
 	"strconv"
@@ -18,6 +19,8 @@ import (
 
 var file *string = flag.String("db", "Facts.db",
 	"SQLite database to import factoids from.")
+
+var ptrkeys = map[string]bool{}
 
 const (
 	// The Factoids table columns are:
@@ -98,7 +101,12 @@ func parseValue(k, r, v string) (ft factoids.FactoidType, fv string) {
 		// If fv == v, ParseValue hasn't stripped off a <reply>, so this is
 		// just a normal factoid whose value is actually "key relation value"
 		// as that's how they're stored in the old SQLite database...
-		fv = strings.Join([]string{k, r, v}, " ")
+		key, _, _ := util.FactPointer(fv)
+		if _, ok := ptrkeys[k]; !(ok || fv == "*" + key) {
+			// ... (HACK1) except if they have been used as a pointer key...
+			// ... (HACK2) or if it's *just* a pointer to another factoid.
+			fv = strings.Join([]string{k, r, v}, " ")
+		}
 	}
 	return
 }
@@ -152,6 +160,12 @@ func toString(s interface{}) string {
 	return ""
 }
 
+func feeder(ch chan []interface{}) func(*sqlite3.Statement, ...interface{}) {
+	return func(sth *sqlite3.Statement, row ...interface{}) {
+		ch <- row
+	}
+}
+
 func main() {
 	flag.Parse()
 	logging.InitFromFlags()
@@ -163,32 +177,41 @@ func main() {
 
 	// A communication channel of Factoids.
 	facts := make(chan *factoids.Factoid)
+	ptrs := make(chan []interface{})
 	rows := make(chan []interface{})
 
-	// Function to feed rows into the rows channel.
-	row_feeder := func(sth *sqlite3.Statement, row ...interface{}) {
-		rows <- row
-	}
-
-	// Function to execute a query on the SQLite db.
+	// Function to execute some queries on the SQLite db and shove the results
+	// into the ptrs and rows channels created above.
 	db_query := func(dbh *sqlite3.Database) {
-		n, err := dbh.Execute("SELECT * FROM Factoids;", row_feeder)
+		_, err := dbh.Execute("SELECT * FROM Factoids WHERE Value LIKE '%*%';", feeder(ptrs))
+		close(ptrs)
+		if err != nil {
+			logging.Error("DB error: %s", err)
+		}
+		n, err := dbh.Execute("SELECT * FROM Factoids;", feeder(rows))
+		close(rows)
 		if err == nil {
-			logging.Info("Read %d rows from database.\n", n)
+			logging.Info("Read %d rows from database.", n)
 		} else {
-			logging.Error("DB error: %s\n", err)
+			logging.Error("DB error: %s", err)
 		}
 	}
 
-	// Open up the factoid database in a goroutine and feed rows
-	// in on the input_rows channel.
 	go func() {
 		sqlite3.Session(*file, db_query)
-		// once we've done the query, close the channel to indicate this
-		close(rows)
 	}()
 
-	// Another goroutine to munge the rows into factoids.
+	// First, synchronously read all the stuff from the ptrs channel
+	// and build a set of all the factoid keys that are used as pointers
+	for row := range ptrs {
+		for _, val := range parseMultipleValues(toString(row[cValue])) {
+			if key, _, _ := util.FactPointer(val); key != "" {
+				ptrkeys[key] = true
+			}
+		}
+	}
+
+	// Now run another goroutine to munge the rows into factoids.
 	// This was originally done inside the SQLite callbacks, but
 	// cgo or sqlite3 obscures runtime panics and makes fail happen.
 	go func() {
