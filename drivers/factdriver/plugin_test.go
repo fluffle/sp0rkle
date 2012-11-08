@@ -17,7 +17,7 @@ func TestIdentifiers(t *testing.T) {
 	// Static timestamp for great testing justice, no "local" time here kthx.
 	ts := time.Unix(1234567890, 0).UTC()
 	line := &base.Line{
-		Line: client.Line{
+		Line: &client.Line{
 			Nick: "tester", Ident: "tests", Host: "goirc.github.com",
 			Src: "tester!tests@goirc.github.com", Cmd: "PRIVMSG",
 			Raw:  ":tester!tests@goirc.github.com PRIVMSG #test :I love testing.",

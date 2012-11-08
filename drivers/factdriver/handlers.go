@@ -88,23 +88,11 @@ func lookup(line *base.Line) {
 
 // Recursively resolve pointers to other factoids
 func recurse(val string, keys map[string]bool) string {
-	// A pointer looks like *key or *{key with optional spaces}
-	start := strings.Index(val, "*")
-	if start == -1 {
+	key, start, end := util.FactPointer(val)
+	if key == "" {
 		return val
 	}
-	end := strings.Index(val[start:], " ") + start
-	if val[start+1] == '{' {
-		end = strings.Index(val[start:], "}") + start + 1
-	}
-	if end <= start {
-		return val
-	}
-	key := val[start+1:end]
-	if val[end] == '}' {
-		key = val[start+2:end-1]
-	}
-	if _, ok := keys[key]; ok {
+	if _, ok := keys[key]; ok || len(keys) > 20 {
 		val = val[:start] + "[circular reference]" + val[end:]
 		return val
 	}
@@ -113,7 +101,7 @@ func recurse(val string, keys map[string]bool) string {
 		val = val[:start] + fact.Value + val[end:]
 		return recurse(val, keys)
 	}
-	// strip * from pointer to avoid infinite recursion
-	val = val[:start] + val[start+1:]
-	return recurse(val, keys)
+	// if we get here, we found a pointer key but no matching factoid
+	// so recurse on the stuff after that key *only* to avoid loops.
+	return val[:end] + recurse(val[end:], keys)
 }
