@@ -4,16 +4,8 @@ Core: Items that affect the main framework
 Testability: Items surounding the test framework
 Bugs: Known problems with current implementation
 
-
 Drivers
 =======
-*decide
-  - Done, for now
-  - Not ported: 8ball, best of N, percent (they were basically unused)
-
-*Calculate
-  - All of the old functionality ported over
-
 // There are probably more useful web services with JSON apis to wrap,
 // these can all go in 'netdriver'
 *WebServices
@@ -32,48 +24,23 @@ Drivers
     (would require API use since they don't expose simple RSS feeds)
 
 *Remind
-  //Remind me, (or someone) about something at a certain point in the future
-  remind me $msg at $time
-  remind $person $msg in $period_of_time
-  remind list
-  remind (del,delete,forget) X
+  // Remind me, (or someone) about something at a certain point in the future
+  // Still TODO:
   repeating reminders -- daily, weekly, monthly. no shorter than hourly ;-)
-*Tell
-  //Tell person X when they next appear online
-  tell steve where's the laptop?
+  ping me when x next says something
 
-
-*date
-  //current date
-  // this is currently done with the $date identifier, but making it
-  // properly timezone aware would be winful and hopefully not too hard
+*calc
+  // Make the calc driver do date / timezone maths.
   date
   date uk
   date shanghai
 
-
-*lines
-  //Keep a scoreboard of who has said how many lines a person has said
-  Should also hurl abuse for every x-thousand lines said
-  lines top10
-  lines $nick
-
-
-*Seen
-  // Keep track of people's presence on IRC.
-  // Pretty much done, for simple stuff.
-
 *urlsearch
   //Keep a track of urls that are said and allow them to be searched (using regex)
-  - command: urlsearch|urlfind github.com
-  - notify channel of url contents (image file info, HTML <title> tag, etc.)
-  - notify channel "first posted by XX (date)" if seen before
-  - auto-tinyurl or similar for long urls
-  - Store url contents locally in ~sp0rkle/pub_html on 'save that' (if image),
-    and provide a link to the stored content. Avoid storing 4chan content ;-)
+  // Still TODO:
+  - get hosting and buy sp0rk.ly
 
 *Quotes
-  // Started, in lib/quotes and sp0rkle/drivers/quotedriver
   // Still TODO: some...
   - Multi-line quote add for copypasta win?
     + q(uote )?begin
@@ -84,7 +51,6 @@ Drivers
   - Help, unit tests, etc.
 
 *Factoids
-  // Mostly done, in lib/factoids and sp0rkle/drivers/factdriver
   // Still TODO
   - Permissions system:
     + each factoid has "owner" == creator initially
@@ -94,50 +60,30 @@ Drivers
     via "literal" to list then s/that/N/ in command to apply.
   - Something that utilises the access count to help prune unseen factoids
   - Regex factoid value editing: edit that =~ s/// => applies regex to factoid
-  - Some clever way of flattening *pointer values when needed on import
-  - Pointer handling for those that aren't flattened on import
   - More unit tests
   - Pruning of 404'd F_URL factoids
 
 *Insult generator
   - needed for many many factoids :-)
 
-*Todo
-  - Might just drop this -- noone uses it (i planned to but failed)
-
 *Trivia
   - does anyone care about this? the question list is a bit meh atm.
 
 Core
 ====
-*Persistent ignore list
-*Admin commands like join/part/ignore (and perms)
 
-* Change command dispatch to be more centralised, use net/http handler and mux
-  as a design principle. Only goirc handlers should be in bot/handlers.go
-* Push this up into a layer in goirc.
-
-* Stop passing a logging object about, just use the "default" one. Srsly.
-
-*Help
-  each plugin and command should implement a help function, e.g.
-  help quote =>  "QuoteDB: type help <command>, where command is qadd, qdell"
-  - standard HelpHandler implemented by drivers and dispatched by bot_privmsg
-  - help on its own lists driver names
-  - drivers should look for first word after help being driverName and reply
-  - also look into godoc -> wiki.git dumping
+* Persistent ignore list
+* Admin commands like join/part/ignore (and perms)
+* Push servemux-like command/handler dispatch up into a layer in goirc.
+* Help: look into godoc -> wiki.git dumping
 
 Testability
 ===========
-*Ensure all functions (where applicable) have unit tests
 
-*gomock
-  - mock out the DB connection
-
-*Benchmarking
-  - Rough benchmarking/stress testing
-  - Ensure we can not over load by performing too many searches at once
+* Ensure all functions (where applicable) have unit tests
+* mock/fake the DB connection
 
 Bugs
 ====
-<Known issue that are not feature requests should be listed here>
+
+Many, natch.
