@@ -191,7 +191,7 @@ func TestFactPointer(t *testing.T) {
 		{"*a", "a", 0, 2},
 		{"something * something", "", 10, 11},
 		{"something *a something", "a", 10, 12},
-		{"something *foobar something", "foobar", 10, 17},
+		{"something *foo123 something", "foo123", 10, 17},
 		{"sth *{a} sthelse", "a", 4, 8},
 		{"foo *{a b} bar", "a b", 4, 10},
 		{"foo *{    a    } bar", "a", 4, 16},

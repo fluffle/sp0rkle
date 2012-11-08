@@ -158,7 +158,7 @@ func ApplyPluginFunction(val, plugin string, f func(string) string) string {
 
 func FactPointer(val string) (key string, start, end int) {
 	// A pointer looks like *key or *{key with optional spaces}
-	// In the former case key must only be letters
+	// In the former case key must be alphanumeric
 	if start = strings.Index(val, "*"); start == -1 || start + 1 == len(val) {
 		return "", -1, -1
 	}
@@ -171,7 +171,12 @@ func FactPointer(val string) (key string, start, end int) {
 		// util.Lexer helps find the next char that isn't alphabetical
 		l := &Lexer{Input: val}
 		l.Pos(start+1)
-		key = l.Scan(unicode.IsLetter)
+		key = l.Scan(func (r rune) bool {
+			if unicode.IsLetter(r) || unicode.IsNumber(r) {
+				return true
+			}
+			return false
+		})
 		end = l.Pos()
 		// Special case handling because *pointer might be *emphasis*
 		// perlfu's designer has a lot to answer for :-/
