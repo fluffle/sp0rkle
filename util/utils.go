@@ -167,6 +167,11 @@ func FactPointer(val string) (key string, start, end int) {
 	} else {
 		end += start
 	}
+	// Special case handling because *pointer might be *emphasis*
+	// perlfu's designer has a lot to answer for :-/
+	if val[end-1] == '*' {
+		return "", -1, -1
+	}
 	key = val[start+1:end]
 	if val[start+1] == '{' {
 		// TrimSpace since it's not possible to have a fact key that
