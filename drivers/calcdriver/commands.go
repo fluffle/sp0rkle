@@ -2,12 +2,12 @@ package calcdriver
 
 import (
 	"fmt"
-	"github.com/fluffle/sp0rkle/util/calc"
 	"github.com/fluffle/sp0rkle/base"
 	"github.com/fluffle/sp0rkle/bot"
+	"github.com/fluffle/sp0rkle/util/calc"
 	"net"
-	"strings"
 	"strconv"
+	"strings"
 	"unicode/utf8"
 )
 

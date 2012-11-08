@@ -13,20 +13,20 @@ var smokeRx *regexp.Regexp = regexp.MustCompile(`(?i)^(?:->\s*?)?(?:s(?:c?h)?m[o
 var milestones = []int{100, 500, 1000, 5000, 10000, 25000, 50000, 75000, 100000}
 
 type stupidQuestion struct {
-	re string
-	rx *regexp.Regexp
+	re   string
+	rx   *regexp.Regexp
 	resp string
 }
 
 var wittyComebacks []stupidQuestion = []stupidQuestion{
 	{`^my (?:arse|ass)$`, nil,
-	 "Pull your pants down and hit me with the view, big boy."},
+		"Pull your pants down and hit me with the view, big boy."},
 	{`^my (?:penis|cock|dick|wang)$`, nil,
-	 "No, thank god... Now put it away, no-one else wants to see it either."},
+		"No, thank god... Now put it away, no-one else wants to see it either."},
 	{`^(?:yo(?:'|ur)?|\w+'?s) (?:momma|mother|mum)$`, nil,
-	 "Yeah, she gives me a discount cos I see her so regularly \\o/"},
+		"Yeah, she gives me a discount cos I see her so regularly \\o/"},
 	{`^\w+'?s (?:arse|ass|penis|cock|dick|wang)$`, nil,
-	 "Unfortunately not... I asked nicely but they're a bit shy :/"},
+		"Unfortunately not... I asked nicely but they're a bit shy :/"},
 	{`^me$`, nil, "You're right there, fool."},
 }
 
@@ -49,13 +49,13 @@ func Init() {
 	bot.HandleFunc(recordNick, "nick", "quit")
 	bot.HandleFunc(recordKick, "kick")
 
-	bot.CommandFunc(seenCmd, "seen", "seen <nick> [action]  -- " +
+	bot.CommandFunc(seenCmd, "seen", "seen <nick> [action]  -- "+
 		"display the last time <nick> was seen on IRC [doing action]")
-	bot.CommandFunc(lines, "lines", "lines [nick]  -- " +
+	bot.CommandFunc(lines, "lines", "lines [nick]  -- "+
 		"display how many lines you [or nick] has said in the channel")
-	bot.CommandFunc(topten, "topten", "topten  -- " +
+	bot.CommandFunc(topten, "topten", "topten  -- "+
 		"display the nicks who have said the most in the channel")
-	bot.CommandFunc(topten, "top10", "top10  -- " +
+	bot.CommandFunc(topten, "top10", "top10  -- "+
 		"display the nicks who have said the most in the channel")
 }
 

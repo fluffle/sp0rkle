@@ -30,11 +30,11 @@ const (
 
 func parseUrl(row []interface{}) *urls.Url {
 	return &urls.Url{
-		Nick:         base.Nick(row[cNick].(string)),
-		Chan:         base.Chan(row[cChannel].(string)),
-		Url:          row[cUrl].(string),
-		Timestamp:    time.Unix(row[cTime].(int64), 0),
-		Id:           bson.NewObjectId(),
+		Nick:      base.Nick(row[cNick].(string)),
+		Chan:      base.Chan(row[cChannel].(string)),
+		Url:       row[cUrl].(string),
+		Timestamp: time.Unix(row[cTime].(int64), 0),
+		Id:        bson.NewObjectId(),
 	}
 }
 

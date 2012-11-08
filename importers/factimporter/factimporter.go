@@ -38,8 +38,8 @@ const (
 func parseFactoid(row []interface{}, out chan *factoids.Factoid) {
 	values := parseMultipleValues(toString(row[cValue]))
 	c := &factoids.FactoidStat{
-		Nick: base.Nick(toString(row[cCreator])),
-		Chan: "",
+		Nick:  base.Nick(toString(row[cCreator])),
+		Chan:  "",
 		Count: 1,
 	}
 	c.Timestamp, _ = parseTimestamp(row[cCreated])
@@ -102,7 +102,7 @@ func parseValue(k, r, v string) (ft factoids.FactoidType, fv string) {
 		// just a normal factoid whose value is actually "key relation value"
 		// as that's how they're stored in the old SQLite database...
 		key, _, _ := util.FactPointer(fv)
-		if _, ok := ptrkeys[k]; !(ok || fv == "*" + key) {
+		if _, ok := ptrkeys[k]; !(ok || fv == "*"+key) {
 			// ... (HACK1) except if they have been used as a pointer key...
 			// ... (HACK2) or if it's *just* a pointer to another factoid.
 			fv = strings.Join([]string{k, r, v}, " ")

@@ -1,7 +1,6 @@
 package netdriver
 
-import (
-)
+import ()
 
 type netService interface {
 	LookupResult(string) string

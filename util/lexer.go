@@ -101,4 +101,3 @@ func (l *Lexer) Number() float64 {
 	}
 	return n
 }
-

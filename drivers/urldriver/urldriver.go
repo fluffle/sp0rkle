@@ -32,7 +32,7 @@ var urlCacheDir *string = flag.String("url_cache_dir",
 var uc *urls.Collection
 
 // Remember the last url seen on a per-channel basis
-var lastseen = map[string]bson.ObjectId {}
+var lastseen = map[string]bson.ObjectId{}
 
 func Init() {
 	uc = urls.Init()
@@ -42,27 +42,27 @@ func Init() {
 	}
 
 	bot.HandleFunc(urlScan, "privmsg")
-	
-	bot.CommandFunc(find, "urlfind", "urlfind <regex>  -- " +
+
+	bot.CommandFunc(find, "urlfind", "urlfind <regex>  -- "+
 		"searches for previously mentioned URLs matching <regex>")
-	bot.CommandFunc(find, "url find", "url find <regex>  -- " +
+	bot.CommandFunc(find, "url find", "url find <regex>  -- "+
 		"searches for previously mentioned URLs matching <regex>")
-	bot.CommandFunc(find, "urlsearch", "urlsearch <regex>  -- " +
+	bot.CommandFunc(find, "urlsearch", "urlsearch <regex>  -- "+
 		"searches for previously mentioned URLs matching <regex>")
-	bot.CommandFunc(find, "url search", "url search <regex>  -- " +
+	bot.CommandFunc(find, "url search", "url search <regex>  -- "+
 		"searches for previously mentioned URLs matching <regex>")
 
 	bot.CommandFunc(find, "randurl", "randurl  -- displays a random URL")
 	bot.CommandFunc(find, "random url", "random url  -- displays a random URL")
 
-	bot.CommandFunc(shorten, "shorten that", "shorten that  -- " +
+	bot.CommandFunc(shorten, "shorten that", "shorten that  -- "+
 		"shortens the last mentioned URL.")
 	bot.CommandFunc(shorten, "shorten", "shorten <url>  -- shortens <url>")
 
-	bot.CommandFunc(cache, "cache that", "cache that  -- " +
+	bot.CommandFunc(cache, "cache that", "cache that  -- "+
 		"caches the last mentioned URL.")
 	bot.CommandFunc(cache, "cache", "cache <url>  -- caches <url>")
-	bot.CommandFunc(cache, "save that", "save that  -- " +
+	bot.CommandFunc(cache, "save that", "save that  -- "+
 		"caches the last mentioned URL.")
 	bot.CommandFunc(cache, "save", "save <url>  -- caches <url>")
 
@@ -80,7 +80,7 @@ func Encode(url string) string {
 	crc := crc32.ChecksumIEEE([]byte(url))
 	crcb := make([]byte, 4)
 	for i := 0; i < 4; i++ {
-		crcb[i] = byte((crc>>uint32(i)) & 0xff)
+		crcb[i] = byte((crc >> uint32(i)) & 0xff)
 	}
 	// Avoid collisions in shortened URLs
 	for i := 0; i < 10; i++ {
@@ -123,7 +123,7 @@ func Cache(u *urls.Url) error {
 			res.Status)
 	}
 	// 1 << 22 == 4MB
-	if res.ContentLength > 1 << 22 {
+	if res.ContentLength > 1<<22 {
 		return fmt.Errorf("Response too large (%d MB) to cache safely.",
 			res.ContentLength/1024/1024)
 	}

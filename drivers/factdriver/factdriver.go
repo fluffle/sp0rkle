@@ -14,7 +14,7 @@ var fc *factoids.Collection
 // Keep a reference to the last factoid looked up around
 // for use with 'edit that' and 'delete that' commands.
 // Do this on a per-channel basis to avoid (too much) confusion.
-var lastSeen = map[string]bson.ObjectId {}
+var lastSeen = map[string]bson.ObjectId{}
 
 func Init() {
 	fc = factoids.Init()

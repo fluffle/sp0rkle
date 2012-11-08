@@ -15,7 +15,7 @@ import (
 func del(line *base.Line) {
 	list, ok := listed[line.Nick]
 	if !ok {
-		bot.ReplyN(line, "Please use 'remind list' first, " +
+		bot.ReplyN(line, "Please use 'remind list' first, "+
 			"to be sure of what you're deleting.")
 		return
 	}
@@ -60,7 +60,7 @@ func set(line *base.Line) {
 		bot.ReplyN(line, "Invalid remind syntax. Sucka.")
 		return
 	}
-	i := len(s)-1
+	i := len(s) - 1
 	for i > 0 {
 		lc := strings.ToLower(s[i])
 		if lc == "in" || lc == "at" || lc == "on" {

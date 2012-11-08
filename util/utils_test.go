@@ -182,10 +182,10 @@ func TestApplyPluginFunction(t *testing.T) {
 }
 
 func TestFactPointer(t *testing.T) {
-	tests := []struct{
-		val, key string
+	tests := []struct {
+		val, key   string
 		start, end int
-	} {
+	}{
 		{"", "", -1, -1},
 		{"*", "", -1, -1},
 		{"*a", "a", 0, 2},

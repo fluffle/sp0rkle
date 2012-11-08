@@ -64,8 +64,8 @@ func cache(line *base.Line) {
 		}
 		if u.CachedAs != "" {
 			bot.ReplyN(line, "That was already cached as %s%s%s at %s",
-			bot.HttpHost(), cachePath, u.CachedAs,
-			u.CacheTime.Format(time.RFC1123))
+				bot.HttpHost(), cachePath, u.CachedAs,
+				u.CacheTime.Format(time.RFC1123))
 			return
 		}
 	} else {
@@ -82,8 +82,8 @@ func cache(line *base.Line) {
 			u = urls.NewUrl(url, n, c)
 		} else if u.CachedAs != "" {
 			bot.ReplyN(line, "That was already cached as %s%s%s at %s",
-			bot.HttpHost(), cachePath, u.CachedAs,
-			u.CacheTime.Format(time.RFC1123))
+				bot.HttpHost(), cachePath, u.CachedAs,
+				u.CacheTime.Format(time.RFC1123))
 			return
 		}
 	}

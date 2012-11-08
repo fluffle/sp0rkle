@@ -159,19 +159,19 @@ func ApplyPluginFunction(val, plugin string, f func(string) string) string {
 func FactPointer(val string) (key string, start, end int) {
 	// A pointer looks like *key or *{key with optional spaces}
 	// In the former case key must be alphanumeric
-	if start = strings.Index(val, "*"); start == -1 || start + 1 == len(val) {
+	if start = strings.Index(val, "*"); start == -1 || start+1 == len(val) {
 		return "", -1, -1
 	}
 	if val[start+1] == '{' {
 		end = strings.Index(val[start:], "}") + start + 1
 		// TrimSpace since it's not possible to have a fact key that
 		// starts/ends with a space, but someone *could* write *{ foo }
-		key = strings.ToLower(strings.TrimSpace(val[start+2:end-1]))
+		key = strings.ToLower(strings.TrimSpace(val[start+2 : end-1]))
 	} else {
 		// util.Lexer helps find the next char that isn't alphabetical
 		l := &Lexer{Input: val}
-		l.Pos(start+1)
-		key = strings.ToLower(l.Scan(func (r rune) bool {
+		l.Pos(start + 1)
+		key = strings.ToLower(l.Scan(func(r rune) bool {
 			if unicode.IsLetter(r) || unicode.IsNumber(r) {
 				return true
 			}
@@ -193,8 +193,8 @@ func JoinPath(items ...string) string {
 
 func TimeSince(t time.Time) string {
 	s := ""
-	sec := int(time.Since(t)/time.Second)
-	times := []struct{
+	sec := int(time.Since(t) / time.Second)
+	times := []struct {
 		d int
 		s string
 	}{

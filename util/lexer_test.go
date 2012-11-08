@@ -5,7 +5,7 @@ import (
 	"testing"
 	"unicode"
 )
-	
+
 // This takes care of exercising peek, next, scan, and rewind
 func TestLexerLowLevelFuncs(t *testing.T) {
 	// Mmm. Unicodey. 42 bytes, 22 chars.
@@ -68,7 +68,7 @@ func TestScanBadEOFHandling(t *testing.T) {
 	if s != "alongstringwithnospaces" {
 		t.Errorf("Scan failed to handle func with no EOF detection")
 	}
-}	
+}
 
 func TestNumber(t *testing.T) {
 	tests := []struct {

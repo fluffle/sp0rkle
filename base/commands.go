@@ -22,7 +22,7 @@ type Command interface {
 }
 
 type command struct {
-	fn HandlerFunc
+	fn   HandlerFunc
 	help string
 }
 

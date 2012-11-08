@@ -47,7 +47,7 @@ type FactoidStat struct {
 // Represent info about things that can be done to the factoid
 type FactoidPerms struct {
 	ReadOnly bool
-	Nick base.Nick
+	Nick     base.Nick
 }
 
 // Represent info returned from the Info MapReduce

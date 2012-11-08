@@ -13,14 +13,14 @@ import (
 const DATABASE string = "sp0rkle"
 
 var database *string = flag.String("database", "localhost",
-		"Address of MongoDB server to connect to, defaults to localhost.")
+	"Address of MongoDB server to connect to, defaults to localhost.")
 
 var lock sync.Mutex
 var db *mgo.Database
 var session *mgo.Session
 
 // Wraps connecting to mongo and selecting the "sp0rkle" database.
-func Init() (*mgo.Database) {
+func Init() *mgo.Database {
 	lock.Lock()
 	defer lock.Unlock()
 	if db != nil {

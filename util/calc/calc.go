@@ -21,7 +21,7 @@ var ConstMap = map[string]float64{
 }
 
 // precedenceMap defines the precedence of operators Calc() recognises.
-var precedenceMap = map[string]struct{
+var precedenceMap = map[string]struct {
 	prec int
 	lAss bool
 }{
@@ -175,7 +175,7 @@ func (t token) String() string {
 type lexer struct {
 	// we extend the basic lexer util to produce tokens here.
 	*util.Lexer
-	binaryMinus       bool
+	binaryMinus bool
 }
 
 func calcLexer(i string) *lexer {

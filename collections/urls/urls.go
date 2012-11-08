@@ -28,11 +28,11 @@ type Url struct {
 
 func NewUrl(u string, n base.Nick, c base.Chan) *Url {
 	return &Url{
-		Url:          u,
-		Nick:         n,
-		Chan:         c,
-		Timestamp:    time.Now(),
-		Id:           bson.NewObjectId(),
+		Url:       u,
+		Nick:      n,
+		Chan:      c,
+		Timestamp: time.Now(),
+		Id:        bson.NewObjectId(),
 	}
 }
 

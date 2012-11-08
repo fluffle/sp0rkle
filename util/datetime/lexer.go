@@ -182,7 +182,7 @@ func (l *dateLexer) setTime(h, m, s int, loc *time.Location) {
 	if loc == nil {
 		loc = time.Local
 	}
-	h, m, s = h % 24, m % 60, s % 60
+	h, m, s = h%24, m%60, s%60
 	if DEBUG {
 		fmt.Printf("Setting time to %d:%d:%d (%s)\n", h, m, s, loc)
 	}

@@ -28,13 +28,13 @@ const (
 
 func parseQuote(row []interface{}, out chan *quotes.Quote) {
 	out <- &quotes.Quote{
-		Quote:        row[cQuote].(string),
-		QID:          int(row[cID].(int64)),
-		Nick:         base.Nick(row[cNick].(string)),
-		Chan:         base.Chan(row[cChannel].(string)),
-		Accessed:     0,
-		Timestamp:    time.Unix(row[cTime].(int64), 0),
-		Id:           bson.NewObjectId(),
+		Quote:     row[cQuote].(string),
+		QID:       int(row[cID].(int64)),
+		Nick:      base.Nick(row[cNick].(string)),
+		Chan:      base.Chan(row[cChannel].(string)),
+		Accessed:  0,
+		Timestamp: time.Unix(row[cTime].(int64), 0),
+		Id:        bson.NewObjectId(),
 	}
 }
 

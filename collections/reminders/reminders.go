@@ -15,43 +15,43 @@ const COLLECTION = "reminders"
 const RemindTimeFormat = "15:04:05, Monday 2 January 2006"
 
 type Reminder struct {
-	Source    base.Nick
-	Target    base.Nick
-	Chan      base.Chan
-	From, To  string
-	Reminder  string
-	Created   time.Time
-	RemindAt  time.Time
-	Tell      bool
-	Id        bson.ObjectId `bson:"_id,omitempty"`
+	Source   base.Nick
+	Target   base.Nick
+	Chan     base.Chan
+	From, To string
+	Reminder string
+	Created  time.Time
+	RemindAt time.Time
+	Tell     bool
+	Id       bson.ObjectId `bson:"_id,omitempty"`
 }
 
 func NewReminder(r string, at time.Time, t, n base.Nick, c base.Chan) *Reminder {
 	return &Reminder{
-		Source: n,
-		Target: t,
-		Chan: c,
-		From: n.Lower(),
-		To: t.Lower(),
+		Source:   n,
+		Target:   t,
+		Chan:     c,
+		From:     n.Lower(),
+		To:       t.Lower(),
 		Reminder: r,
-		Created: time.Now(),
+		Created:  time.Now(),
 		RemindAt: at,
-		Tell: false,
-		Id: bson.NewObjectId(),
+		Tell:     false,
+		Id:       bson.NewObjectId(),
 	}
 }
 
 func NewTell(msg string, t, n base.Nick, c base.Chan) *Reminder {
 	return &Reminder{
-		Chan: c,
-		Source: n,
-		Target: t,
-		From: n.Lower(),
-		To: t.Lower(),
+		Chan:     c,
+		Source:   n,
+		Target:   t,
+		From:     n.Lower(),
+		To:       t.Lower(),
 		Reminder: msg,
-		Created: time.Now(),
-		Tell: true,
-		Id: bson.NewObjectId(),
+		Created:  time.Now(),
+		Tell:     true,
+		Id:       bson.NewObjectId(),
 	}
 }
 

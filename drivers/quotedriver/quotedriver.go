@@ -33,7 +33,7 @@ type rateLimit struct {
 	lastsent time.Time
 }
 
-var limits = map[string]*rateLimit {}
+var limits = map[string]*rateLimit{}
 
 func RateLimit(nick string) bool {
 	lim, ok := limits[nick]

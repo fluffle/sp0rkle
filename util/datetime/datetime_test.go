@@ -33,14 +33,14 @@ func TestParseTimeFormats(t *testing.T) {
 
 func TestParseTime(t *testing.T) {
 	now := time.Now()
-	mkt := func (h, m, s int, l ...string) time.Time {
+	mkt := func(h, m, s int, l ...string) time.Time {
 		loc := time.Local
 		if len(l) > 0 {
 			loc = zone(l[0])
 		}
 		return time.Date(now.Year(), now.Month(), now.Day(), h, m, s, 0, loc)
 	}
-	tests := []struct{
+	tests := []struct {
 		in string
 		t  time.Time
 	}{
@@ -110,8 +110,8 @@ func TestParseDate(t *testing.T) {
 	mkt := func(y, m, d int) time.Time {
 		return time.Date(y, time.Month(m), d, h, n, s, 0, time.UTC)
 	}
-	rel := mkt(1,1,1)
-	tests := []struct{
+	rel := mkt(1, 1, 1)
+	tests := []struct {
 		in string
 		t  time.Time
 	}{
@@ -187,7 +187,7 @@ func TestParseDate(t *testing.T) {
 		// T_INTEGER W T_INTEGER as YYYYWwwD
 		{"2004W102", mkt(2004, 3, 2)},
 		{"2003W097", mkt(2003, 3, 2)},
-		{"2008W396", mkt(2008, 9, 27)}, // example from wikipedia
+		{"2008W396", mkt(2008, 9, 27)},  // example from wikipedia
 		{"2009W011", mkt(2008, 12, 29)}, // 2009 is special!
 		{"2009W537", mkt(2010, 1, 3)},
 		// T_INTEGER W T_INTEGER as YYYYWww
@@ -216,7 +216,7 @@ func TestParseDate(t *testing.T) {
 }
 
 func TestParseIsoDateTime(t *testing.T) {
-	tests := []struct{
+	tests := []struct {
 		in string
 		t  time.Time
 	}{

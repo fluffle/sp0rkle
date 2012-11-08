@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"github.com/fluffle/goirc/client"
 	"github.com/fluffle/golog/logging"
-	"github.com/fluffle/sp0rkle/util"
 	"github.com/fluffle/sp0rkle/base"
+	"github.com/fluffle/sp0rkle/util"
 	"os"
 	"strings"
 	"sync"
@@ -16,8 +16,8 @@ import (
 var (
 	nick *string = flag.String("nick", "sp0rklf",
 		"Name of bot, defaults to 'sp0rklf'")
-	server *string = flag.String("server", "", "IRC server to connect to.")
-	ssl *bool = flag.Bool("ssl", false, "Use SSL when connecting.")
+	server   *string = flag.String("server", "", "IRC server to connect to.")
+	ssl      *bool   = flag.Bool("ssl", false, "Use SSL when connecting.")
 	httpHost *string = flag.String("http_host", "http://sp0rk.ly",
 		"Hostname for HTTP paths served by bot.")
 )
@@ -82,7 +82,7 @@ func connectLoop() bool {
 				logging.Error("Giving up connection after 10 failed retries.")
 				return false
 			}
-			<-time.After(time.Second * 1<<retries)
+			<-time.After(time.Second * 1 << retries)
 		} else {
 			retries, shutdown, reexec = 0, false, false
 			// Wait here for a signal from bot_disconnected

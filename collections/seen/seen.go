@@ -19,48 +19,56 @@ type Nick struct {
 	Chan      base.Chan
 	OtherNick base.Nick
 	Timestamp time.Time
-	Key		  string
+	Key       string
 	Action    string
 	Text      string
 	Lines     int
-//	Id        bson.ObjectId `bson:"_id,omitempty"`
+	//	Id        bson.ObjectId `bson:"_id,omitempty"`
 }
 
 type seenMsg func(*Nick) string
 
 var actionMap map[string]seenMsg = map[string]seenMsg{
 	"PRIVMSG": func(n *Nick) string {
-		return fmt.Sprintf("in %s, saying '%s'", n.Chan, n.Text)},
+		return fmt.Sprintf("in %s, saying '%s'", n.Chan, n.Text)
+	},
 	"ACTION": func(n *Nick) string {
-		return fmt.Sprintf("in %s, saying '%s %s'", n.Chan, n.Nick, n.Text)},
+		return fmt.Sprintf("in %s, saying '%s %s'", n.Chan, n.Nick, n.Text)
+	},
 	"JOIN": func(n *Nick) string {
-		return fmt.Sprintf("joining %s", n.Chan)},
+		return fmt.Sprintf("joining %s", n.Chan)
+	},
 	"PART": func(n *Nick) string {
-		return fmt.Sprintf("parting %s with the message '%s'", n.Chan, n.Text)},
+		return fmt.Sprintf("parting %s with the message '%s'", n.Chan, n.Text)
+	},
 	"KICKING": func(n *Nick) string {
 		return fmt.Sprintf("kicking %s from %s with the message '%s'",
-			n.OtherNick, n.Chan, n.Text)},
+			n.OtherNick, n.Chan, n.Text)
+	},
 	"KICKED": func(n *Nick) string {
 		return fmt.Sprintf("being kicked from %s by %s with the message '%s'",
-			n.Chan, n.OtherNick, n.Text)},
+			n.Chan, n.OtherNick, n.Text)
+	},
 	"QUIT": func(n *Nick) string {
-		return fmt.Sprintf("quitting with the message '%s'", n.Text)},
+		return fmt.Sprintf("quitting with the message '%s'", n.Text)
+	},
 	"NICK": func(n *Nick) string {
-		return fmt.Sprintf("changing their nick to '%s'", n.Text)},
+		return fmt.Sprintf("changing their nick to '%s'", n.Text)
+	},
 	"SMOKE": func(n *Nick) string { return "going for a smoke." },
 }
 
 func SawNick(nick base.Nick, ch base.Chan, act, txt string) *Nick {
 	return &Nick{
-		Nick:         nick,
-		Chan:         ch,
-		OtherNick:    "",
-		Timestamp:    time.Now(),
-		Key:          nick.Lower(),
-		Action:       act,
-		Text:         txt,
-		Lines:        0,
-//		Id:           bson.NewObjectId(),
+		Nick:      nick,
+		Chan:      ch,
+		OtherNick: "",
+		Timestamp: time.Now(),
+		Key:       nick.Lower(),
+		Action:    act,
+		Text:      txt,
+		Lines:     0,
+		//		Id:           bson.NewObjectId(),
 	}
 }
 
@@ -111,7 +119,7 @@ func Init() *Collection {
 func (sc *Collection) LastSeen(nick string) *Nick {
 	var res Nick
 	q := sc.Find(bson.M{
-		"key": strings.ToLower(nick),
+		"key":    strings.ToLower(nick),
 		"action": bson.M{"$ne": "LINES"},
 	}).Sort("-timestamp")
 	if err := q.One(&res); err == nil {
@@ -133,8 +141,8 @@ func (sc *Collection) LinesFor(nick, ch string) *Nick {
 	var res Nick
 	q := sc.Find(bson.M{
 		"action": "LINES",
-		"chan": ch,
-		"key": strings.ToLower(nick),
+		"chan":   ch,
+		"key":    strings.ToLower(nick),
 	})
 	if err := q.One(&res); err == nil {
 		return &res

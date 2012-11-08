@@ -78,7 +78,7 @@ func bot_help(line *base.Line) {
 	if cmd, _ := commands.Match(line.Args[1]); cmd != nil {
 		ReplyN(line, cmd.Help())
 	} else if len(line.Args[1]) == 0 {
-		ReplyN(line, "https://github.com/fluffle/sp0rkle/wiki " +
+		ReplyN(line, "https://github.com/fluffle/sp0rkle/wiki "+
 			"-- pull requests welcome ;-)")
 	} else {
 		ReplyN(line, "Unrecognised command '%s'.", line.Args[1])

@@ -14,10 +14,10 @@ import (
 const COLLECTION string = "quotes"
 
 type Quote struct {
-	Quote string
-	QID   int
-	Nick  base.Nick
-	Chan  base.Chan
+	Quote     string
+	QID       int
+	Nick      base.Nick
+	Chan      base.Chan
 	Accessed  int
 	Timestamp time.Time
 	Id        bson.ObjectId `bson:"_id,omitempty"`

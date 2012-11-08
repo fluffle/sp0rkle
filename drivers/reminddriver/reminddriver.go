@@ -12,10 +12,10 @@ import (
 var rc *reminders.Collection
 
 // We need to be able to kill reminder goroutines
-var running = map[bson.ObjectId]chan bool {}
+var running = map[bson.ObjectId]chan bool{}
 
 // And it's useful to index them for deletion per-person
-var listed = map[string][]bson.ObjectId {}
+var listed = map[string][]bson.ObjectId{}
 
 func Init() {
 	rc = reminders.Init()
@@ -24,13 +24,13 @@ func Init() {
 	bot.HandleFunc(load, "connected")
 	bot.HandleFunc(tellCheck, "privmsg", "action", "join", "nick")
 
-	bot.CommandFunc(tell, "tell", "tell <nick> <msg>  -- " +
+	bot.CommandFunc(tell, "tell", "tell <nick> <msg>  -- "+
 		"Stores a message for the (absent) nick.")
 	bot.CommandFunc(list, "remind list",
 		"remind list  -- Lists reminders set by or for your nick.")
 	bot.CommandFunc(del, "remind del",
 		"remind del <N>  -- Deletes (previously listed) reminder N.")
-	bot.CommandFunc(set, "remind", "remind <nick> <msg> " +
+	bot.CommandFunc(set, "remind", "remind <nick> <msg> "+
 		"in|at|on <time>  -- Reminds nick about msg at time.")
 }
 

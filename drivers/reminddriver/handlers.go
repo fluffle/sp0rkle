@@ -27,7 +27,7 @@ func tellCheck(line *base.Line) {
 	r := rc.TellsFor(nick)
 	for i := range r {
 		if line.Cmd == "NICK" {
-			bot.Privmsg(string(r[i].Chan), nick + ": " + r[i].Reply())
+			bot.Privmsg(string(r[i].Chan), nick+": "+r[i].Reply())
 			bot.Reply(line, r[i].Reply())
 		} else {
 			bot.Privmsg(line.Nick, r[i].Reply())
