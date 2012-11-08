@@ -78,9 +78,9 @@ func lookup(line *base.Line) {
 
 		switch fact.Type {
 		case factoids.F_ACTION:
-			bot.Do(line, fact.Value)
+			bot.Do(line, "%s", fact.Value)
 		default:
-			bot.Reply(line, fact.Value)
+			bot.Reply(line, "%s", fact.Value)
 		}
 	}
 }
