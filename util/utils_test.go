@@ -175,8 +175,34 @@ func TestApplyPluginFunction(t *testing.T) {
 	for i, test := range tests {
 		o := ApplyPluginFunction(test.val, test.pl, f)
 		if o != test.out {
-			t.Errorf("ApplyPluginFunction test %d\nExpected: %s\nGot: %s\n",
-				i, test.out, o)
+			t.Errorf("ApplyPluginFunction test %d: %s\nExpected: %s\nGot: %s\n",
+				i, test.val, test.out, o)
+		}
+	}
+}
+
+func TestFactPointer(t *testing.T) {
+	tests := []struct{
+		val, key string
+		start, end int
+	} {
+		{"", "", -1, -1},
+		{"*", "", -1, -1},
+		{"*a", "a", 0, 2},
+		{"something * something", "", 10, 11},
+		{"something *a something", "a", 10, 12},
+		{"something *foobar something", "foobar", 10, 17},
+		{"sth *{a} sthelse", "a", 4, 8},
+		{"foo *{a b} bar", "a b", 4, 10},
+		{"foo *{    a    } bar", "a", 4, 16},
+		{"foo *{         } bar", "", 4, 16},
+		{"foo *{} bar", "", 4, 7},
+	}
+	for i, test := range tests {
+		k, s, e := FactPointer(test.val)
+		if k != test.key || s != test.start || e != test.end {
+			t.Errorf("FactPointer test %d: %s\nExpected: %s (%d,%d)\nGot: %s (%d,%d)\n",
+				i, test.val, test.key, test.start, test.end, k, s, e)
 		}
 	}
 }

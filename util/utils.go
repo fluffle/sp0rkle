@@ -122,21 +122,6 @@ func ContainsAny(s string, indexes []string) bool {
 	return _any(strings.Contains, strings.ToLower(s), indexes)
 }
 
-// Strips off the first found prefix from the string pointer,
-// returning true if found, false (with no stripping) otherwise.
-// NOTE: Does prefix comparisons against strings.ToLower(*s)!
-func StripAnyPrefix(s *string, prefixes []string) bool {
-	// Can't use _any as we're playing with pointers.
-	l := strings.ToLower(*s)
-	for _, p := range prefixes {
-		if strings.HasPrefix(l, p) {
-			*s = (*s)[len(p):]
-			return true
-		}
-	}
-	return false
-}
-
 // Does this string look like a URL to you?
 // This should be fairly conservative, I hope:
 //   s starts with http:// or https:// and contains no spaces
@@ -168,6 +153,27 @@ func ApplyPluginFunction(val, plugin string, f func(string) string) string {
 		val = val[:ps] + f(val[mid:pe]) + val[pe+1:]
 	}
 	return val
+}
+
+func FactPointer(val string) (key string, start, end int) {
+	// A pointer looks like *key or *{key with optional spaces}
+	if start = strings.Index(val, "*"); start == -1 || start + 1 == len(val) {
+		return "", -1, -1
+	}
+	if val[start+1] == '{' {
+		end = strings.Index(val[start:], "}") + start + 1
+	} else if end = strings.Index(val[start:], " "); end == -1 {
+		end = len(val)
+	} else {
+		end += start
+	}
+	key = val[start+1:end]
+	if val[start+1] == '{' {
+		// TrimSpace since it's not possible to have a fact key that
+		// starts/ends with a space, but someone *could* write *{ foo }
+		key = strings.TrimSpace(val[start+2:end-1])
+	}
+	return
 }
 
 func JoinPath(items ...string) string {
