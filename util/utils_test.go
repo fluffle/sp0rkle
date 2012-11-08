@@ -145,3 +145,38 @@ func TestRemovePrefixes(t *testing.T) {
 		}
 	}
 }
+
+func TestApplyPluginFunction(t *testing.T) {
+	f := func(s string) string {
+		return "[" + s + "]"
+	}
+	tests := []struct {
+		val string
+		pl  string
+		out string
+	}{
+		{"", "", ""},
+		{"no plugin", "", "no plugin"},
+		{"no plugin", "foo", "no plugin"},
+		{"no plugin", "plugin", "no plugin"},
+		{"foo <plugin=foo> bar", "", "foo [foo] bar"},
+		{"foo <plugin=foo> bar", "foo", "foo [] bar"},
+		{"foo <plugin=     foo> bar", "", "foo [foo] bar"},
+		{"foo <plugin=     foo> bar", "foo", "foo <plugin=     foo> bar"},
+		{"foo <plugin=foo> bar", "bar", "foo <plugin=foo> bar"},
+		{"foo <plugin=foo bar> bar", "", "foo [foo bar] bar"},
+		{"foo <plugin=foo bar> bar", "foo", "foo [bar] bar"},
+		{"foo <plugin=foo bar> bar", "bar", "foo <plugin=foo bar> bar"},
+		{"foo <plugin=foo     bar> bar", "", "foo [foo     bar] bar"},
+		{"foo <plugin=foo     bar> bar", "foo", "foo [bar] bar"},
+		{"foo <plugin=foo bar", "", "foo <plugin=foo bar"},
+		{"foo <plugin=foo bar", "foo", "foo <plugin=foo bar"},
+	}
+	for i, test := range tests {
+		o := ApplyPluginFunction(test.val, test.pl, f)
+		if o != test.out {
+			t.Errorf("ApplyPluginFunction test %d\nExpected: %s\nGot: %s\n",
+				i, test.out, o)
+		}
+	}
+}
