@@ -37,7 +37,7 @@ func recordLines(line *base.Line) {
 	sn.Lines++
 	for _, n := range milestones {
 		if sn.Lines == n {
-			bot.Reply(line, "%s has said %d lines in this channel and" +
+			bot.Reply(line, "%s has said %d lines in this channel and " +
 				"should now shut the fuck up and do something useful",
 				line.Nick, sn.Lines)
 		}
