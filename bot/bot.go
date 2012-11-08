@@ -45,6 +45,7 @@ func Init() {
 	// Configure IRC client
 	irc = client.SimpleClient(*nick, "boing", "not really sp0rkle")
 	irc.SSL = *ssl
+	irc.Flood = true
 
 	HandleFunc(bot_connected, "connected")
 	HandleFunc(bot_disconnected, "disconnected")
@@ -170,10 +171,6 @@ func Privmsg(ch, text string) {
 
 func Action(ch, text string) {
 	irc.Action(ch, text)
-}
-
-func Flood(f bool) {
-	irc.Flood = f
 }
 
 func Nick() string {

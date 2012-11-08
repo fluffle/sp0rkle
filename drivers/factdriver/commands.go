@@ -135,9 +135,6 @@ func literal(line *base.Line) {
 		return
 	}
 
-	// Temporarily turn off flood protection cos we could be spamming a bit.
-	bot.Flood(true)
-	defer bot.Flood(false)
 	// Passing an anonymous function to For makes it a little hard to abstract
 	// away in lib/factoids. Fortunately this is something of a one-off.
 	var fact *factoids.Factoid
