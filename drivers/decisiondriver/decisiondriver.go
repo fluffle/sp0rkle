@@ -113,7 +113,7 @@ func quoteSplit(val string) []string {
 			// Consume the opening quote
 			sep := l.Next()
 			// Scan the string until the closing quote
-			ret = append(ret, l.Scan(not(c)))
+			ret = append(ret, l.Find(c))
 			// Advance over closing quote and test for mismatched quotes
 			if l.Next() != sep {
 				// If we don't find the closing quote, something is broken
@@ -125,16 +125,9 @@ func quoteSplit(val string) []string {
 			// It's not a quote or a space, so scan until the next space char.
 			// Hopefully on IRC the mismatch between unicode.IsSpace and ' '
 			// won't be *too* apparent...
-			ret = append(ret, l.Scan(not(' ')))
+			ret = append(ret, l.Find(' '))
 		}
 	}
 	// Shouldn't ever be reached, but required for the go compiler
 	return ret
-}
-
-func not(n rune) func(rune) bool {
-	return func(r rune) bool {
-		if r != n { return true }
-		return false
-	}
 }

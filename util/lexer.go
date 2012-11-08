@@ -48,7 +48,6 @@ func (l *Lexer) Next() string {
 // scan() returns the sequence of runes in the input string anchored
 // at lexer.pos that the supplied function returns true for. Usefully,
 // unicode.IsDigit et al. fit the required function signature ;-)
-// NOTE: if you are providing your own function, MAKE SURE IT HANDLES EOF
 func (l *Lexer) Scan(f func(rune) bool) string {
 	l.start = l.pos
 	for f(l.Peek()) {
@@ -56,6 +55,15 @@ func (l *Lexer) Scan(f func(rune) bool) string {
 		l.pos += l.width
 	}
 	return l.Input[l.start:l.pos]
+}
+
+// Find scans through the string until it finds the next occurrence of r
+// (or EOF) and returns the string between lexer.pos and that character.
+func (l *Lexer) Find(r rune) string {
+	return l.Scan(func(n rune) bool {
+		if r != n { return true }
+		return false
+	})
 }
 
 // rewind() undoes the last next() or scan() by resetting lexer.pos.

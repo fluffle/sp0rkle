@@ -1,7 +1,6 @@
 package decisiondriver
 
 import (
-	"github.com/fluffle/sp0rkle/util"
 	"reflect"
 	"testing"
 )
