@@ -75,12 +75,45 @@ func lookup(line *base.Line) {
 			bot.ReplyN(line, "I failed to update '%s' (%s): %s ",
 				fact.Key, fact.Id, err)
 		}
-
+		keys := map[string]bool{key: true}
+		val := recurse(fact.Value, keys)
 		switch fact.Type {
 		case factoids.F_ACTION:
-			bot.Do(line, "%s", fact.Value)
+			bot.Do(line, "%s", val)
 		default:
-			bot.Reply(line, "%s", fact.Value)
+			bot.Reply(line, "%s", val)
 		}
 	}
+}
+
+// Recursively resolve pointers to other factoids
+func recurse(val string, keys map[string]bool) string {
+	// A pointer looks like *key or *{key with optional spaces}
+	start := strings.Index(val, "*")
+	if start == -1 {
+		return val
+	}
+	end := strings.Index(val[start:], " ") + start
+	if val[start+1] == '{' {
+		end = strings.Index(val[start:], "}") + start + 1
+	}
+	if end <= start {
+		return val
+	}
+	key := val[start+1:end]
+	if val[end] == '}' {
+		key = val[start+2:end-1]
+	}
+	if _, ok := keys[key]; ok {
+		val = val[:start] + "[circular reference]" + val[end:]
+		return val
+	}
+	keys[key] = true
+	if fact := fc.GetPseudoRand(key); fact != nil {
+		val = val[:start] + fact.Value + val[end:]
+		return recurse(val, keys)
+	}
+	// strip * from pointer to avoid infinite recursion
+	val = val[:start] + val[start+1:]
+	return recurse(val, keys)
 }
