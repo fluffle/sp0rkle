@@ -8,6 +8,7 @@ import (
 	"regexp"
 	"strings"
 	"time"
+	"unicode"
 )
 
 func RemovePrefixedNick(text, nick string) (string, bool) {
@@ -157,26 +158,26 @@ func ApplyPluginFunction(val, plugin string, f func(string) string) string {
 
 func FactPointer(val string) (key string, start, end int) {
 	// A pointer looks like *key or *{key with optional spaces}
+	// In the former case key must only be letters
 	if start = strings.Index(val, "*"); start == -1 || start + 1 == len(val) {
 		return "", -1, -1
 	}
 	if val[start+1] == '{' {
 		end = strings.Index(val[start:], "}") + start + 1
-	} else if end = strings.Index(val[start:], " "); end == -1 {
-		end = len(val)
-	} else {
-		end += start
-	}
-	// Special case handling because *pointer might be *emphasis*
-	// perlfu's designer has a lot to answer for :-/
-	if val[end-1] == '*' {
-		return "", -1, -1
-	}
-	key = val[start+1:end]
-	if val[start+1] == '{' {
 		// TrimSpace since it's not possible to have a fact key that
 		// starts/ends with a space, but someone *could* write *{ foo }
 		key = strings.TrimSpace(val[start+2:end-1])
+	} else {
+		// util.Lexer helps find the next char that isn't alphabetical
+		l := &Lexer{Input: val}
+		l.Pos(start+1)
+		key = l.Scan(unicode.IsLetter)
+		end = l.Pos()
+		// Special case handling because *pointer might be *emphasis*
+		// perlfu's designer has a lot to answer for :-/
+		if l.Peek() == '*' {
+			return "", -1, -1
+		}
 	}
 	return
 }

@@ -189,7 +189,7 @@ func TestFactPointer(t *testing.T) {
 		{"", "", -1, -1},
 		{"*", "", -1, -1},
 		{"*a", "a", 0, 2},
-		{"something * something", "", -1, -1},
+		{"something * something", "", 10, 11},
 		{"something *a something", "a", 10, 12},
 		{"something *foobar something", "foobar", 10, 17},
 		{"sth *{a} sthelse", "a", 4, 8},
@@ -198,6 +198,8 @@ func TestFactPointer(t *testing.T) {
 		{"foo *{         } bar", "", 4, 16},
 		{"foo *{} bar", "", 4, 7},
 		{"but i *just* want to *emphasise* things", "", -1, -1},
+		{"and this should *work*.", "", -1, -1},
+		{"as should *this.", "this", 10, 15},
 	}
 	for i, test := range tests {
 		k, s, e := FactPointer(test.val)
