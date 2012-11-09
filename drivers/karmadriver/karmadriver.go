@@ -40,6 +40,10 @@ func karmaThings(s string) []kt {
 		}
 		end += index
 		index = end + 2
+		if end == 0 {
+			// String begins with ++ or --, ignore it
+			continue
+		}
 		start = strings.LastIndex(s[:end], " ") + 1
 		if s[end-1] == ')' {
 			end--
@@ -48,6 +52,10 @@ func karmaThings(s string) []kt {
 				// Missing opening bracket for )++
 				continue
 			}
+		}
+		if start == end {
+			// Either ' --' or '()++'
+			continue
 		}
 		ret = append(ret, kt{s[start:end], plus})
 	}

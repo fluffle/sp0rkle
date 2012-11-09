@@ -18,6 +18,9 @@ func TestKarmaThings(t *testing.T) {
 		{" (a b c)-- d++ ", []kt{{"a b c", false}, {"d", true}}},
 		{"(a b c)++", []kt{{"a b c", true}}},
 		{"a b c)++", []kt{}},
+		{"++", []kt{}},
+		{"foo -- bar", []kt{}},
+		{"foo ()-- bar", []kt{}},
 	}
 	for i, test := range tests {
 		o := karmaThings(test.in)
