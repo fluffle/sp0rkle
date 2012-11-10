@@ -5,9 +5,9 @@ Getting started, from scratch:
 sudo apt-get install build-essential bison mongodb libsqlite3-dev
 sudo apt-get install mercurial git bzr
 
-Ensure you have mongodb 1.8.2 or higher
+Ensure you have mongodb 2.x or higher
 mongod --version
-db version v1.8.2, pdfile version 4.5
+db version v2.2.1, pdfile version 4.5
 
 If not the following page may help
 http://www.mongodb.org/display/DOCS/Ubuntu+and+Debian+packages

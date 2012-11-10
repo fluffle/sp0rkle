@@ -31,6 +31,8 @@ func Init() *mgo.Database {
 		logging.Fatal("Unable to connect to MongoDB: %s", err)
 	}
 	session, db = s, s.DB(DATABASE)
+	// Let's be explicit about requiring journaling, ehh?
+	session.EnsureSafe(&mgo.Safe{J: true, WMode: "majority"})
 	return db
 }
 
