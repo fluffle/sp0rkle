@@ -32,7 +32,7 @@ func Init() *mgo.Database {
 	}
 	session, db = s, s.DB(DATABASE)
 	// Let's be explicit about requiring journaling, ehh?
-	session.EnsureSafe(&mgo.Safe{J: true, WMode: "majority"})
+	session.EnsureSafe(&mgo.Safe{J: true})
 	return db
 }
 
