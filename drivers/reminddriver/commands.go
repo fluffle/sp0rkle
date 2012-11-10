@@ -108,7 +108,7 @@ func set(line *base.Line) {
 	}
 	// Any previously-generated list of reminders is now obsolete.
 	delete(listed, line.Nick)
-	bot.ReplyN(line, r.Acknowledge())
+	bot.ReplyN(line, "%s", r.Acknowledge())
 	Remind(r)
 }
 
@@ -135,5 +135,5 @@ func tell(line *base.Line) {
 	}
 	// Any previously-generated list of reminders is now obsolete.
 	delete(listed, line.Nick)
-	bot.ReplyN(line, r.Acknowledge())
+	bot.ReplyN(line, "%s", r.Acknowledge())
 }

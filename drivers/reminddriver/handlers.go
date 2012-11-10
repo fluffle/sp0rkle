@@ -28,10 +28,10 @@ func tellCheck(line *base.Line) {
 	for i := range r {
 		if line.Cmd == "NICK" {
 			bot.Privmsg(string(r[i].Chan), nick+": "+r[i].Reply())
-			bot.Reply(line, r[i].Reply())
+			bot.Reply(line, "%s", r[i].Reply())
 		} else {
 			bot.Privmsg(line.Nick, r[i].Reply())
-			bot.ReplyN(line, r[i].Reply())
+			bot.ReplyN(line, "%s", r[i].Reply())
 		}
 		rc.RemoveId(r[i].Id)
 	}

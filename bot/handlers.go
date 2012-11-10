@@ -76,7 +76,7 @@ func check_rebuilder(cmd string, line *base.Line) bool {
 
 func bot_help(line *base.Line) {
 	if cmd, _ := commands.Match(line.Args[1]); cmd != nil {
-		ReplyN(line, cmd.Help())
+		ReplyN(line, "%s", cmd.Help())
 	} else if len(line.Args[1]) == 0 {
 		ReplyN(line, "https://github.com/fluffle/sp0rkle/wiki "+
 			"-- pull requests welcome ;-)")

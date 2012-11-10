@@ -24,10 +24,10 @@ func netmask(line *base.Line) {
 	s := strings.Split(line.Args[1], " ")
 	if strings.Index(s[1], "/") != -1 {
 		// Assume we have netmask ip/cidr
-		bot.ReplyN(line, parseCIDR(s[0]))
+		bot.ReplyN(line, "%s", parseCIDR(s[0]))
 	} else if len(s) == 2 {
 		// Assume we have netmask ip nm
-		bot.ReplyN(line, parseMask(s[0], s[1]))
+		bot.ReplyN(line, "%s", parseMask(s[0], s[1]))
 	} else {
 		bot.ReplyN(line, "bad netmask args: %s", line.Args[1])
 	}

@@ -10,7 +10,7 @@ import (
 func decideCmd(line *base.Line) {
 	opts := splitDelimitedString(line.Args[1])
 	chosen := strings.TrimSpace(opts[util.RNG.Intn(len(opts))])
-	bot.ReplyN(line, chosen)
+	bot.ReplyN(line, "%s", chosen)
 }
 
 func randCmd(line *base.Line) {

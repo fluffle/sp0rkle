@@ -11,7 +11,7 @@ import (
 
 func find(line *base.Line) {
 	if u := uc.GetRand(line.Args[1]); u != nil {
-		bot.ReplyN(line, u.String())
+		bot.ReplyN(line, "%s", u)
 	}
 }
 
