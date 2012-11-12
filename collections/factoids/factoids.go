@@ -188,7 +188,7 @@ func (fc *Collection) GetLast(op, key string) *Factoid {
 	var res Factoid
 	// op == "modified", "accessed", "created"
 	op = op + ".timestamp"
-	q := fc.Find(lookup(key)).Sort("-op")
+	q := fc.Find(lookup(key)).Sort("op")
 	if err := q.One(&res); err == nil {
 		return &res
 	}
