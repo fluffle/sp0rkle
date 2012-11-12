@@ -30,9 +30,16 @@ func insert(line *base.Line) {
 	}
 	n, c := line.Storable()
 	fact := factoids.NewFactoid(key, val, n, c)
+
+	// The "randomwoot" factoid contains random positive phrases for success.
+	joy := "Woo"
+	if rand := fc.GetPseudoRand("randomwoot"); rand != nil {
+		joy = rand.Value
+	}
+
 	if err := fc.Insert(fact); err == nil {
 		count := fc.GetCount(key)
-		bot.ReplyN(line, "Woo, I now know %d things about '%s'.", count, key)
+		bot.ReplyN(line, "%s, I now know %d things about '%s'.", joy, count, key)
 	} else {
 		bot.ReplyN(line, "Error storing factoid: %s.", err)
 	}
