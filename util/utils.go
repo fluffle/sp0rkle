@@ -101,26 +101,15 @@ func RemovePrefixes(s string) string {
 	return s
 }
 
-// Apply a set of strings tests to a source string s
-func _any(f func(string, string) bool, s string, l []string) bool {
-	for _, i := range l {
-		if f(s, i) {
+// Is this string adding a factoid?
+func IsFactoidAddition(s string) bool {
+	s = strings.ToLower(s)
+	for _, i := range []string{":is", ":="} {
+		if strings.Contains(s, i) {
 			return true
 		}
 	}
 	return false
-}
-
-// Returns true if string begins with any of prefixes.
-// NOTE: Does prefix comparisons against strings.ToLower(*s)!
-func HasAnyPrefix(s string, prefixes []string) bool {
-	return _any(strings.HasPrefix, strings.ToLower(s), prefixes)
-}
-
-// Returns true if string contains any of indexes.
-// NOTE: Does index searches against strings.ToLower(*s)!
-func ContainsAny(s string, indexes []string) bool {
-	return _any(strings.Contains, strings.ToLower(s), indexes)
 }
 
 // Does this string look like a URL to you?

@@ -12,8 +12,7 @@ import (
 
 // Factoid add: 'key := value' or 'key :is value'
 func insert(line *base.Line) {
-	if !line.Addressed ||
-		!util.ContainsAny(line.Args[1], []string{":=", ":is"}) {
+	if !line.Addressed || !util.IsFactoidAddition(line.Args[1]) {
 		return
 	}
 

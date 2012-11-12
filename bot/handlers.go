@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/fluffle/golog/logging"
 	"github.com/fluffle/sp0rkle/base"
+	"github.com/fluffle/sp0rkle/util"
 	"os/exec"
 	"strings"
 )
@@ -30,6 +31,11 @@ func bot_disconnected(line *base.Line) {
 }
 
 func bot_command(l *base.Line) {
+	// This is a dirty hack to treat factoid additions as a special
+	// case, since they may begin with command string prefixes.
+	if util.IsFactoidAddition(l.Args[1]) {
+		return
+	}
 	if cmd, ln := commands.Match(l.Args[1]); l.Addressed && cmd != nil {
 		// Cut command off, trim and compress spaces.
 		l.Args[1] = strings.Join(strings.Fields(l.Args[1][ln:]), " ")
