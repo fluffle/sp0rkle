@@ -121,10 +121,15 @@ func (fc *Collection) GetById(id bson.ObjectId) *Factoid {
 	return nil
 }
 
-func (fc *Collection) GetFirst(key string) *Factoid {
-	var res Factoid
-	if err := fc.Find(lookup(key)).One(&res); err == nil {
-		return &res
+func (fc *Collection) GetAll(key string) []*Factoid {
+	// Insisting GetAll isn't used to get every key is probably a good idea
+	if key == "" {
+		return nil
+	}
+	res := make([]*Factoid, 0, 10)
+	if err := fc.Find(lookup(key)).All(&res); err == nil {
+		logging.Info("res = %#v", res)
+		return res
 	}
 	return nil
 }

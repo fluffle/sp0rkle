@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"github.com/fluffle/sp0rkle/base"
 	"github.com/fluffle/sp0rkle/bot"
-	"github.com/fluffle/sp0rkle/collections/factoids"
 	"labix.org/v2/mgo/bson"
 	"strconv"
 	"strings"
@@ -135,18 +134,15 @@ func literal(line *base.Line) {
 		return
 	}
 
-	// Passing an anonymous function to For makes it a little hard to abstract
-	// away in lib/factoids. Fortunately this is something of a one-off.
-	var fact *factoids.Factoid
-	f := func() error {
-		if fact != nil {
-			bot.ReplyN(line, "[%3.0f%%] %s", fact.Chance*100, fact.Value)
+	if facts := fc.GetAll(key); facts != nil {
+		for _, fact := range facts {
+			// Use Privmsg directly here so that the results aren't output
+			// via the plugin system and contain the literal data.
+			bot.Privmsg(line.Args[0], fmt.Sprintf(
+				"[%3.0f%%] %s", fact.Chance*100, fact.Value))
 		}
-		return nil
-	}
-	// TODO(fluffle): For() is deprecated nao. FixitFixitFixit.
-	if err := fc.Find(bson.M{"key": key}).For(&fact, f); err != nil {
-		bot.ReplyN(line, "Something literally went wrong: %s", err)
+	} else {
+		bot.ReplyN(line, "Something literally went wrong :-(")
 	}
 }
 
