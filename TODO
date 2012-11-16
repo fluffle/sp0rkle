@@ -26,8 +26,9 @@ Drivers
 *Remind
   // Remind me, (or someone) about something at a certain point in the future
   // Still TODO:
-  repeating reminders -- daily, weekly, monthly. no shorter than hourly ;-)
-  ping me when x next says something
+  - repeating reminders -- daily, weekly, monthly. no shorter than hourly ;-)
+  - split tell stuff out to a notify driver
+  - add "ping me when x next says something" to notify driver
 
 *calc
   // Make the calc driver do date / timezone maths.
@@ -58,6 +59,7 @@ Drivers
     + need some mechanism for giving/taking ownership (someone needs "root")
   - The ability to apply commands to something other than the last factoid seen
     via "literal" to list then s/that/N/ in command to apply.
+  - The above but operating on all factoids associated with a key.
   - Something that utilises the access count to help prune unseen factoids
   - Regex factoid value editing: edit that =~ s/// => applies regex to factoid
   - More unit tests
