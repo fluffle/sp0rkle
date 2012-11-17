@@ -22,8 +22,6 @@ type Nick struct {
 	Key       string
 	Action    string
 	Text      string
-	Lines     int
-	//	Id        bson.ObjectId `bson:"_id,omitempty"`
 }
 
 type seenMsg func(*Nick) string
@@ -67,8 +65,6 @@ func SawNick(nick base.Nick, ch base.Chan, act, txt string) *Nick {
 		Key:       nick.Lower(),
 		Action:    act,
 		Text:      txt,
-		Lines:     0,
-		//		Id:           bson.NewObjectId(),
 	}
 }
 
@@ -85,10 +81,6 @@ func (n *Nick) String() string {
 }
 
 func (n *Nick) Id() bson.M {
-	if n.Action == "LINES" {
-		// LINES data should be upserted based on the channel as well.
-		return bson.M{"action": "LINES", "chan": n.Chan, "key": n.Key}
-	}
 	return bson.M{"key": n.Key, "action": n.Action}
 }
 
@@ -98,19 +90,14 @@ type Collection struct {
 }
 
 func Init() *Collection {
-	sc := &Collection{
-		Collection: db.Init().C(COLLECTION),
-	}
+	sc := &Collection{db.Init().C(COLLECTION)}
 	indexes := [][]string{
 		{"key", "action"},         // For searching ...
 		{"timestamp"},             // ... and ordering seen entries.
-		{"action", "chan", "key"}, // For searching ...
-		{"lines"},                 // ... and ordering lines.
 	}
 	for _, key := range indexes {
-		err := sc.EnsureIndex(mgo.Index{Key: key})
-		if err != nil {
-			logging.Error("Couldn't create index on sp0rkle.seen: %v", err)
+		if err := sc.EnsureIndex(mgo.Index{Key: key}); err != nil {
+			logging.Error("Couldn't create %v index on sp0rkle.seen: %v", key, err)
 		}
 	}
 	return sc
@@ -118,10 +105,7 @@ func Init() *Collection {
 
 func (sc *Collection) LastSeen(nick string) *Nick {
 	var res Nick
-	q := sc.Find(bson.M{
-		"key":    strings.ToLower(nick),
-		"action": bson.M{"$ne": "LINES"},
-	}).Sort("-timestamp")
+	q := sc.Find(bson.M{"key": strings.ToLower(nick)}).Sort("-timestamp")
 	if err := q.One(&res); err == nil {
 		return &res
 	}
@@ -135,28 +119,6 @@ func (sc *Collection) LastSeenDoing(nick, act string) *Nick {
 		return &res
 	}
 	return nil
-}
-
-func (sc *Collection) LinesFor(nick, ch string) *Nick {
-	var res Nick
-	q := sc.Find(bson.M{
-		"action": "LINES",
-		"chan":   ch,
-		"key":    strings.ToLower(nick),
-	})
-	if err := q.One(&res); err == nil {
-		return &res
-	}
-	return nil
-}
-
-func (sc *Collection) TopTen(ch string) []Nick {
-	var res []Nick
-	q := sc.Find(bson.M{"action": "LINES", "chan": ch}).Sort("-lines").Limit(10)
-	if err := q.All(&res); err != nil {
-		logging.Warn("TopTen Find error: %v", err)
-	}
-	return res
 }
 
 func (sc *Collection) SeenAnyMatching(rx string) []string {

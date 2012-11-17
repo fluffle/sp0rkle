@@ -1,7 +1,6 @@
 package seendriver
 
 import (
-	"fmt"
 	"github.com/fluffle/golog/logging"
 	"github.com/fluffle/sp0rkle/base"
 	"github.com/fluffle/sp0rkle/bot"
@@ -47,25 +46,4 @@ func seenCmd(line *base.Line) {
 	}
 	// Ok, probably a genuine query.
 	bot.ReplyN(line, "Haven't seen %s before, sorry.", line.Args[1])
-}
-
-func lines(line *base.Line) {
-	n := line.Nick
-	if len(line.Args[1]) > 0 {
-		n = line.Args[1]
-	}
-	sn := sc.LinesFor(n, line.Args[0])
-	if sn != nil {
-		bot.ReplyN(line, "%s has said %d lines in this channel",
-			sn.Nick, sn.Lines)
-	}
-}
-
-func topten(line *base.Line) {
-	top := sc.TopTen(line.Args[0])
-	s := make([]string, 0, 10)
-	for i, n := range top {
-		s = append(s, fmt.Sprintf("#%d: %s - %d", i+1, n.Nick, n.Lines))
-	}
-	bot.Reply(line, "%s", strings.Join(s, ", "))
 }

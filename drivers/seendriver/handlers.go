@@ -28,25 +28,6 @@ func smoke(line *base.Line) {
 	}
 }
 
-func recordLines(line *base.Line) {
-	sn := sc.LinesFor(line.Nick, line.Args[0])
-	if sn == nil {
-		n, c := line.Storable()
-		sn = seen.SawNick(n, c, "LINES", "")
-	}
-	sn.Lines++
-	for _, n := range milestones {
-		if sn.Lines == n {
-			bot.Reply(line, "%s has said %d lines in this channel and "+
-				"should now shut the fuck up and do something useful",
-				line.Nick, sn.Lines)
-		}
-	}
-	if _, err := sc.Upsert(sn.Id(), sn); err != nil {
-		bot.Reply(line, "Failed to store seen data: %v", err)
-	}
-}
-
 func recordPrivmsg(line *base.Line) {
 	sn := seenNickFromLine(line)
 	sn.Text = line.Args[1]

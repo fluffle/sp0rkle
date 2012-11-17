@@ -43,7 +43,6 @@ func Init() {
 	sc = seen.Init()
 
 	bot.HandleFunc(smoke, "privmsg", "action")
-	bot.HandleFunc(recordLines, "privmsg", "action")
 	bot.HandleFunc(recordPrivmsg, "privmsg", "action")
 	bot.HandleFunc(recordJoin, "join", "part")
 	bot.HandleFunc(recordNick, "nick", "quit")
@@ -51,12 +50,6 @@ func Init() {
 
 	bot.CommandFunc(seenCmd, "seen", "seen <nick> [action]  -- "+
 		"display the last time <nick> was seen on IRC [doing action]")
-	bot.CommandFunc(lines, "lines", "lines [nick]  -- "+
-		"display how many lines you [or nick] has said in the channel")
-	bot.CommandFunc(topten, "topten", "topten  -- "+
-		"display the nicks who have said the most in the channel")
-	bot.CommandFunc(topten, "top10", "top10  -- "+
-		"display the nicks who have said the most in the channel")
 }
 
 // Look up or create a "seen" entry for the line.

@@ -16,6 +16,7 @@ import (
 	"github.com/fluffle/sp0rkle/drivers/quotedriver"
 	"github.com/fluffle/sp0rkle/drivers/reminddriver"
 	"github.com/fluffle/sp0rkle/drivers/seendriver"
+	"github.com/fluffle/sp0rkle/drivers/statsdriver"
 	"github.com/fluffle/sp0rkle/drivers/urldriver"
 	"net/http"
 	"os"
@@ -46,6 +47,7 @@ func main() {
 	quotedriver.Init()
 	reminddriver.Init()
 	seendriver.Init()
+	statsdriver.Init()
 	urldriver.Init()
 
 	// Start up the HTTP server
