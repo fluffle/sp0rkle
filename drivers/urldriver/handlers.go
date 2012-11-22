@@ -14,7 +14,7 @@ func urlScan(line *base.Line) {
 	for _, w := range words {
 		if util.LooksURLish(w) {
 			if u := uc.GetByUrl(w); u != nil {
-				bot.Reply(line, "%s's URL first mentioned by %s at %s",
+				bot.Reply(line, "%s's URL first mentioned by %s %s ago",
 					line.Nick, u.Nick, util.TimeSince(u.Timestamp))
 				continue
 			}
