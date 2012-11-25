@@ -67,6 +67,8 @@ ampm:
 	    $$ = 12
 	};
 
+timesep: ':' | '.';
+
 sign:
 	T_PLUS | T_MINUS; 
 
@@ -132,10 +134,10 @@ time:
 	T_INTEGER ampm o_zone {
 		yylex.(*dateLexer).setTime($1.i + $2, 0, 0, $3)
 	}
-	| T_INTEGER ':' T_INTEGER ampm o_zone {
+	| T_INTEGER timesep T_INTEGER ampm o_zone {
 		yylex.(*dateLexer).setTime($1.i + $4, $3.i, 0, $5)
 	}
-	| T_INTEGER ':' T_INTEGER ':' T_INTEGER ampm o_zone {
+	| T_INTEGER timesep T_INTEGER timesep T_INTEGER ampm o_zone {
 		yylex.(*dateLexer).setTime($1.i + $6, $3.i, $5.i, $7)
 	};
 
@@ -145,10 +147,10 @@ iso_8601_time:
 	T_INTEGER zone {
 		yylex.(*dateLexer).setHMS($1.i, $1.l, $2)
 	}
-	| T_INTEGER ':' T_INTEGER o_zone {
+	| T_INTEGER timesep T_INTEGER o_zone {
 		yylex.(*dateLexer).setTime($1.i, $3.i, 0, $4)
 	}
-	| T_INTEGER ':' T_INTEGER ':' T_INTEGER o_zone {
+	| T_INTEGER timesep T_INTEGER timesep T_INTEGER o_zone {
 		yylex.(*dateLexer).setTime($1.i, $3.i, $5.i, $6)
 	};
 
