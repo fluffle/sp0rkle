@@ -22,7 +22,7 @@ func seenCmd(line *base.Line) {
 		return
 	}
 	// No exact matches for nick found, look for possible partial matches.
-	if m := sc.SeenAnyMatching(s[1]); len(m) > 0 {
+	if m := sc.SeenAnyMatching(s[0]); len(m) > 0 {
 		if len(m) == 1 {
 			if n := sc.LastSeen(m[0]); n != nil {
 				bot.ReplyN(line, "1 possible match: %s", n)
