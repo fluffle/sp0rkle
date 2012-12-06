@@ -4,7 +4,9 @@ import (
 	"fmt"
 	"github.com/fluffle/sp0rkle/base"
 	"github.com/fluffle/sp0rkle/bot"
+	"github.com/fluffle/sp0rkle/util"
 	"labix.org/v2/mgo/bson"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -58,6 +60,67 @@ func chance(line *base.Line) {
 	} else {
 		bot.ReplyN(line, "Whatever that was, I've already forgotten it.")
 	}
+}
+
+// Pulls out regexp or replacement, allowing for escaped delimiters.
+func extractRx(l *util.Lexer, delim rune) string {
+	ret, i := "", 0
+	for {
+		chunk := l.Find(delim)
+		ret += chunk
+		for i = len(chunk)-1; i >= 0 && chunk[i] == '\\'; i-- { }
+		if len(chunk) == 0 || (len(chunk) - i - 1) % 2 == 0 {
+			// Even number of backslashes at end of string
+			// => delimiter isn't escaped.
+			break
+		}
+		if l.Peek() != 0 {
+			// If we're not at the end of the string,
+			// append delimiter and continue.
+			ret += l.Next()
+		}
+	}
+	return ret
+}
+
+// Factoid edit: that =~ s/<regex>/<replacement>/
+func edit(line *base.Line) {
+	// extract regexp and replacement
+	l := &util.Lexer{Input: line.Args[1]}
+	if l.Next() != "s" {
+		bot.ReplyN(line, "It's 'that =~ s/<regex>/<replacement>/', fool.")
+		return
+	}
+	delim := l.Peek()          // Identify delimiting character
+	l.Next()                   // Skip past that delimiter
+	re := extractRx(l, delim)  // Extract regex from string
+	l.Next()                   // Skip past next delimiter
+	rp := extractRx(l, delim)  // Extract replacement from string
+	if l.Next() != string(delim) || re == "" || rp == "" {
+		bot.ReplyN(line, "It's 'that =~ s/<regex>/<replacement>/', fool.")
+		return
+	}
+	rx, err := regexp.Compile(re)
+	if err != nil {
+		bot.ReplyN(line, "Couldn't compile regex '%s': %s", re, err)
+		return
+	}
+	// Retrieve last seen ObjectId, replace with ""
+	ls := LastSeen(line.Args[0], "")
+	fact := fc.GetById(ls)
+	if fact == nil {
+		bot.ReplyN(line, "I've forgotten what we were talking about, sorry!")
+		return
+	}
+	old := fact.Value
+	fact.Value = rx.ReplaceAllString(old, rp)
+	fact.Modify(line.Storable())
+	if err := fc.UpdateId(ls, fact); err == nil {
+		bot.ReplyN(line, "'%s' was '%s', is now '%s'.",
+			fact.Key, old, fact.Value)
+	} else {
+		bot.ReplyN(line, "I failed to replace '%s': %s", fact.Key, err)
+	}	
 }
 
 // Factoid delete: 'forget|delete that' => deletes lastSeen[chan]

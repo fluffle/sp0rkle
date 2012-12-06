@@ -3,6 +3,7 @@ package factdriver
 import (
 	"github.com/fluffle/goirc/client"
 	"github.com/fluffle/sp0rkle/base"
+	"github.com/fluffle/sp0rkle/util"
 	"testing"
 	"time"
 )
@@ -35,6 +36,33 @@ func TestIdentifiers(t *testing.T) {
 		ret := id_replacer(s, line, ts)
 		if ret != expected[i] {
 			t.Errorf("Expected: %s\nGot: %s\n", expected[i], ret)
+		}
+	}
+}
+
+func TestExtractRx(t *testing.T) {
+	tests := []struct{
+		in, out string
+	} {
+		{"", ""},
+		{"/foo", ""},
+		{"foo", "foo"},
+		{"foo/bar", "foo"},
+		{"foo\\/bar", "foo\\/bar"},
+		{"foo\\/bar/", "foo\\/bar"},
+		{"foo\\\\/bar", "foo\\\\"},
+		{"foo\\\\\\/bar", "foo\\\\\\/bar"},
+		{"foo\\", "foo\\"},
+		{"foo\\\\", "foo\\\\"},
+		{"\\/", "\\/"},
+		{"\\\\/", "\\\\"},
+		{"\\/foo", "\\/foo"},
+	}
+	for i, test := range tests {
+		l := &util.Lexer{Input: test.in}
+		if o := extractRx(l, '/'); o != test.out {
+			t.Errorf("extractRx(%d) '%s': exp '%s' got '%s'",
+				i, test.in, test.out, o)
 		}
 	}
 }

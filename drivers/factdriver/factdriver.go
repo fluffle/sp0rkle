@@ -26,6 +26,8 @@ func Init() {
 
 	bot.CommandFunc(chance, "chance of that is",
 		"chance  -- Sets trigger chance of the last displayed factoid value.")
+	bot.CommandFunc(edit, "that =~",
+		"=~ s/regex/replacement/ -- Edits the last factoid value using regex.")
 	bot.CommandFunc(forget, "delete that",
 		"delete  -- Forgets the last displayed factoid value.")
 	bot.CommandFunc(forget, "forget that",
