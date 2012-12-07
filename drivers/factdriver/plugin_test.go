@@ -55,7 +55,9 @@ func TestExtractRx(t *testing.T) {
 		{"foo\\", "foo\\"},
 		{"foo\\\\", "foo\\\\"},
 		{"\\/", "\\/"},
+		{"\\//", "\\/"},
 		{"\\\\/", "\\\\"},
+		{"\\\\//", "\\\\"},
 		{"\\/foo", "\\/foo"},
 	}
 	for i, test := range tests {

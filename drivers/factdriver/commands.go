@@ -66,19 +66,14 @@ func chance(line *base.Line) {
 func extractRx(l *util.Lexer, delim rune) string {
 	ret, i := "", 0
 	for {
-		chunk := l.Find(delim)
-		ret += chunk
-		for i = len(chunk)-1; i >= 0 && chunk[i] == '\\'; i-- { }
-		if len(chunk) == 0 || (len(chunk) - i - 1) % 2 == 0 {
+		ret += l.Find(delim)
+		for i = len(ret)-1; i >= 0 && ret[i] == '\\'; i-- { }
+		if l.Peek() == 0 || (len(ret) - i - 1) % 2 == 0 {
 			// Even number of backslashes at end of string
-			// => delimiter isn't escaped.
+			// => delimiter isn't escaped. (Or we're at EOF).
 			break
 		}
-		if l.Peek() != 0 {
-			// If we're not at the end of the string,
-			// append delimiter and continue.
-			ret += l.Next()
-		}
+		ret += l.Next()
 	}
 	return ret
 }
@@ -120,7 +115,7 @@ func edit(line *base.Line) {
 			fact.Key, old, fact.Value)
 	} else {
 		bot.ReplyN(line, "I failed to replace '%s': %s", fact.Key, err)
-	}	
+	}
 }
 
 // Factoid delete: 'forget|delete that' => deletes lastSeen[chan]
