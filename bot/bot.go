@@ -6,6 +6,7 @@ import (
 	"github.com/fluffle/goirc/client"
 	"github.com/fluffle/golog/logging"
 	"github.com/fluffle/sp0rkle/base"
+	"github.com/fluffle/sp0rkle/collections/conf"
 	"github.com/fluffle/sp0rkle/util"
 	"os"
 	"strings"
@@ -26,6 +27,7 @@ var (
 // of the code in the drivers, and so i'm reserving judgement on the usual
 // knee-jerk EWW reaction for the moment. Please don't hate me.
 var irc *client.Conn
+var ignores conf.Namespace
 var lock sync.Mutex
 
 func Init() {
@@ -58,6 +60,13 @@ func Init() {
 	HandleFunc(bot_shutdown, "notice")
 
 	CommandFunc(bot_help, "help", "If you need to ask, you're beyond help.")
+
+	// Ignores contains a list of Nicks to ignore.
+	ignores = conf.Ns("ignore")
+	CommandFunc(bot_ignore, "ignore", "ignore <nick>  -- "+
+		"make the bot ignore <nick> completely.")
+	CommandFunc(bot_unignore, "unignore", "unignore <nick>  -- "+
+		"make the bot unignore <nick> again.")
 }
 
 func Connect() bool {
@@ -98,7 +107,9 @@ func connectLoop() bool {
 func Handle(h base.Handler, event ...string) {
 	// TODO(fluffle): push CommandSet way of doing things down into goirc
 	irc.ER.AddHandler(client.NewHandler(func(_ *client.Conn, l *client.Line) {
-		h.Execute(transformLine(l))
+		if ignores.String(l.Nick) == "" {
+			h.Execute(transformLine(l))
+		}
 	}), event...)
 }
 
