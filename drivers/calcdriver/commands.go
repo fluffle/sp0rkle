@@ -104,7 +104,11 @@ func parseMask(ips, nms string) string {
 }
 
 func chr(line *base.Line) {
-	chr := line.Args[1]
+	chr := strings.ToLower(line.Args[1])
+	if strings.HasPrefix(chr, "u+") {
+		// Allow "unicode" syntax by translating it to 0x...
+		chr = "0x" + chr[2:]
+	}
 	// handles decimal, hex, and octal \o/
 	i, err := strconv.ParseInt(chr, 0, 0)
 	if err != nil {
