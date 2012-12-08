@@ -30,12 +30,6 @@ Drivers
   - split tell stuff out to a notify driver
   - add "ping me when x next says something" to notify driver
 
-*calc
-  // Make the calc driver do date / timezone maths.
-  date
-  date uk
-  date shanghai
-
 *urlsearch
   //Keep a track of urls that are said and allow them to be searched (using regex)
   // Still TODO:
@@ -61,15 +55,11 @@ Drivers
     via "literal" to list then s/that/N/ in command to apply.
   - The above but operating on all factoids associated with a key.
   - Something that utilises the access count to help prune unseen factoids
-  - Regex factoid value editing: edit that =~ s/// => applies regex to factoid
   - More unit tests
   - Pruning of 404'd F_URL factoids
 
 *Insult generator
   - needed for many many factoids :-)
-
-*Trivia
-  - does anyone care about this? the question list is a bit meh atm.
 
 Core
 ====

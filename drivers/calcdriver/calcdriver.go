@@ -4,8 +4,12 @@ import (
 	"github.com/fluffle/sp0rkle/bot"
 )
 
+const DateTimeFormat = "15:04:05, Monday 2 January 2006 -0700"
+
 func Init() {
 	bot.CommandFunc(calculate, "calc", "calc <expr>  -- does maths for you")
+	bot.CommandFunc(date, "date", "date <time/date> [in <zone>] -- "+
+		"works out the absolute time for <time/date> [in <zone>]")
 	bot.CommandFunc(netmask, "netmask", "netmask <ip/cidr>|<ip> <mask>"+
 		"  -- calculate IPv4 / IPv6 netmasks")
 	bot.CommandFunc(chr, "chr", "chr <int>  -- "+

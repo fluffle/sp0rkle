@@ -150,6 +150,13 @@ func zone(loc string) *time.Location {
 	return l
 }
 
+func Zone(loc string) *time.Location {
+	if _, ok := zoneTokenMap[loc]; ok {
+		return zone(zoneTokenMap[loc])
+	}
+	return zone(loc)
+}
+
 var zoneTokenMap = zoneMap{
 	"ADT":  "America/Barbados",
 	"AFT":  "Asia/Kabul",

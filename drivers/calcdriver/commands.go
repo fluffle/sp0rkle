@@ -5,9 +5,11 @@ import (
 	"github.com/fluffle/sp0rkle/base"
 	"github.com/fluffle/sp0rkle/bot"
 	"github.com/fluffle/sp0rkle/util/calc"
+	"github.com/fluffle/sp0rkle/util/datetime"
 	"net"
 	"strconv"
 	"strings"
+	"time"
 	"unicode/utf8"
 )
 
@@ -18,6 +20,26 @@ func calculate(line *base.Line) {
 	} else {
 		bot.ReplyN(line, "%s error while parsing %s", err, maths)
 	}
+}
+
+func date(line *base.Line) {
+	tstr, zone := line.Args[1], ""
+	if idx := strings.Index(tstr, "in "); idx != -1 {
+		tstr, zone = tstr[:idx], strings.TrimSpace(tstr[idx+3:])
+	}
+	tm, ok := time.Now(), true
+	if tstr != "" {
+		if tm, ok = datetime.Parse(tstr); !ok {
+			bot.ReplyN(line, "Couldn't parse time string '%s'.", tstr)
+			return
+		}
+	}
+	if loc := datetime.Zone(zone); zone != "" && loc != nil {
+		tm = tm.In(loc)
+	} else {
+		tm = tm.In(time.Local)
+	}
+	bot.ReplyN(line, "%s", tm.Format(DateTimeFormat))
 }
 
 func netmask(line *base.Line) {
