@@ -15,6 +15,7 @@ const COLLECTION string = "conf"
 type namespace string
 
 type Namespace interface {
+	All() []Entry
 	String(key string, value ...string) string
 	Int(key string, value ...int) int
 	Float(key string, value ...float64) float64
@@ -69,6 +70,14 @@ func (ns namespace) get(key string) interface{} {
 		return e.Value
 	}
 	return nil
+}
+
+func (ns namespace) All() []Entry {
+	var e []Entry
+	if err := conf.Find(bson.M{"ns": ns}).All(&e); err == nil {
+		return e
+	}
+	return []Entry{}
 }
 
 func (ns namespace) String(key string, value ...string) string {
