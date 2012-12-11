@@ -92,19 +92,19 @@ func bot_help(line *base.Line) {
 }
 
 func bot_ignore(line *base.Line) {
-	nick := strings.Fields(line.Args[1])[0]
+	nick := strings.ToLower(strings.Fields(line.Args[1])[0])
 	if nick == "" {
 		return
 	}
-	ignores.String(line.Args[1], "ignore")
-	ReplyN(line, "I'll ignore '%s'.", line.Args[1])
+	ignores.String(nick, "ignore")
+	ReplyN(line, "I'll ignore '%s'.", nick)
 }
 
 func bot_unignore(line *base.Line) {
-	nick := strings.Fields(line.Args[1])[0]
+	nick := strings.ToLower(strings.Fields(line.Args[1])[0])
 	if nick == "" {
 		return
 	}
-	ignores.Delete(line.Args[1])
-	ReplyN(line, "No longer ignoring '%s'.", line.Args[1])
+	ignores.Delete(nick)
+	ReplyN(line, "No longer ignoring '%s'.", nick)
 }

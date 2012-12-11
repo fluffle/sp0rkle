@@ -107,7 +107,7 @@ func connectLoop() bool {
 func Handle(h base.Handler, event ...string) {
 	// TODO(fluffle): push CommandSet way of doing things down into goirc
 	irc.ER.AddHandler(client.NewHandler(func(_ *client.Conn, l *client.Line) {
-		if ignores.String(l.Nick) == "" {
+		if ignores.String(strings.ToLower(l.Nick)) == "" {
 			h.Execute(transformLine(l))
 		}
 	}), event...)

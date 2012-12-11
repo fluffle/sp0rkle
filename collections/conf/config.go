@@ -6,7 +6,6 @@ import (
 	"github.com/fluffle/sp0rkle/db"
 	"labix.org/v2/mgo"
 	"labix.org/v2/mgo/bson"
-	"strings"
 	"sync"
 )
 
@@ -58,7 +57,7 @@ func (ns namespace) key(key string) bson.M {
 }
 
 func (ns namespace) set(key string, value interface{}) {
-	e := Entry{Ns: ns, Key: strings.ToLower(key), Value: value}
+	e := Entry{Ns: ns, Key: key, Value: value}
 	if _, err := conf.Upsert(e.Id(), e); err != nil {
 		logging.Error("Couldn't upsert config entry '%s': %s", e, err)
 	}
