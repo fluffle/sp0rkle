@@ -9,6 +9,7 @@ import (
 	"github.com/fluffle/sp0rkle/collections/conf"
 	"github.com/fluffle/sp0rkle/util"
 	"os"
+	"runtime"
 	"strings"
 	"sync"
 	"time"
@@ -104,11 +105,21 @@ func connectLoop() bool {
 	panic("unreachable")
 }
 
+func unfail(line *base.Line) {
+	if err := recover(); err != nil {
+		// 0 = below line; 1-3 are proc.c:1443; runtime.c:128; runtime.c:85;
+		_, f, l, _ := runtime.Caller(4)
+		Reply(line, "fluffle sucks: panic(%v) at %s:%d", err, f, l)
+	}
+}
+
 func Handle(h base.Handler, event ...string) {
 	// TODO(fluffle): push CommandSet way of doing things down into goirc
 	irc.ER.AddHandler(client.NewHandler(func(_ *client.Conn, l *client.Line) {
 		if ignores.String(strings.ToLower(l.Nick)) == "" {
-			h.Execute(transformLine(l))
+			line := transformLine(l)
+			defer unfail(line)
+			h.Execute(line)
 		}
 	}), event...)
 }
