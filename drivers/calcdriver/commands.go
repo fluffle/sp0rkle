@@ -44,7 +44,7 @@ func date(line *base.Line) {
 
 func netmask(line *base.Line) {
 	s := strings.Split(line.Args[1], " ")
-	if strings.Index(s[1], "/") != -1 {
+	if len(s) == 1 && strings.Index(s[0], "/") != -1 {
 		// Assume we have netmask ip/cidr
 		bot.ReplyN(line, "%s", parseCIDR(s[0]))
 	} else if len(s) == 2 {
