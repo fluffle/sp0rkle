@@ -22,7 +22,7 @@ func urbanDictionary(line *base.Line) {
 	for {
 		tok, err := d.Token()
 		if err != nil {
-			bot.ReplyN(line, "HTML parse wrror: %v", err)
+			bot.ReplyN(line, "HTML parse error: %v", err)
 			break
 		}
 		se, ok := tok.(xml.StartElement)
