@@ -15,12 +15,28 @@ var (
 		"Comma-separated list of channels to join, defaults to '#sp0rklf'")
 	rebuilder *string = flag.String("rebuilder", "",
 		"Nick[:password] to accept rebuild command from.")
+	oper *string = flag.String("oper", "",
+		"user:password for server OPER command on connect.")
+	vhost *string = flag.String("vhost", "",
+		"user:password for server VHOST command on connect.")
 )
 
 func bot_connected(line *base.Line) {
 	for _, c := range strings.Split(*channels, ",") {
 		logging.Info("Joining %s on startup.\n", c)
 		irc.Join(c)
+	}
+	if *oper != "" {
+		up := strings.SplitN(*oper, ":", 2)
+		if len(up) == 2 {
+			irc.Oper(up[0], up[1])
+		}
+	}
+	if *vhost != "" {
+		up := strings.SplitN(*vhost, ":", 2)
+		if len(up) == 2 {
+			irc.Raw(fmt.Sprintf("VHOST %s %s", up[0], up[1]))
+		}
 	}
 }
 
