@@ -22,10 +22,6 @@ var (
 )
 
 func bot_connected(line *base.Line) {
-	for _, c := range strings.Split(*channels, ",") {
-		logging.Info("Joining %s on startup.\n", c)
-		irc.Join(c)
-	}
 	if *oper != "" {
 		up := strings.SplitN(*oper, ":", 2)
 		if len(up) == 2 {
@@ -37,6 +33,10 @@ func bot_connected(line *base.Line) {
 		if len(up) == 2 {
 			irc.Raw(fmt.Sprintf("VHOST %s %s", up[0], up[1]))
 		}
+	}
+	for _, c := range strings.Split(*channels, ",") {
+		logging.Info("Joining %s on startup.\n", c)
+		irc.Join(c)
 	}
 }
 
