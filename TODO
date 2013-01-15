@@ -34,6 +34,7 @@ Drivers
   //Keep a track of urls that are said and allow them to be searched (using regex)
   // Still TODO:
   - get hosting and buy sp0rk.ly
+  - "that URL first mentioned by" shouldn't fire unless time > x (1 hour?)
 
 *Quotes
   // Still TODO: some...
