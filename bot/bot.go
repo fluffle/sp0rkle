@@ -46,19 +46,31 @@ func Init() {
 	}
 
 	// Configure IRC client
-	irc = client.SimpleClient(*nick, "boing", "not really sp0rkle")
-	irc.SSL = *ssl
-	irc.Flood = true
+	cfg := client.NewConfig(*nick, "boing", "slowly becoming sp0rkle")
+	cfg.Flood = true
+	cfg.SSL = *ssl
+	cfg.Server = *server
+	cfg.Recover = func (conn *client.Conn, line *client.Line) {
+		if err := recover(); err != nil {
+			_, f, l, _ := runtime.Caller(2)
+			i := strings.Index(f, "sp0rkle/")
+			logging.Error("panic at %s:%d: %v", f[i:], l, err)
+			conn.Privmsg(line.Target(), fmt.Sprintf(
+				"panic at %s:%d: %v", f[i:], l, err))
+		}
+	}
 
-	HandleFunc(bot_connected, "connected")
-	HandleFunc(bot_disconnected, "disconnected")
+	irc, _ = client.Client(cfg)
+
+	HandleFunc(bot_connected, client.CONNECTED)
+	HandleFunc(bot_disconnected, client.DISCONNECTED)
 
 	// This is a special handler that dispatches commands from the command set
-	HandleFunc(bot_command, "privmsg")
+	HandleFunc(bot_command, client.PRIVMSG)
 	// This is a special handler that triggers a rebuild and re-exec
-	HandleFunc(bot_rebuild, "notice")
+	HandleFunc(bot_rebuild, client.NOTICE)
 	// This is a special handler that triggers a shutdown and disconnect
-	HandleFunc(bot_shutdown, "notice")
+	HandleFunc(bot_shutdown, client.NOTICE)
 
 	CommandFunc(bot_help, "help", "If you need to ask, you're beyond help.")
 
@@ -85,7 +97,7 @@ var disconnected = make(chan bool)
 func connectLoop() bool {
 	var retries uint32
 	for {
-		if err := irc.Connect(*server); err != nil {
+		if err := irc.Connect(); err != nil {
 			logging.Error("Connection error: %s", err)
 			retries++
 			if retries > 10 {
@@ -105,23 +117,16 @@ func connectLoop() bool {
 	panic("unreachable")
 }
 
-func unfail(line *base.Line) {
-	if err := recover(); err != nil {
-		// 0 = below line; 1-3 are proc.c:1443; runtime.c:128; runtime.c:85;
-		_, f, l, _ := runtime.Caller(4)
-		Reply(line, "fluffle sucks: panic(%v) at %s:%d", err, f, l)
+func Handle(h base.Handler, events ...string) {
+	// TODO(fluffle): rework this properly.
+	for _, event := range events {
+		irc.HandleFunc(event, func(_ *client.Conn, l *client.Line) {
+			if ignores.String(strings.ToLower(l.Nick)) == "" {
+				line := transformLine(l)
+				h.Execute(line)
+			}
+		})
 	}
-}
-
-func Handle(h base.Handler, event ...string) {
-	// TODO(fluffle): push CommandSet way of doing things down into goirc
-	irc.ER.AddHandler(client.NewHandler(func(_ *client.Conn, l *client.Line) {
-		if ignores.String(strings.ToLower(l.Nick)) == "" {
-			line := transformLine(l)
-			defer unfail(line)
-			h.Execute(line)
-		}
-	}), event...)
 }
 
 func HandleFunc(fn base.HandlerFunc, event ...string) {
@@ -153,24 +158,22 @@ func transformLine(line *client.Line) *base.Line {
 	// but modifying the pointer will result in other goroutines seeing the
 	// change, so we need to copy line for our own edification.
 	nl := &base.Line{Line: line.Copy()}
-	if nl.Cmd != "PRIVMSG" {
+	if nl.Cmd != client.PRIVMSG {
 		return nl
 	}
 	nl.Args[1], nl.Addressed = util.RemovePrefixedNick(
-		strings.TrimSpace(line.Args[1]), irc.Me.Nick)
+		strings.TrimSpace(line.Args[1]), Nick())
 	// If we're being talked to in private, line.Args[0] will contain our Nick.
 	// To ensure the replies go to the right place (without performing this
 	// check everywhere) test for this and set line.Args[0] == line.Nick.
 	// We should consider this as "addressing" us too, and set Addressed = true
-	if nl.Args[0] == irc.Me.Nick {
+	if nl.Args[0] == Nick() {
 		nl.Args[0] = nl.Nick
 		nl.Addressed = true
 	}
 	return nl
 }
 
-// Currently makes the assumption that we're replying to line.Args[0] in every
-// instance. While this is normally the case, it may not be in some cases...
 // ReplyN() adds a prefix of "nick: " to the reply text,
 func ReplyN(line *base.Line, fm string, args ...interface{}) {
 	args = append([]interface{}{line.Nick}, args...)
@@ -179,11 +182,11 @@ func ReplyN(line *base.Line, fm string, args ...interface{}) {
 
 // whereas Reply() does not.
 func Reply(line *base.Line, fm string, args ...interface{}) {
-	Privmsg(line.Args[0], plugins.Apply(fmt.Sprintf(fm, args...), line))
+	Privmsg(line.Target(), plugins.Apply(fmt.Sprintf(fm, args...), line))
 }
 
 func Do(line *base.Line, fm string, args ...interface{}) {
-	Action(line.Args[0], plugins.Apply(fmt.Sprintf(fm, args...), line))
+	Action(line.Target(), plugins.Apply(fmt.Sprintf(fm, args...), line))
 }
 
 // Hmmm. Fix these later.
@@ -196,7 +199,7 @@ func Action(ch, text string) {
 }
 
 func Nick() string {
-	return irc.Me.Nick
+	return irc.Me().Nick
 }
 
 func HttpHost() string {

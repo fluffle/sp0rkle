@@ -23,7 +23,7 @@ var (
 
 func bot_connected(line *base.Line) {
 	// Set bot mode to keep people informed.
-	irc.Mode(irc.Me.Nick, "+B")
+	irc.Mode(Nick(), "+B")
 	if *oper != "" {
 		up := strings.SplitN(*oper, ":", 2)
 		if len(up) == 2 {
