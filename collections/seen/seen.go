@@ -92,8 +92,8 @@ type Collection struct {
 func Init() *Collection {
 	sc := &Collection{db.Init().C(COLLECTION)}
 	indexes := [][]string{
-		{"key", "action"},         // For searching ...
-		{"timestamp"},             // ... and ordering seen entries.
+		{"key", "action"}, // For searching ...
+		{"timestamp"},     // ... and ordering seen entries.
 	}
 	for _, key := range indexes {
 		if err := sc.EnsureIndex(mgo.Index{Key: key}); err != nil {

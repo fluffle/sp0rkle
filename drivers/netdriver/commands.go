@@ -10,6 +10,7 @@ import (
 )
 
 const udUrl = "http://www.urbandictionary.com/define.php?term=%s"
+
 func urbanDictionary(line *base.Line) {
 	uri := fmt.Sprintf(udUrl, url.QueryEscape(line.Args[1]))
 	d, err := get(uri)
@@ -72,7 +73,9 @@ LOOP:
 		idx := strings.Index(str[250:], ". ")
 		if idx == -1 {
 			idx = strings.Index(str[250:], " ")
-		} else { idx++ }
+		} else {
+			idx++
+		}
 		idx += 251 // after ". " or " " or 250th character
 		out, str = str[:idx], str[idx:]
 		bot.ReplyN(line, "%s ...", out)

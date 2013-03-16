@@ -11,4 +11,4 @@ func karmaCmd(line *base.Line) {
 	} else {
 		bot.ReplyN(line, "No karma found for '%s'", line.Args[1])
 	}
-}	
+}

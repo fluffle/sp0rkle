@@ -23,9 +23,9 @@ type Namespace interface {
 }
 
 type Entry struct {
-	Ns	    namespace
-	Key     string
-	Value   interface{}
+	Ns    namespace
+	Key   string
+	Value interface{}
 }
 
 func (e Entry) String() string {
@@ -111,7 +111,7 @@ func (ns namespace) Float(key string, value ...float64) float64 {
 	}
 	return 0
 }
-	
+
 func (ns namespace) Value(key string, value ...interface{}) interface{} {
 	if len(value) > 0 {
 		ns.set(key, value[0])

@@ -27,8 +27,8 @@ type Karma struct {
 
 func New(thing string) *Karma {
 	return &Karma{
-		Subject:   thing,
-		Key:       strings.ToLower(thing),
+		Subject: thing,
+		Key:     strings.ToLower(thing),
 	}
 }
 
@@ -69,7 +69,7 @@ type Collection struct {
 func Init() *Collection {
 	kc := &Collection{db.Init().C(COLLECTION)}
 	if err := kc.EnsureIndex(mgo.Index{
-		Key: []string{"key"},
+		Key:    []string{"key"},
 		Unique: true,
 	}); err != nil {
 		logging.Error("Couldn't create index on karma.key: %s", err)

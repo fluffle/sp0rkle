@@ -1,13 +1,13 @@
 package karmadriver
 
 import (
-	"testing"
 	"reflect"
+	"testing"
 )
 
 func TestKarmaThings(t *testing.T) {
 	tests := []struct {
-		in string
+		in  string
 		out []kt
 	}{
 		{"no karma here", []kt{}},

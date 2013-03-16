@@ -41,9 +41,9 @@ func TestIdentifiers(t *testing.T) {
 }
 
 func TestExtractRx(t *testing.T) {
-	tests := []struct{
+	tests := []struct {
 		in, out string
-	} {
+	}{
 		{"", ""},
 		{"/foo", ""},
 		{"foo", "foo"},
