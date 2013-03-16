@@ -67,7 +67,8 @@ func extractRx(l *util.Lexer, delim rune) string {
 	ret, i := "", 0
 	for {
 		ret += l.Find(delim)
-		for i = len(ret)-1; i >= 0 && ret[i] == '\\'; i-- { }
+		for i = len(ret) - 1; i >= 0 && ret[i] == '\\'; i-- {
+		}
 		if l.Peek() == 0 || (len(ret)-i-1)%2 == 0 {
 			// Even number of backslashes at end of string
 			// => delimiter isn't escaped. (Or we're at EOF).

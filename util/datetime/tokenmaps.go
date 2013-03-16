@@ -15,24 +15,24 @@ type numMap map[string]struct {
 }
 
 var numTokenMap = numMap{
-	"AGO":       {T_AGO, -1},
-	"YEAR":      {T_OFFSET, int(O_YEAR)},
-	"Y":         {T_ISOYD, int(O_YEAR)},
-	"MONTH":     {T_OFFSET, int(O_MONTH)},
-// *Many* ambiguity problems.
-//	"M":         {T_ISO, int(O_MONTH)},
+	"AGO":   {T_AGO, -1},
+	"YEAR":  {T_OFFSET, int(O_YEAR)},
+	"Y":     {T_ISOYD, int(O_YEAR)},
+	"MONTH": {T_OFFSET, int(O_MONTH)},
+	// *Many* ambiguity problems.
+	//	"M":         {T_ISO, int(O_MONTH)},
 	"FORTNIGHT": {T_DAYS, 14},
 	"WEEK":      {T_DAYS, 7},
-// W is used as the week indicator in ISO 8601
-//	"W":         {T_DAYS, 7},
-	"DAY":       {T_OFFSET, int(O_DAY)},
-	"D":         {T_ISOYD, int(O_DAY)},
-	"NIGHT":     {T_OFFSET, int(O_DAY)},
-	"HOUR":      {T_OFFSET, int(O_HOUR)},
-	"H":         {T_ISOHS, int(O_HOUR)},
-	"MINUTE":    {T_OFFSET, int(O_MIN)},
-	"MIN":       {T_OFFSET, int(O_MIN)},
-//	"M":         {T_ISO, int(O_MIN)},
+	// W is used as the week indicator in ISO 8601
+	//	"W":         {T_DAYS, 7},
+	"DAY":    {T_OFFSET, int(O_DAY)},
+	"D":      {T_ISOYD, int(O_DAY)},
+	"NIGHT":  {T_OFFSET, int(O_DAY)},
+	"HOUR":   {T_OFFSET, int(O_HOUR)},
+	"H":      {T_ISOHS, int(O_HOUR)},
+	"MINUTE": {T_OFFSET, int(O_MIN)},
+	"MIN":    {T_OFFSET, int(O_MIN)},
+	//	"M":         {T_ISO, int(O_MIN)},
 	"SECOND":    {T_OFFSET, int(O_SEC)},
 	"SEC":       {T_OFFSET, int(O_SEC)},
 	"S":         {T_ISOHS, int(O_SEC)},
@@ -99,12 +99,12 @@ func (atm abbrMap) Lookup(input string, lval *yySymType) (int, bool) {
 type relMap map[string]int
 
 var relTokenMap = relMap{
-	"LAST":    -1,
-	"THIS":     0,
-	"NEXT":     1,
-	"FIRST":    1,
-	"ONE":      1,
-//	"SECOND":   2,
+	"LAST":  -1,
+	"THIS":  0,
+	"NEXT":  1,
+	"FIRST": 1,
+	"ONE":   1,
+	//	"SECOND":   2,
 	"TWO":      2,
 	"THIRD":    3,
 	"THREE":    3,
