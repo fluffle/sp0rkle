@@ -84,6 +84,7 @@ func newServerSet() *serverSet {
 		servers: make(map[*client.Conn]*server),
 		// May not need to be buffered but seems sensible here
 		rebuild: make(chan bool, 1),
+		wg:      &sync.WaitGroup{},
 	}
 	for _, hostport := range list {
 		// Configure IRC client
