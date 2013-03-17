@@ -19,7 +19,7 @@ var (
 		"Comma-separated list of IRC servers to connect to.")
 	ssl *bool = flag.Bool("ssl", false,
 		"Use SSL when connecting to servers.")
-	pause *time.Duration = flag.Duration("pause", 300 * time.Second,
+	pause *time.Duration = flag.Duration("pause", 300*time.Second,
 		"Wait time between server reconnection attempts.")
 )
 
