@@ -29,6 +29,7 @@ func smoke(ctx *bot.Context) {
 }
 
 func recordPrivmsg(ctx *bot.Context) {
+	if !ctx.Public() { return }
 	sn := seenNickFromLine(ctx)
 	sn.Text = ctx.Text()
 	if _, err := sc.Upsert(sn.Id(), sn); err != nil {
