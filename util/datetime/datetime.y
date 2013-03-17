@@ -132,7 +132,13 @@ item:
 // 12-hour HH, HH:MM or HH:MM:SS with am/pm and optional timezone
 time:
 	T_INTEGER ampm o_zone {
-		yylex.(*dateLexer).setTime($1.i + $2, 0, 0, $3)
+		l := yylex.(*dateLexer)
+		// Hack to allow HHMMam to parse correctly, cos adie is a mong.
+		if $1.l == 3 || $1.l == 4 {
+			l.setTime($1.i / 100 + $2, $1.i % 100, 0, $3)
+		} else {
+			l.setTime($1.i + $2, 0, 0, $3)
+		}
 	}
 	| T_INTEGER timesep T_INTEGER ampm o_zone {
 		yylex.(*dateLexer).setTime($1.i + $4, $3.i, 0, $5)
@@ -456,10 +462,10 @@ integer:
 			// assume ISO 8601 HHMMSS with no zone
 			l.setHMS($1.i, $1.l, nil)
 		} else if $1.l == 4 {
-			// assume setting YYYY, because otherwise parsing ANSIC, UnixTime
-			// and RubyTime formats fails as the year is after the time
-			// Probably should be HHMM instead...
-			l.setYear($1.i)
+			// Assuming HHMM because that's more useful on IRC.
+			// This causes the parsing of time.UnixDate etc. to fail :-/
+			// Ambiguities suck.
+			l.setHMS($1.i, $1.l, nil)
 		} else if $1.l == 2 {
 			// assume HH with no zone
 			l.setHMS($1.i, $1.l, nil)
