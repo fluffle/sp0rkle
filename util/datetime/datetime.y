@@ -463,8 +463,6 @@ integer:
 			l.setHMS($1.i, $1.l, nil)
 		} else if $1.l == 4 {
 			// Assuming HHMM because that's more useful on IRC.
-			// This causes the parsing of time.UnixDate etc. to fail :-/
-			// Ambiguities suck.
 			l.setHMS($1.i, $1.l, nil)
 		} else if $1.l == 2 {
 			// assume HH with no zone

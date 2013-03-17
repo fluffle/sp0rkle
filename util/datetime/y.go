@@ -62,7 +62,7 @@ const yyEofCode = 1
 const yyErrCode = 2
 const yyMaxDepth = 200
 
-//line datetime.y:474
+//line datetime.y:472
 
 //line yacctab:1
 var yyExca = []int{
@@ -891,8 +891,6 @@ yydefault:
 				l.setHMS(yyS[yypt-0].tval.i, yyS[yypt-0].tval.l, nil)
 			} else if yyS[yypt-0].tval.l == 4 {
 				// Assuming HHMM because that's more useful on IRC.
-				// This causes the parsing of time.UnixDate etc. to fail :-/
-				// Ambiguities suck.
 				l.setHMS(yyS[yypt-0].tval.i, yyS[yypt-0].tval.l, nil)
 			} else if yyS[yypt-0].tval.l == 2 {
 				// assume HH with no zone
