@@ -5,6 +5,7 @@ import (
 	"github.com/fluffle/sp0rkle/collections/urls"
 	"github.com/fluffle/sp0rkle/util"
 	"strings"
+	"time"
 )
 
 func urlScan(ctx *bot.Context) {
@@ -12,7 +13,9 @@ func urlScan(ctx *bot.Context) {
 	n, c := ctx.Storable()
 	for _, w := range words {
 		if util.LooksURLish(w) {
-			if u := uc.GetByUrl(w); u != nil {
+			if u := uc.GetByUrl(w); u != nil &&
+				u.Nick != bot.Nick(ctx.Nick) &&
+				time.Since(u.Timestamp) > 2*time.Hour {
 				ctx.Reply("that URL first mentioned by %s %s ago",
 					u.Nick, util.TimeSince(u.Timestamp))
 
