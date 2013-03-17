@@ -29,7 +29,8 @@ func urbanDictionary(ctx *bot.Context) {
 		if ok &&
 			se.Name.Local == "div" &&
 			len(se.Attr) == 1 &&
-			se.Attr[0].Value == "definition" { break }
+			(se.Attr[0].Value == "definition" ||
+			se.Attr[0].Value == "not_defined_yet") { break }
 	}
 	// ... the next token should be the start of the definition.
 	// At this point we assemble a slice of strings containing the
