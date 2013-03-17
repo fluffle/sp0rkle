@@ -62,7 +62,7 @@ const yyEofCode = 1
 const yyErrCode = 2
 const yyMaxDepth = 200
 
-//line datetime.y:468
+//line datetime.y:474
 
 //line yacctab:1
 var yyExca = []int{
@@ -521,35 +521,41 @@ yydefault:
 	case 39:
 		//line datetime.y:134
 		{
-			yylex.(*dateLexer).setTime(yyS[yypt-2].tval.i+yyS[yypt-1].intval, 0, 0, yyS[yypt-0].zoneval)
+			l := yylex.(*dateLexer)
+			// Hack to allow HHMMam to parse correctly, cos adie is a mong.
+			if yyS[yypt-2].tval.l == 3 || yyS[yypt-2].tval.l == 4 {
+				l.setTime(yyS[yypt-2].tval.i/100+yyS[yypt-1].intval, yyS[yypt-2].tval.i%100, 0, yyS[yypt-0].zoneval)
+			} else {
+				l.setTime(yyS[yypt-2].tval.i+yyS[yypt-1].intval, 0, 0, yyS[yypt-0].zoneval)
+			}
 		}
 	case 40:
-		//line datetime.y:137
+		//line datetime.y:143
 		{
 			yylex.(*dateLexer).setTime(yyS[yypt-4].tval.i+yyS[yypt-1].intval, yyS[yypt-2].tval.i, 0, yyS[yypt-0].zoneval)
 		}
 	case 41:
-		//line datetime.y:140
+		//line datetime.y:146
 		{
 			yylex.(*dateLexer).setTime(yyS[yypt-6].tval.i+yyS[yypt-1].intval, yyS[yypt-4].tval.i, yyS[yypt-2].tval.i, yyS[yypt-0].zoneval)
 		}
 	case 42:
-		//line datetime.y:147
+		//line datetime.y:153
 		{
 			yylex.(*dateLexer).setHMS(yyS[yypt-1].tval.i, yyS[yypt-1].tval.l, yyS[yypt-0].zoneval)
 		}
 	case 43:
-		//line datetime.y:150
+		//line datetime.y:156
 		{
 			yylex.(*dateLexer).setTime(yyS[yypt-3].tval.i, yyS[yypt-1].tval.i, 0, yyS[yypt-0].zoneval)
 		}
 	case 44:
-		//line datetime.y:153
+		//line datetime.y:159
 		{
 			yylex.(*dateLexer).setTime(yyS[yypt-5].tval.i, yyS[yypt-3].tval.i, yyS[yypt-1].tval.i, yyS[yypt-0].zoneval)
 		}
 	case 45:
-		//line datetime.y:161
+		//line datetime.y:167
 		{
 			l := yylex.(*dateLexer)
 			if yyS[yypt-0].tval.l == 4 {
@@ -561,7 +567,7 @@ yydefault:
 			}
 		}
 	case 46:
-		//line datetime.y:171
+		//line datetime.y:177
 		{
 			l := yylex.(*dateLexer)
 			if yyS[yypt-0].tval.l == 4 {
@@ -576,13 +582,13 @@ yydefault:
 			}
 		}
 	case 47:
-		//line datetime.y:184
+		//line datetime.y:190
 		{
 			// DDth of Mon
 			yylex.(*dateLexer).setDate(0, yyS[yypt-0].intval, yyS[yypt-3].tval.i)
 		}
 	case 48:
-		//line datetime.y:188
+		//line datetime.y:194
 		{
 			l := yylex.(*dateLexer)
 			if yyS[yypt-1].tval.l == 4 {
@@ -594,7 +600,7 @@ yydefault:
 			}
 		}
 	case 49:
-		//line datetime.y:198
+		//line datetime.y:204
 		{
 			l := yylex.(*dateLexer)
 			if yyS[yypt-0].tval.l == 4 {
@@ -609,7 +615,7 @@ yydefault:
 			}
 		}
 	case 50:
-		//line datetime.y:211
+		//line datetime.y:217
 		{
 			// RFC 850, srsly :(
 			l := yylex.(*dateLexer)
@@ -625,7 +631,7 @@ yydefault:
 			}
 		}
 	case 51:
-		//line datetime.y:225
+		//line datetime.y:231
 		{
 			l := yylex.(*dateLexer)
 			if yyS[yypt-0].tval.l == 4 {
@@ -640,7 +646,7 @@ yydefault:
 			}
 		}
 	case 52:
-		//line datetime.y:241
+		//line datetime.y:247
 		{
 			l := yylex.(*dateLexer)
 			if yyS[yypt-2].tval.l == 4 && yyS[yypt-0].tval.l == 3 {
@@ -656,7 +662,7 @@ yydefault:
 			}
 		}
 	case 53:
-		//line datetime.y:255
+		//line datetime.y:261
 		{
 			l := yylex.(*dateLexer)
 			if yyS[yypt-4].tval.l == 4 {
@@ -671,7 +677,7 @@ yydefault:
 			}
 		}
 	case 54:
-		//line datetime.y:268
+		//line datetime.y:274
 		{
 			l := yylex.(*dateLexer)
 			wday, week := 1, yyS[yypt-0].tval.i
@@ -683,19 +689,19 @@ yydefault:
 			l.setWeek(yyS[yypt-2].tval.i, week, wday)
 		}
 	case 55:
-		//line datetime.y:278
+		//line datetime.y:284
 		{
 			// assume YYYY-'W'WW
 			yylex.(*dateLexer).setWeek(yyS[yypt-3].tval.i, yyS[yypt-0].tval.i, 1)
 		}
 	case 56:
-		//line datetime.y:282
+		//line datetime.y:288
 		{
 			// assume YYYY-'W'WW-D
 			yylex.(*dateLexer).setWeek(yyS[yypt-5].tval.i, yyS[yypt-2].tval.i, yyS[yypt-0].tval.i)
 		}
 	case 58:
-		//line datetime.y:290
+		//line datetime.y:296
 		{
 			// this goes here because the YYYYMMDD and HHMMSS forms of the
 			// ISO 8601 format date and time are handled by 'integer' below.
@@ -710,43 +716,43 @@ yydefault:
 			l.setHMS(yyS[yypt-1].tval.i, yyS[yypt-1].tval.l, yyS[yypt-0].zoneval)
 		}
 	case 59:
-		//line datetime.y:305
+		//line datetime.y:311
 		{
 			// Tuesday
 			yylex.(*dateLexer).setDay(yyS[yypt-1].intval, 0)
 		}
 	case 60:
-		//line datetime.y:309
+		//line datetime.y:315
 		{
 			// March
 			yylex.(*dateLexer).setMonth(yyS[yypt-0].intval, 0)
 		}
 	case 61:
-		//line datetime.y:313
+		//line datetime.y:319
 		{
 			// Next tuesday
 			yylex.(*dateLexer).setDay(yyS[yypt-0].intval, yyS[yypt-1].intval)
 		}
 	case 62:
-		//line datetime.y:317
+		//line datetime.y:323
 		{
 			// Next march
 			yylex.(*dateLexer).setMonth(yyS[yypt-0].intval, yyS[yypt-1].intval)
 		}
 	case 63:
-		//line datetime.y:321
+		//line datetime.y:327
 		{
 			// +-N Tuesdays
 			yylex.(*dateLexer).setDay(yyS[yypt-0].intval, yyS[yypt-1].tval.i)
 		}
 	case 64:
-		//line datetime.y:325
+		//line datetime.y:331
 		{
 			// 3rd Tuesday 
 			yylex.(*dateLexer).setDay(yyS[yypt-0].intval, yyS[yypt-2].tval.i)
 		}
 	case 65:
-		//line datetime.y:329
+		//line datetime.y:335
 		{
 			// 3rd Tuesday of (implicit this) March
 			l := yylex.(*dateLexer)
@@ -754,13 +760,13 @@ yydefault:
 			l.setMonth(yyS[yypt-0].intval, 1)
 		}
 	case 66:
-		//line datetime.y:335
+		//line datetime.y:341
 		{
 			// 3rd Tuesday of 2012
 			yylex.(*dateLexer).setDay(yyS[yypt-2].intval, yyS[yypt-4].tval.i, yyS[yypt-0].tval.i)
 		}
 	case 67:
-		//line datetime.y:339
+		//line datetime.y:345
 		{
 			// 3rd Tuesday of March 2012
 			l := yylex.(*dateLexer)
@@ -768,7 +774,7 @@ yydefault:
 			l.setMonth(yyS[yypt-1].intval, 1, yyS[yypt-0].tval.i)
 		}
 	case 68:
-		//line datetime.y:345
+		//line datetime.y:351
 		{
 			// 3rd Tuesday of next March
 			l := yylex.(*dateLexer)
@@ -776,50 +782,50 @@ yydefault:
 			l.setMonth(yyS[yypt-0].intval, yyS[yypt-1].intval)
 		}
 	case 69:
-		//line datetime.y:351
+		//line datetime.y:357
 		{
 			// yesterday or tomorrow
 			d := time.Now().Weekday()
 			yylex.(*dateLexer).setDay((7+int(d)+yyS[yypt-0].intval)%7, yyS[yypt-0].intval)
 		}
 	case 71:
-		//line datetime.y:359
+		//line datetime.y:365
 		{
 			yylex.(*dateLexer).setAgo()
 		}
 	case 74:
-		//line datetime.y:368
+		//line datetime.y:374
 		{
 			yylex.(*dateLexer).addOffset(offset(yyS[yypt-0].intval), yyS[yypt-1].tval.i)
 		}
 	case 75:
-		//line datetime.y:371
+		//line datetime.y:377
 		{
 			yylex.(*dateLexer).addOffset(offset(yyS[yypt-0].intval), yyS[yypt-1].intval)
 		}
 	case 76:
-		//line datetime.y:374
+		//line datetime.y:380
 		{
 			yylex.(*dateLexer).addOffset(offset(yyS[yypt-0].intval), 1)
 		}
 	case 77:
-		//line datetime.y:377
+		//line datetime.y:383
 		{
 			// Special-case to handle "week" and "fortnight"
 			yylex.(*dateLexer).addOffset(O_DAY, yyS[yypt-1].tval.i*yyS[yypt-0].intval)
 		}
 	case 78:
-		//line datetime.y:381
+		//line datetime.y:387
 		{
 			yylex.(*dateLexer).addOffset(O_DAY, yyS[yypt-1].intval*yyS[yypt-0].intval)
 		}
 	case 79:
-		//line datetime.y:384
+		//line datetime.y:390
 		{
 			yylex.(*dateLexer).addOffset(O_DAY, yyS[yypt-0].intval)
 		}
 	case 80:
-		//line datetime.y:387
+		//line datetime.y:393
 		{
 			// As we need to be able to separate out YD from HS in ISO durations
 			// this becomes a fair bit messier than if Y D H S were just T_OFFSET
@@ -828,50 +834,50 @@ yydefault:
 			yylex.(*dateLexer).addOffset(offset(yyS[yypt-0].intval), yyS[yypt-1].tval.i)
 		}
 	case 81:
-		//line datetime.y:394
+		//line datetime.y:400
 		{
 			yylex.(*dateLexer).addOffset(offset(yyS[yypt-0].intval), yyS[yypt-1].tval.i)
 		}
 	case 82:
-		//line datetime.y:397
+		//line datetime.y:403
 		{
 			// Resolve 'm' ambiguity in favour of minutes outside ISO duration
 			yylex.(*dateLexer).addOffset(O_MIN, yyS[yypt-1].tval.i)
 		}
 	case 83:
-		//line datetime.y:400
+		//line datetime.y:406
 		{
 			yylex.(*dateLexer).addOffset(O_DAY, yyS[yypt-4].tval.i*7)
 		}
 	case 86:
-		//line datetime.y:408
+		//line datetime.y:414
 		{
 			yylex.(*dateLexer).addOffset(O_DAY, 7*yyS[yypt-1].tval.i)
 		}
 	case 89:
-		//line datetime.y:418
+		//line datetime.y:424
 		{
 			// takes care of Y and D
 			yylex.(*dateLexer).addOffset(offset(yyS[yypt-0].intval), yyS[yypt-1].tval.i)
 		}
 	case 90:
-		//line datetime.y:422
+		//line datetime.y:428
 		{
 			yylex.(*dateLexer).addOffset(O_MONTH, yyS[yypt-1].tval.i)
 		}
 	case 93:
-		//line datetime.y:431
+		//line datetime.y:437
 		{
 			// takes care of H and S
 			yylex.(*dateLexer).addOffset(offset(yyS[yypt-0].intval), yyS[yypt-1].tval.i)
 		}
 	case 94:
-		//line datetime.y:435
+		//line datetime.y:441
 		{
 			yylex.(*dateLexer).addOffset(O_MIN, yyS[yypt-1].tval.i)
 		}
 	case 98:
-		//line datetime.y:447
+		//line datetime.y:453
 		{
 			l := yylex.(*dateLexer)
 			if yyS[yypt-0].tval.l == 8 {
@@ -884,10 +890,10 @@ yydefault:
 				// assume ISO 8601 HHMMSS with no zone
 				l.setHMS(yyS[yypt-0].tval.i, yyS[yypt-0].tval.l, nil)
 			} else if yyS[yypt-0].tval.l == 4 {
-				// assume setting YYYY, because otherwise parsing ANSIC, UnixTime
-				// and RubyTime formats fails as the year is after the time
-				// Probably should be HHMM instead...
-				l.setYear(yyS[yypt-0].tval.i)
+				// Assuming HHMM because that's more useful on IRC.
+				// This causes the parsing of time.UnixDate etc. to fail :-/
+				// Ambiguities suck.
+				l.setHMS(yyS[yypt-0].tval.i, yyS[yypt-0].tval.l, nil)
 			} else if yyS[yypt-0].tval.l == 2 {
 				// assume HH with no zone
 				l.setHMS(yyS[yypt-0].tval.i, yyS[yypt-0].tval.l, nil)
