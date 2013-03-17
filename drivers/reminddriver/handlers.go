@@ -18,6 +18,15 @@ func load(ctx *bot.Context) {
 	}
 }
 
+func unload(ctx *bot.Context) {
+	// We've been disconnected from IRC: stop all remind goroutines
+	// since they will be restarted when we reconnect.
+	for id, c := range running {
+		c <- struct{}{}
+		delete(running, id)
+	}
+}
+
 func tellCheck(ctx *bot.Context) {
 	nick := ctx.Nick
 	if ctx.Cmd == client.NICK {

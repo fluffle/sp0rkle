@@ -13,7 +13,7 @@ import (
 var rc *reminders.Collection
 
 // We need to be able to kill reminder goroutines
-var running = map[bson.ObjectId]chan bool{}
+var running = map[bson.ObjectId]chan struct{}{}
 
 // And it's useful to index them for deletion per-person
 var listed = map[string][]bson.ObjectId{}
@@ -23,6 +23,7 @@ func Init() {
 
 	// Set up the handlers and commands.
 	bot.Handle(load, client.CONNECTED)
+	bot.Handle(unload, client.DISCONNECTED)
 	bot.Handle(tellCheck,
 		client.PRIVMSG, client.ACTION, client.JOIN, client.NICK)
 
@@ -41,7 +42,7 @@ func Remind(r *reminders.Reminder, ctx *bot.Context) {
 	if delta < 0 {
 		return
 	}
-	c := make(chan bool)
+	c := make(chan struct{})
 	running[r.Id] = c
 	go func() {
 		select {
@@ -61,7 +62,7 @@ func Forget(id bson.ObjectId, stop bool) {
 	if !ok { return }
 	delete(running, id)
 	if stop {
-		c <- true
+		c <- struct{}{}
 	}
 	if err := rc.RemoveId(id); err != nil {
 		logging.Error("Failure removing reminder %s: %v", id, err)
