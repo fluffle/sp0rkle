@@ -139,9 +139,7 @@ func ApplyPluginFunction(val, plugin string, f func(string) string) string {
 		// Mid is where the plugin args start.
 		mid := ps + len(plstart)
 		// And if there *are* args we should skip the leading space
-		for val[mid] == ' ' {
-			mid++
-		}
+		for val[mid] == ' ' { mid++ }
 		val = val[:ps] + f(val[mid:pe]) + val[pe+1:]
 	}
 	return val

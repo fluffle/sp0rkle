@@ -18,8 +18,8 @@ func TestParseTimeFormats(t *testing.T) {
 		time.RFC1123,
 		time.RFC1123Z,
 		time.RFC3339,
-		//		time.RFC3339Nano, // Nanosecs not supported
-		//		time.Kitchen,     // only contains HH and MM
+//		time.RFC3339Nano, // Nanosecs not supported
+//		time.Kitchen,     // only contains HH and MM
 		time.Stamp,
 	}
 	for i, f := range formats {

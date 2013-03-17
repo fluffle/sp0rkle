@@ -58,9 +58,7 @@ func Remind(r *reminders.Reminder, ctx *bot.Context) {
 
 func Forget(id bson.ObjectId, stop bool) {
 	c, ok := running[id]
-	if !ok {
-		return
-	}
+	if !ok { return }
 	delete(running, id)
 	if stop {
 		c <- true

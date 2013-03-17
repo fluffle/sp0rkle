@@ -51,9 +51,7 @@ func (l *Lexer) Next() string {
 func (l *Lexer) Scan(f func(rune) bool) string {
 	l.start = l.pos
 	for f(l.Peek()) {
-		if l.width == 0 {
-			break
-		}
+		if l.width == 0 { break }
 		l.pos += l.width
 	}
 	return l.Input[l.start:l.pos]
@@ -63,9 +61,7 @@ func (l *Lexer) Scan(f func(rune) bool) string {
 // (or EOF) and returns the string between lexer.pos and that character.
 func (l *Lexer) Find(r rune) string {
 	return l.Scan(func(n rune) bool {
-		if r != n {
-			return true
-		}
+		if r != n { return true }
 		return false
 	})
 }
