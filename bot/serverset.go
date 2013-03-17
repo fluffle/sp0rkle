@@ -50,7 +50,7 @@ func (s *server) connectLoop() {
 				if s.shutdown {
 					break
 				}
-			case <-time.After(*pause * time.Second):
+			case <-time.After(*pause):
 			}
 		}
 	}
