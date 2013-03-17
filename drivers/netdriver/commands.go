@@ -68,17 +68,5 @@ LOOP:
 			}
 		}
 	}
-	str, out := strings.Join(defn, ""), ""
-	for len(str) > 350 {
-		idx := strings.Index(str[250:], ". ")
-		if idx == -1 {
-			idx = strings.Index(str[250:], " ")
-		} else {
-			idx++
-		}
-		idx += 251 // after ". " or " " or 250th character
-		out, str = str[:idx], str[idx:]
-		ctx.ReplyN("%s ...", out)
-	}
-	ctx.ReplyN("%s", str)
+	ctx.Reply(strings.Join(defn, ""))
 }
