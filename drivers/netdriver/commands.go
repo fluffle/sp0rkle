@@ -3,7 +3,6 @@ package netdriver
 import (
 	"encoding/xml"
 	"fmt"
-	"github.com/fluffle/sp0rkle/base"
 	"github.com/fluffle/sp0rkle/bot"
 	"net/url"
 	"strings"
@@ -11,11 +10,11 @@ import (
 
 const udUrl = "http://www.urbandictionary.com/define.php?term=%s"
 
-func urbanDictionary(line *base.Line) {
-	uri := fmt.Sprintf(udUrl, url.QueryEscape(line.Args[1]))
+func urbanDictionary(ctx *bot.Context) {
+	uri := fmt.Sprintf(udUrl, url.QueryEscape(ctx.Text()))
 	d, err := get(uri)
 	if err != nil {
-		bot.ReplyN(line, "GET failed: %v", err)
+		ctx.ReplyN("GET failed: %v", err)
 		return
 	}
 	// Parsing HTML with encoding/xml is a bit meh.
@@ -23,7 +22,7 @@ func urbanDictionary(line *base.Line) {
 	for {
 		tok, err := d.Token()
 		if err != nil {
-			bot.ReplyN(line, "HTML parse error: %v", err)
+			ctx.ReplyN("HTML parse error: %v", err)
 			break
 		}
 		se, ok := tok.(xml.StartElement)
@@ -43,7 +42,7 @@ LOOP:
 	for {
 		t, err := d.Token()
 		if err != nil {
-			bot.ReplyN(line, "HTML parse error: %v", err)
+			ctx.ReplyN("HTML parse error: %v", err)
 			break
 		}
 		switch tok := t.(type) {
@@ -80,7 +79,7 @@ LOOP:
 		}
 		idx += 251 // after ". " or " " or 250th character
 		out, str = str[:idx], str[idx:]
-		bot.ReplyN(line, "%s ...", out)
+		ctx.ReplyN("%s ...", out)
 	}
-	bot.ReplyN(line, "%s", str)
+	ctx.ReplyN("%s", str)
 }

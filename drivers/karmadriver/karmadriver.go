@@ -11,9 +11,9 @@ var kc *karma.Collection
 func Init() {
 	kc = karma.Init()
 
-	bot.HandleFunc(recordKarma, "privmsg", "action")
+	bot.Handle(recordKarma, "privmsg", "action")
 
-	bot.CommandFunc(karmaCmd, "karma", "karma <thing>  -- "+
+	bot.Command(karmaCmd, "karma", "karma <thing>  -- "+
 		"Retrieve the karma score of <thing>.")
 }
 

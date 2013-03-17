@@ -2,7 +2,7 @@ package factdriver
 
 import (
 	"github.com/fluffle/goirc/client"
-	"github.com/fluffle/sp0rkle/base"
+	"github.com/fluffle/sp0rkle/bot"
 	"github.com/fluffle/sp0rkle/util"
 	"testing"
 	"time"
@@ -17,7 +17,7 @@ func TestIdentifiers(t *testing.T) {
 	}
 	// Static timestamp for great testing justice, no "local" time here kthx.
 	ts := time.Unix(1234567890, 0).UTC()
-	line := &base.Line{
+	ctx := &bot.Context{
 		Line: &client.Line{
 			Nick: "tester", Ident: "tests", Host: "goirc.github.com",
 			Src: "tester!tests@goirc.github.com", Cmd: "PRIVMSG",
@@ -33,7 +33,7 @@ func TestIdentifiers(t *testing.T) {
 		"tester #test tests tests goirc.github.com 23:31:30 Fri Feb 13 23:31:30 2009",
 	}
 	for i, s := range tests {
-		ret := id_replacer(s, line, ts)
+		ret := id_replacer(s, ctx, ts)
 		if ret != expected[i] {
 			t.Errorf("Expected: %s\nGot: %s\n", expected[i], ret)
 		}

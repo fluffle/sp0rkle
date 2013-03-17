@@ -14,12 +14,12 @@ import (
 )
 
 func Init() {
-	bot.PluginFunc(randPlugin)
-	bot.PluginFunc(decidePlugin)
+	bot.Rewrite(randPlugin)
+	bot.Rewrite(decidePlugin)
 
-	bot.CommandFunc(randCmd, "rand", "rand <range>  -- "+
+	bot.Command(randCmd, "rand", "rand <range>  -- "+
 		"choose a random number in range [lo-]hi")
-	bot.CommandFunc(decideCmd, "decide", "decide <options>  -- "+
+	bot.Command(decideCmd, "decide", "decide <options>  -- "+
 		"choose one of the (space, pipe, quote) delimited options at random")
 }
 

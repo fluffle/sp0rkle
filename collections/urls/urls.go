@@ -3,7 +3,7 @@ package urls
 import (
 	"fmt"
 	"github.com/fluffle/golog/logging"
-	"github.com/fluffle/sp0rkle/base"
+	"github.com/fluffle/sp0rkle/bot"
 	"github.com/fluffle/sp0rkle/db"
 	"github.com/fluffle/sp0rkle/util"
 	"labix.org/v2/mgo"
@@ -14,8 +14,8 @@ import (
 const collection string = "urls"
 
 type Url struct {
-	Nick      base.Nick
-	Chan      base.Chan
+	Nick      bot.Nick
+	Chan      bot.Chan
 	Timestamp time.Time
 	Url       string
 	CachedAs  string
@@ -26,7 +26,7 @@ type Url struct {
 	Id        bson.ObjectId `bson:"_id,omitempty"`
 }
 
-func NewUrl(u string, n base.Nick, c base.Chan) *Url {
+func NewUrl(u string, n bot.Nick, c bot.Chan) *Url {
 	return &Url{
 		Url:       u,
 		Nick:      n,

@@ -6,7 +6,6 @@ import (
 	"flag"
 	"fmt"
 	"github.com/fluffle/golog/logging"
-	"github.com/fluffle/sp0rkle/base"
 	"github.com/fluffle/sp0rkle/collections/quotes"
 	"github.com/fluffle/sp0rkle/db"
 	"github.com/kuroneko/gosqlite3"
@@ -30,8 +29,8 @@ func parseQuote(row []interface{}, out chan *quotes.Quote) {
 	out <- &quotes.Quote{
 		Quote:     row[cQuote].(string),
 		QID:       int(row[cID].(int64)),
-		Nick:      base.Nick(row[cNick].(string)),
-		Chan:      base.Chan(row[cChannel].(string)),
+		Nick:      bot.Nick(row[cNick].(string)),
+		Chan:      bot.Chan(row[cChannel].(string)),
 		Accessed:  0,
 		Timestamp: time.Unix(row[cTime].(int64), 0),
 		Id:        bson.NewObjectId(),

@@ -2,11 +2,10 @@ package reminddriver
 
 import (
 	"github.com/fluffle/golog/logging"
-	"github.com/fluffle/sp0rkle/base"
 	"github.com/fluffle/sp0rkle/bot"
 )
 
-func load(line *base.Line) {
+func load(ctx *bot.Context) {
 	// We're connected to IRC, so load saved reminders
 	r := rc.LoadAndPrune()
 	for i := range r {
@@ -14,28 +13,28 @@ func load(line *base.Line) {
 			logging.Warn("Nil reminder %d from LoadAndPrune", i)
 			continue
 		}
-		Remind(r[i])
+		Remind(r[i], ctx)
 	}
 }
 
-func tellCheck(line *base.Line) {
-	nick := line.Nick
-	if line.Cmd == "NICK" {
+func tellCheck(ctx *bot.Context) {
+	nick := ctx.Nick
+	if ctx.Cmd == "NICK" {
 		// We want the destination nick, not the source.
-		nick = line.Args[0]
+		nick = ctx.Target()
 	}
 	r := rc.TellsFor(nick)
 	for i := range r {
-		if line.Cmd == "NICK" {
-			bot.Privmsg(string(r[i].Chan), nick+": "+r[i].Reply())
-			bot.Reply(line, "%s", r[i].Reply())
+		if ctx.Cmd == "NICK" {
+			ctx.Privmsg(string(r[i].Chan), nick+": "+r[i].Reply())
+			ctx.Reply("%s", r[i].Reply())
 		} else {
-			bot.Privmsg(line.Nick, r[i].Reply())
-			bot.ReplyN(line, "%s", r[i].Reply())
+			ctx.Privmsg(ctx.Nick, r[i].Reply())
+			ctx.ReplyN("%s", r[i].Reply())
 		}
 		rc.RemoveId(r[i].Id)
 	}
 	if len(r) > 0 {
-		delete(listed, line.Nick)
+		delete(listed, ctx.Nick)
 	}
 }

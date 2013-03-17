@@ -1,76 +1,76 @@
 package quotedriver
 
 import (
-	"github.com/fluffle/sp0rkle/base"
 	"github.com/fluffle/sp0rkle/bot"
 	"github.com/fluffle/sp0rkle/collections/quotes"
 	"labix.org/v2/mgo/bson"
 	"strconv"
 )
 
-func add(line *base.Line) {
-	n, c := line.Storable()
-	quote := quotes.NewQuote(line.Args[1], n, c)
+func add(ctx *bot.Context) {
+	n, c := ctx.Storable()
+	quote := quotes.NewQuote(ctx.Text(), n, c)
 	quote.QID = qc.NewQID()
 	if err := qc.Insert(quote); err == nil {
-		bot.ReplyN(line, "Quote added succesfully, id #%d.", quote.QID)
+		ctx.ReplyN("Quote added succesfully, id #%d.", quote.QID)
 	} else {
-		bot.ReplyN(line, "Error adding quote: %s.", err)
+		ctx.ReplyN("Error adding quote: %s.", err)
 	}
 }
 
-func del(line *base.Line) {
+func del(ctx *bot.Context) {
+	txt := ctx.Text()
 	// Strip optional # before qid
-	if line.Args[1][0] == '#' {
-		line.Args[1] = line.Args[1][1:]
+	if txt[0] == '#' {
+		txt = txt[1:]
 	}
-	qid, err := strconv.Atoi(line.Args[1])
+	qid, err := strconv.Atoi(txt)
 	if err != nil {
-		bot.ReplyN(line, "'%s' doesn't look like a quote id.", line.Args[1])
+		ctx.ReplyN("'%s' doesn't look like a quote id.", ctx.Text())
 		return
 	}
 	if quote := qc.GetByQID(qid); quote != nil {
 		if err := qc.RemoveId(quote.Id); err == nil {
-			bot.ReplyN(line, "I forgot quote #%d: %s", qid, quote.Quote)
+			ctx.ReplyN("I forgot quote #%d: %s", qid, quote.Quote)
 		} else {
-			bot.ReplyN(line, "I failed to forget quote #%d: %s", qid, err)
+			ctx.ReplyN("I failed to forget quote #%d: %s", qid, err)
 		}
 	} else {
-		bot.ReplyN(line, "No quote found for id %d", qid)
+		ctx.ReplyN("No quote found for id %d", qid)
 	}
 }
 
-func fetch(line *base.Line) {
-	if RateLimit(line.Nick) {
+func fetch(ctx *bot.Context) {
+	if RateLimit(ctx.Nick) {
 		return
 	}
-	qid, err := strconv.Atoi(line.Args[1])
+	qid, err := strconv.Atoi(ctx.Text())
 	if err != nil {
-		bot.ReplyN(line, "'%s' doesn't look like a quote id.", line.Args[1])
+		ctx.ReplyN("'%s' doesn't look like a quote id.", ctx.Text())
 		return
 	}
 	quote := qc.GetByQID(qid)
 	if quote != nil {
-		bot.Reply(line, "#%d: %s", quote.QID, quote.Quote)
+		ctx.Reply("#%d: %s", quote.QID, quote.Quote)
 	} else {
-		bot.ReplyN(line, "No quote found for id %d", qid)
+		ctx.ReplyN("No quote found for id %d", qid)
 	}
 }
 
-func lookup(line *base.Line) {
-	if RateLimit(line.Nick) {
+func lookup(ctx *bot.Context) {
+	if RateLimit(ctx.Nick) {
 		return
 	}
-	quote := qc.GetPseudoRand(line.Args[1])
+	quote := qc.GetPseudoRand(ctx.Text())
 	if quote == nil {
-		bot.ReplyN(line, "No quotes matching '%s' found.", line.Args[1])
+		ctx.ReplyN("No quotes matching '%s' found.", ctx.Text())
 		return
 	}
 
 	// TODO(fluffle): qd should take care of updating Accessed internally
 	quote.Accessed++
 	if err := qc.Update(bson.M{"_id": quote.Id}, quote); err != nil {
-		bot.ReplyN(line, "I failed to update quote #%d: %s", quote.QID, err)
+		ctx.ReplyN("I failed to update quote #%d: %s", quote.QID, err)
 	}
-	bot.Reply(line, "#%d: %s", quote.QID, quote.Quote)
+	ctx.Reply("#%d: %s", quote.QID, quote.Quote)
 }

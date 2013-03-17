@@ -3,7 +3,7 @@ package seen
 import (
 	"fmt"
 	"github.com/fluffle/golog/logging"
-	"github.com/fluffle/sp0rkle/base"
+	"github.com/fluffle/sp0rkle/bot"
 	"github.com/fluffle/sp0rkle/db"
 	"github.com/fluffle/sp0rkle/util"
 	"labix.org/v2/mgo"
@@ -15,9 +15,9 @@ import (
 const COLLECTION string = "seen"
 
 type Nick struct {
-	Nick      base.Nick
-	Chan      base.Chan
-	OtherNick base.Nick
+	Nick      bot.Nick
+	Chan      bot.Chan
+	OtherNick bot.Nick
 	Timestamp time.Time
 	Key       string
 	Action    string
@@ -56,7 +56,7 @@ var actionMap map[string]seenMsg = map[string]seenMsg{
 	"SMOKE": func(n *Nick) string { return "going for a smoke." },
 }
 
-func SawNick(nick base.Nick, ch base.Chan, act, txt string) *Nick {
+func SawNick(nick bot.Nick, ch bot.Chan, act, txt string) *Nick {
 	return &Nick{
 		Nick:      nick,
 		Chan:      ch,

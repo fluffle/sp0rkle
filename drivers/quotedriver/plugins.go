@@ -1,13 +1,13 @@
 package quotedriver
 
 import (
-	"github.com/fluffle/sp0rkle/base"
+	"github.com/fluffle/sp0rkle/bot"
 	"github.com/fluffle/sp0rkle/collections/quotes"
 	"github.com/fluffle/sp0rkle/util"
 	"strconv"
 )
 
-func quotePlugin(in string, line *base.Line) string {
+func quotePlugin(in string, ctx *bot.Context) string {
 	f := func(s string) string {
 		var quote *quotes.Quote
 		if s == "" {

@@ -11,19 +11,19 @@ var qc *quotes.Collection
 func Init() {
 	qc = quotes.Init()
 
-	bot.PluginFunc(quotePlugin)
-	bot.CommandFunc(add, "qadd", "qadd <quote>  -- Adds a quote to the db.")
-	bot.CommandFunc(add, "quote add",
+	bot.Rewrite(quotePlugin)
+	bot.Command(add, "qadd", "qadd <quote>  -- Adds a quote to the db.")
+	bot.Command(add, "quote add",
 		"quote add <quote>  -- Adds a quote to the db.")
-	bot.CommandFunc(add, "add quote",
+	bot.Command(add, "add quote",
 		"add quote <quote>  -- Adds a quote to the db.")
-	bot.CommandFunc(del, "qdel", "qdel #<qID>  -- Deletes a quote from the db.")
-	bot.CommandFunc(del, "quote del",
+	bot.Command(del, "qdel", "qdel #<qID>  -- Deletes a quote from the db.")
+	bot.Command(del, "quote del",
 		"quote del #<qID>  -- Deletes a quote from the db.")
-	bot.CommandFunc(del, "del quote",
+	bot.Command(del, "del quote",
 		"del quote #<qID>  -- Deletes a quote from the db.")
-	bot.CommandFunc(fetch, "quote #", "quote #<qID>  -- Displays quote <qID>.")
-	bot.CommandFunc(lookup, "quote",
+	bot.Command(fetch, "quote #", "quote #<qID>  -- Displays quote <qID>.")
+	bot.Command(lookup, "quote",
 		"quote <regex>  -- Displays quotes matching <regex>")
 }
 

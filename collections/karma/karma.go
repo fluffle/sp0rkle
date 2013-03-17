@@ -3,7 +3,7 @@ package karma
 import (
 	"fmt"
 	"github.com/fluffle/golog/logging"
-	"github.com/fluffle/sp0rkle/base"
+	"github.com/fluffle/sp0rkle/bot"
 	"github.com/fluffle/sp0rkle/db"
 	"labix.org/v2/mgo"
 	"labix.org/v2/mgo/bson"
@@ -19,9 +19,9 @@ type Karma struct {
 	Key       string
 	Score     int
 	Votes     int
-	Upvoter   base.Nick
+	Upvoter   bot.Nick
 	Upvtime   time.Time
-	Downvoter base.Nick
+	Downvoter bot.Nick
 	Downvtime time.Time
 }
 
@@ -32,13 +32,13 @@ func New(thing string) *Karma {
 	}
 }
 
-func (k *Karma) Plus(who base.Nick) {
+func (k *Karma) Plus(who bot.Nick) {
 	k.Score++
 	k.Votes++
 	k.Upvoter, k.Upvtime = who, time.Now()
 }
 
-func (k *Karma) Minus(who base.Nick) {
+func (k *Karma) Minus(who bot.Nick) {
 	k.Score--
 	k.Votes++
 	k.Downvoter, k.Downvtime = who, time.Now()

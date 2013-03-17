@@ -41,30 +41,30 @@ func Init() {
 		logging.Fatal("Couldn't create URL cache dir: %v", err)
 	}
 
-	bot.HandleFunc(urlScan, "privmsg")
+	bot.Handle(urlScan, "privmsg")
 
-	bot.CommandFunc(find, "urlfind", "urlfind <regex>  -- "+
+	bot.Command(find, "urlfind", "urlfind <regex>  -- "+
 		"searches for previously mentioned URLs matching <regex>")
-	bot.CommandFunc(find, "url find", "url find <regex>  -- "+
+	bot.Command(find, "url find", "url find <regex>  -- "+
 		"searches for previously mentioned URLs matching <regex>")
-	bot.CommandFunc(find, "urlsearch", "urlsearch <regex>  -- "+
+	bot.Command(find, "urlsearch", "urlsearch <regex>  -- "+
 		"searches for previously mentioned URLs matching <regex>")
-	bot.CommandFunc(find, "url search", "url search <regex>  -- "+
+	bot.Command(find, "url search", "url search <regex>  -- "+
 		"searches for previously mentioned URLs matching <regex>")
 
-	bot.CommandFunc(find, "randurl", "randurl  -- displays a random URL")
-	bot.CommandFunc(find, "random url", "random url  -- displays a random URL")
+	bot.Command(find, "randurl", "randurl  -- displays a random URL")
+	bot.Command(find, "random url", "random url  -- displays a random URL")
 
-	bot.CommandFunc(shorten, "shorten that", "shorten that  -- "+
+	bot.Command(shorten, "shorten that", "shorten that  -- "+
 		"shortens the last mentioned URL.")
-	bot.CommandFunc(shorten, "shorten", "shorten <url>  -- shortens <url>")
+	bot.Command(shorten, "shorten", "shorten <url>  -- shortens <url>")
 
-	bot.CommandFunc(cache, "cache that", "cache that  -- "+
+	bot.Command(cache, "cache that", "cache that  -- "+
 		"caches the last mentioned URL.")
-	bot.CommandFunc(cache, "cache", "cache <url>  -- caches <url>")
-	bot.CommandFunc(cache, "save that", "save that  -- "+
+	bot.Command(cache, "cache", "cache <url>  -- caches <url>")
+	bot.Command(cache, "save that", "save that  -- "+
 		"caches the last mentioned URL.")
-	bot.CommandFunc(cache, "save", "save <url>  -- caches <url>")
+	bot.Command(cache, "save", "save <url>  -- caches <url>")
 
 	// This serves "shortened" urls 
 	http.Handle(shortenPath, http.StripPrefix(shortenPath,

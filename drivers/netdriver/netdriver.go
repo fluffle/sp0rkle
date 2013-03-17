@@ -19,6 +19,6 @@ func get(req string) (*xml.Decoder, error) {
 }
 
 func Init() {
-	bot.CommandFunc(urbanDictionary, "ud", "ud <term>  -- "+
+	bot.Command(urbanDictionary, "ud", "ud <term>  -- "+
 		"Look up <term> on UrbanDictionary.")
 }

@@ -3,7 +3,7 @@ package reminders
 import (
 	"fmt"
 	"github.com/fluffle/golog/logging"
-	"github.com/fluffle/sp0rkle/base"
+	"github.com/fluffle/sp0rkle/bot"
 	"github.com/fluffle/sp0rkle/db"
 	"labix.org/v2/mgo"
 	"labix.org/v2/mgo/bson"
@@ -15,9 +15,9 @@ const COLLECTION = "reminders"
 const RemindTimeFormat = "15:04:05, Monday 2 January 2006"
 
 type Reminder struct {
-	Source   base.Nick
-	Target   base.Nick
-	Chan     base.Chan
+	Source   bot.Nick
+	Target   bot.Nick
+	Chan     bot.Chan
 	From, To string
 	Reminder string
 	Created  time.Time
@@ -26,7 +26,7 @@ type Reminder struct {
 	Id       bson.ObjectId `bson:"_id,omitempty"`
 }
 
-func NewReminder(r string, at time.Time, t, n base.Nick, c base.Chan) *Reminder {
+func NewReminder(r string, at time.Time, t, n bot.Nick, c bot.Chan) *Reminder {
 	return &Reminder{
 		Source:   n,
 		Target:   t,
@@ -41,7 +41,7 @@ func NewReminder(r string, at time.Time, t, n base.Nick, c base.Chan) *Reminder 
 	}
 }
 
-func NewTell(msg string, t, n base.Nick, c base.Chan) *Reminder {
+func NewTell(msg string, t, n bot.Nick, c bot.Chan) *Reminder {
 	return &Reminder{
 		Chan:     c,
 		Source:   n,

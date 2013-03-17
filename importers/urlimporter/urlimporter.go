@@ -4,7 +4,6 @@ import (
 	"flag"
 	"fmt"
 	"github.com/fluffle/golog/logging"
-	"github.com/fluffle/sp0rkle/base"
 	"github.com/fluffle/sp0rkle/collections/urls"
 	"github.com/fluffle/sp0rkle/db"
 	"github.com/kuroneko/gosqlite3"
@@ -30,8 +29,8 @@ const (
 
 func parseUrl(row []interface{}) *urls.Url {
 	return &urls.Url{
-		Nick:      base.Nick(row[cNick].(string)),
-		Chan:      base.Chan(row[cChannel].(string)),
+		Nick:      bot.Nick(row[cNick].(string)),
+		Chan:      bot.Chan(row[cChannel].(string)),
 		Url:       row[cUrl].(string),
 		Timestamp: time.Unix(row[cTime].(int64), 0),
 		Id:        bson.NewObjectId(),

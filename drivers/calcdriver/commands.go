@@ -2,7 +2,6 @@ package calcdriver
 
 import (
 	"fmt"
-	"github.com/fluffle/sp0rkle/base"
 	"github.com/fluffle/sp0rkle/bot"
 	"github.com/fluffle/sp0rkle/util/calc"
 	"github.com/fluffle/sp0rkle/util/datetime"
@@ -13,24 +12,24 @@ import (
 	"unicode/utf8"
 )
 
-func calculate(line *base.Line) {
-	maths := line.Args[1]
+func calculate(ctx *bot.Context) {
+	maths := ctx.Text()
 	if num, err := calc.Calc(maths); err == nil {
-		bot.ReplyN(line, "%s = %g", maths, num)
+		ctx.ReplyN("%s = %g", maths, num)
 	} else {
-		bot.ReplyN(line, "%s error while parsing %s", err, maths)
+		ctx.ReplyN("%s error while parsing %s", err, maths)
 	}
 }
 
-func date(line *base.Line) {
-	tstr, zone := line.Args[1], ""
+func date(ctx *bot.Context) {
+	tstr, zone := ctx.Text(), ""
 	if idx := strings.Index(tstr, "in "); idx != -1 {
 		tstr, zone = tstr[:idx], strings.TrimSpace(tstr[idx+3:])
 	}
 	tm, ok := time.Now(), true
 	if tstr != "" {
 		if tm, ok = datetime.Parse(tstr); !ok {
-			bot.ReplyN(line, "Couldn't parse time string '%s'.", tstr)
+			ctx.ReplyN("Couldn't parse time string '%s'.", tstr)
 			return
 		}
 	}
@@ -39,19 +38,19 @@ func date(line *base.Line) {
 	} else {
 		tm = tm.In(time.Local)
 	}
-	bot.ReplyN(line, "%s", tm.Format(DateTimeFormat))
+	ctx.ReplyN("%s", tm.Format(DateTimeFormat))
 }
 
-func netmask(line *base.Line) {
-	s := strings.Split(line.Args[1], " ")
+func netmask(ctx *bot.Context) {
+	s := strings.Split(ctx.Text(), " ")
 	if len(s) == 1 && strings.Index(s[0], "/") != -1 {
 		// Assume we have netmask ip/cidr
-		bot.ReplyN(line, "%s", parseCIDR(s[0]))
+		ctx.ReplyN("%s", parseCIDR(s[0]))
 	} else if len(s) == 2 {
 		// Assume we have netmask ip nm
-		bot.ReplyN(line, "%s", parseMask(s[0], s[1]))
+		ctx.ReplyN("%s", parseMask(s[0], s[1]))
 	} else {
-		bot.ReplyN(line, "bad netmask args: %s", line.Args[1])
+		ctx.ReplyN("bad netmask args: %s", ctx.Text())
 	}
 }
 
@@ -103,8 +102,8 @@ func parseMask(ips, nms string) string {
 		ip, cidr, btm, top, nmip)
 }
 
-func chr(line *base.Line) {
-	chr := strings.ToLower(line.Args[1])
+func chr(ctx *bot.Context) {
+	chr := strings.ToLower(ctx.Text())
 	if strings.HasPrefix(chr, "u+") {
 		// Allow "unicode" syntax by translating it to 0x...
 		chr = "0x" + chr[2:]
@@ -112,20 +111,20 @@ func chr(line *base.Line) {
 	// handles decimal, hex, and octal \o/
 	i, err := strconv.ParseInt(chr, 0, 0)
 	if err != nil {
-		bot.ReplyN(line, "Couldn't parse %s as an integer: %s", chr, err)
+		ctx.ReplyN("Couldn't parse %s as an integer: %s", chr, err)
 		return
 	}
-	bot.ReplyN(line, "chr(%s) is %c, %U, '%s'", chr, i, i, utf8repr(rune(i)))
+	ctx.ReplyN("chr(%s) is %c, %U, '%s'", chr, i, i, utf8repr(rune(i)))
 }
 
-func ord(line *base.Line) {
-	ord := line.Args[1]
+func ord(ctx *bot.Context) {
+	ord := ctx.Text()
 	r, _ := utf8.DecodeRuneInString(ord)
 	if r == utf8.RuneError {
-		bot.ReplyN(line, "Couldn't parse a utf8 rune from %s", ord)
+		ctx.ReplyN("Couldn't parse a utf8 rune from %s", ord)
 		return
 	}
-	bot.ReplyN(line, "ord(%c) is %d, %U, '%s'", r, r, r, utf8repr(r))
+	ctx.ReplyN("ord(%c) is %d, %U, '%s'", r, r, r, utf8repr(r))
 }
 
 func utf8repr(r rune) string {
@@ -138,31 +137,34 @@ func utf8repr(r rune) string {
 	return strings.Join(s, " ")
 }
 
-func convertBase(line *base.Line) {
-	s := strings.Split(line.Args[1], " ")
+func convertBase(ctx *bot.Context) {
+	s := strings.Split(ctx.Text(), " ")
 	fromto := strings.Split(s[0], "to")
 	if len(fromto) != 2 {
-		bot.ReplyN(line, "Specify base as: <from base>to<to base>")
+		ctx.ReplyN("Specify base as: <from base>to<to base>")
 		return
 	}
 	from, errf := strconv.Atoi(fromto[0])
 	to, errt := strconv.Atoi(fromto[1])
 	if errf != nil || errt != nil ||
 		from < 2 || from > 36 || to < 2 || to > 36 {
-		bot.ReplyN(line, "Either %s or %s is a bad base, must be in range 2-36",
+		ctx.ReplyN("Either %s or %s is a bad base, must be in range 2-36",
 			fromto[0], fromto[1])
+
 		return
 	}
 	i, err := strconv.ParseInt(s[1], from, 64)
 	if err != nil {
-		bot.ReplyN(line, "Couldn't parse %s as a base %d integer", s[1], from)
+		ctx.ReplyN("Couldn't parse %s as a base %d integer", s[1], from)
 		return
 	}
-	bot.ReplyN(line, "%s in base %d is %s in base %d",
+	ctx.ReplyN("%s in base %d is %s in base %d",
 		s[1], from, strconv.FormatInt(i, to), to)
+
 }
 
-func length(line *base.Line) {
-	bot.ReplyN(line, "'%s' is %d characters long",
-		line.Args[1], len(line.Args[1]))
+func length(ctx *bot.Context) {
+	ctx.ReplyN("'%s' is %d characters long",
+		ctx.Text(), len(ctx.Text()))
+
 }

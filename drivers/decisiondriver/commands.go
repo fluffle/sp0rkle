@@ -1,18 +1,17 @@
 package decisiondriver
 
 import (
-	"github.com/fluffle/sp0rkle/base"
 	"github.com/fluffle/sp0rkle/bot"
 	"github.com/fluffle/sp0rkle/util"
 	"strings"
 )
 
-func decideCmd(line *base.Line) {
-	opts := splitDelimitedString(line.Args[1])
+func decideCmd(ctx *bot.Context) {
+	opts := splitDelimitedString(ctx.Text())
 	chosen := strings.TrimSpace(opts[util.RNG.Intn(len(opts))])
-	bot.ReplyN(line, "%s", chosen)
+	ctx.ReplyN("%s", chosen)
 }
 
-func randCmd(line *base.Line) {
-	bot.ReplyN(line, "%s", randomFloatAsString(line.Args[1], util.RNG))
+func randCmd(ctx *bot.Context) {
+	ctx.ReplyN("%s", randomFloatAsString(ctx.Text(), util.RNG))
 }

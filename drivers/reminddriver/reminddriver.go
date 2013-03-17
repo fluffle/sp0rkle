@@ -21,20 +21,20 @@ func Init() {
 	rc = reminders.Init()
 
 	// Set up the handlers and commands.
-	bot.HandleFunc(load, "connected")
-	bot.HandleFunc(tellCheck, "privmsg", "action", "join", "nick")
+	bot.Handle(load, "connected")
+	bot.Handle(tellCheck, "privmsg", "action", "join", "nick")
 
-	bot.CommandFunc(tell, "tell", "tell <nick> <msg>  -- "+
+	bot.Command(tell, "tell", "tell <nick> <msg>  -- "+
 		"Stores a message for the (absent) nick.")
-	bot.CommandFunc(list, "remind list",
+	bot.Command(list, "remind list",
 		"remind list  -- Lists reminders set by or for your nick.")
-	bot.CommandFunc(del, "remind del",
+	bot.Command(del, "remind del",
 		"remind del <N>  -- Deletes (previously listed) reminder N.")
-	bot.CommandFunc(set, "remind", "remind <nick> <msg> "+
+	bot.Command(set, "remind", "remind <nick> <msg> "+
 		"in|at|on <time>  -- Reminds nick about msg at time.")
 }
 
-func Remind(r *reminders.Reminder) {
+func Remind(r *reminders.Reminder, ctx *bot.Context) {
 	delta := r.RemindAt.Sub(time.Now())
 	if delta < 0 {
 		return
@@ -44,9 +44,9 @@ func Remind(r *reminders.Reminder) {
 	go func() {
 		select {
 		case <-time.After(delta):
-			bot.Privmsg(string(r.Chan), r.Reply())
+			ctx.Privmsg(string(r.Chan), r.Reply())
 			// TODO(fluffle): Tie this into state tracking properly.
-			bot.Privmsg(string(r.Target), r.Reply())
+			ctx.Privmsg(string(r.Target), r.Reply())
 			Forget(r.Id, false)
 		case <-c:
 			return

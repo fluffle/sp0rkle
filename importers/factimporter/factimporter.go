@@ -6,7 +6,6 @@ import (
 	"flag"
 	"fmt"
 	"github.com/fluffle/golog/logging"
-	"github.com/fluffle/sp0rkle/base"
 	"github.com/fluffle/sp0rkle/collections/factoids"
 	"github.com/fluffle/sp0rkle/db"
 	"github.com/fluffle/sp0rkle/util"
@@ -38,7 +37,7 @@ const (
 func parseFactoid(row []interface{}, out chan *factoids.Factoid) {
 	values := parseMultipleValues(toString(row[cValue]))
 	c := &factoids.FactoidStat{
-		Nick:  base.Nick(toString(row[cCreator])),
+		Nick:  bot.Nick(toString(row[cCreator])),
 		Chan:  "",
 		Count: 1,
 	}
@@ -46,7 +45,7 @@ func parseFactoid(row []interface{}, out chan *factoids.Factoid) {
 	m := &factoids.FactoidStat{Chan: "", Count: 0}
 	if ts, ok := parseTimestamp(row[cModified]); ok {
 		m.Timestamp = ts
-		m.Nick = base.Nick(toString(row[cModifier]))
+		m.Nick = bot.Nick(toString(row[cModifier]))
 		m.Count = 1
 	} else {
 		m.Timestamp = c.Timestamp
@@ -54,7 +53,7 @@ func parseFactoid(row []interface{}, out chan *factoids.Factoid) {
 	}
 	p := &factoids.FactoidPerms{
 		parseReadOnly(row[cAccess]),
-		base.Nick(toString(row[cCreator])),
+		bot.Nick(toString(row[cCreator])),
 	}
 	for _, val := range values {
 		t, v := parseValue(toString(row[cKey]), toString(row[cRel]), val)
