@@ -1,6 +1,7 @@
 package seendriver
 
 import (
+	"github.com/fluffle/goirc/client"
 	"github.com/fluffle/sp0rkle/bot"
 	"github.com/fluffle/sp0rkle/collections/seen"
 	"regexp"
@@ -41,11 +42,11 @@ var sc *seen.Collection
 func Init() {
 	sc = seen.Init()
 
-	bot.Handle(smoke, "privmsg", "action")
-	bot.Handle(recordPrivmsg, "privmsg", "action")
-	bot.Handle(recordJoin, "join", "part")
-	bot.Handle(recordNick, "nick", "quit")
-	bot.Handle(recordKick, "kick")
+	bot.Handle(smoke, client.PRIVMSG, client.ACTION)
+	bot.Handle(recordPrivmsg, client.PRIVMSG, client.ACTION)
+	bot.Handle(recordJoin, client.JOIN, client.PART)
+	bot.Handle(recordNick, client.NICK, client.QUIT)
+	bot.Handle(recordKick, client.KICK)
 
 	bot.Command(seenCmd, "seen", "seen <nick> [action]  -- "+
 		"display the last time <nick> was seen on IRC [doing action]")

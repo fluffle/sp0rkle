@@ -4,6 +4,7 @@ import (
 	"encoding/base64"
 	"flag"
 	"fmt"
+	"github.com/fluffle/goirc/client"
 	"github.com/fluffle/golog/logging"
 	"github.com/fluffle/sp0rkle/bot"
 	"github.com/fluffle/sp0rkle/collections/urls"
@@ -41,7 +42,7 @@ func Init() {
 		logging.Fatal("Couldn't create URL cache dir: %v", err)
 	}
 
-	bot.Handle(urlScan, "privmsg")
+	bot.Handle(urlScan, client.PRIVMSG)
 
 	bot.Command(find, "urlfind", "urlfind <regex>  -- "+
 		"searches for previously mentioned URLs matching <regex>")

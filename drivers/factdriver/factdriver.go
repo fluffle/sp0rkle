@@ -1,6 +1,7 @@
 package factdriver
 
 import (
+	"github.com/fluffle/goirc/client"
 	"github.com/fluffle/sp0rkle/bot"
 	"github.com/fluffle/sp0rkle/collections/factoids"
 	"github.com/fluffle/sp0rkle/util"
@@ -19,8 +20,8 @@ var lastSeen = map[string]bson.ObjectId{}
 func Init() {
 	fc = factoids.Init()
 
-	bot.Handle(insert, "privmsg")
-	bot.Handle(lookup, "privmsg", "action")
+	bot.Handle(insert, client.PRIVMSG)
+	bot.Handle(lookup, client.PRIVMSG, client.ACTION)
 
 	bot.Rewrite(replaceIdentifiers)
 

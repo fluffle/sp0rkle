@@ -1,6 +1,7 @@
 package reminddriver
 
 import (
+	"github.com/fluffle/goirc/client"
 	"github.com/fluffle/golog/logging"
 	"github.com/fluffle/sp0rkle/bot"
 	"github.com/fluffle/sp0rkle/collections/reminders"
@@ -21,8 +22,9 @@ func Init() {
 	rc = reminders.Init()
 
 	// Set up the handlers and commands.
-	bot.Handle(load, "connected")
-	bot.Handle(tellCheck, "privmsg", "action", "join", "nick")
+	bot.Handle(load, client.CONNECTED)
+	bot.Handle(tellCheck,
+		client.PRIVMSG, client.ACTION, client.JOIN, client.NICK)
 
 	bot.Command(tell, "tell", "tell <nick> <msg>  -- "+
 		"Stores a message for the (absent) nick.")

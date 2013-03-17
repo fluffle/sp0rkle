@@ -1,6 +1,7 @@
 package factdriver
 
 import (
+	"github.com/fluffle/goirc/client"
 	"github.com/fluffle/sp0rkle/bot"
 	"github.com/fluffle/sp0rkle/collections/factoids"
 	"github.com/fluffle/sp0rkle/util"
@@ -49,7 +50,7 @@ func lookup(ctx *bot.Context) {
 	key := ToKey(ctx.Text(), !ctx.Addressed)
 	var fact *factoids.Factoid
 
-	if fact = fc.GetPseudoRand(key); fact == nil && ctx.Cmd == "ACTION" {
+	if fact = fc.GetPseudoRand(key); fact == nil && ctx.Cmd == client.ACTION {
 		// Support sp0rkle's habit of stripping off it's own nick
 		// but only for actions, not privmsgs.
 		if strings.HasSuffix(key, ctx.Me()) {
