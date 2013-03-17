@@ -55,16 +55,16 @@ o_dayqual: /* empty */ | T_DAYQUAL;
 
 ampm:
 	'A' 'M' {
-	    $$ = 0
+		$$ = 0
 	}
 	| 'A' '.' 'M' '.' {
-	    $$ = 0
+		$$ = 0
 	}
 	| 'P' 'M' {
-	    $$ = 12
+		$$ = 12
 	}
 	| 'P' '.' 'M' '.' {
-	    $$ = 12
+		$$ = 12
 	};
 
 timesep: ':' | '.';
@@ -209,7 +209,7 @@ date:
 		}
 	}
 	| T_INTEGER T_MINUS T_MONTHNAME T_MINUS T_INTEGER {
-	    // RFC 850, srsly :(
+		// RFC 850, srsly :(
 		l := yylex.(*dateLexer)
 		if $5.l == 4 {
 			// assume DD-Mon-YYYY
@@ -294,10 +294,10 @@ iso_8601_date_time:
 		if $1.l == 8 {
 			// assume ISO 8601 YYYYMMDD
 			l.setYMD($1.i, $1.l)
-        } else if $1.l == 7 {
-            // assume ISO 8601 ordinal YYYYDDD
+		} else if $1.l == 7 {
+			// assume ISO 8601 ordinal YYYYDDD
 			l.setDate($1.i / 1000, 1, $1.i % 1000)
-        }
+		}
 		l.setHMS($3.i, $3.l, $4)
 	};
 
@@ -398,7 +398,7 @@ relunit:
 		// Resolve 'm' ambiguity in favour of minutes outside ISO duration
 		yylex.(*dateLexer).addOffset(O_MIN, $1.i)
 	} o_sign_integer 'W' {
-	    yylex.(*dateLexer).addOffset(O_DAY, $1.i * 7)
+		yylex.(*dateLexer).addOffset(O_DAY, $1.i * 7)
 	};
 
 /* date/time based durations not yet supported */
@@ -449,8 +449,8 @@ integer:
 		if $1.l == 8 {
 			// assume ISO 8601 YYYYMMDD
 			l.setYMD($1.i, $1.l)
-        } else if $1.l == 7 {
-            // assume ISO 8601 ordinal YYYYDDD
+		} else if $1.l == 7 {
+			// assume ISO 8601 ordinal YYYYDDD
 			l.setDate($1.i / 1000, 1, $1.i % 1000)
 		} else if $1.l == 6 {
 			// assume ISO 8601 HHMMSS with no zone
@@ -461,8 +461,8 @@ integer:
 			// Probably should be HHMM instead...
 			l.setYear($1.i)
 		} else if $1.l == 2 {
-            // assume HH with no zone
-            l.setHMS($1.i, $1.l, nil)
-        }
+			// assume HH with no zone
+			l.setHMS($1.i, $1.l, nil)
+		}
 	};
 %%
