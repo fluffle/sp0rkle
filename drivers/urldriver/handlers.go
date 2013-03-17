@@ -22,7 +22,7 @@ func urlScan(ctx *bot.Context) {
 				continue
 			}
 			u := urls.NewUrl(w, n, c)
-			if len(w) > autoShortenLimit {
+			if len(w) > autoShortenLimit && ctx.Public() {
 				u.Shortened = Encode(w)
 			}
 			if err := uc.Insert(u); err != nil {
