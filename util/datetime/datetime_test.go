@@ -9,9 +9,9 @@ func TestParseTimeFormats(t *testing.T) {
 	// RFC822 doesn't specify seconds, and Stamp doesn't specify year
 	ref := time.Date(2004, 6, 22, 13, 10, 0, 0, time.Local)
 	formats := []string{
-//		time.ANSIC,       // fails, year after time
-//		time.UnixDate,    // fails, year after zone
-//		time.RubyDate,    // fails, year after zone
+		time.ANSIC,
+		time.UnixDate,
+		time.RubyDate,
 		time.RFC822,
 		time.RFC822Z,
 		time.RFC850,
@@ -175,11 +175,11 @@ func TestParseDate(t *testing.T) {
 		{"02-Mar-2004", mkt(2004, 3, 2)},
 		{"2-March-68", mkt(2068, 3, 2)},
 		{"02-March-69", mkt(1969, 3, 2)},
-		// T_MONTHNAME o_the T_INTEGER o_dayqual o_comma T_INTEGER
+		// T_MONTHNAME o_the T_INTEGER o_dayqual comma T_INTEGER
 		{"March 2, 2004", mkt(2004, 3, 2)},
-		{"Mar 02 2004", mkt(2004, 3, 2)},
+		{"Mar 02, 2004", mkt(2004, 3, 2)},
 		{"March the 2nd, 04", mkt(2004, 3, 2)},
-		{"March the 3rd 04", mkt(2004, 3, 3)},
+		{"March the 3rd, 04", mkt(2004, 3, 3)},
 		{"March 2, 68", mkt(2068, 3, 2)},
 		{"March 2, 69", mkt(1969, 3, 2)},
 		// T_INTEGER T_MINUS T_INTEGER as YYYY-DDD

@@ -34,7 +34,7 @@ type textint struct {
 %token <zoneval> T_ZONE
 
 %type <intval>   sign ampm
-%type <tval>     o_sign_integer
+%type <tval>     o_sign_integer o_integer
 %type <zoneval>  zone o_zone
 
 %%
@@ -51,6 +51,8 @@ o_of: /* empty */ | T_OF;
 o_the: /* empty */ | T_THE;
 
 o_dayqual: /* empty */ | T_DAYQUAL;
+
+o_integer: /* empty */ { $$ = textint{} } | T_INTEGER;
 
 ampm:
 	'A' 'M' {
@@ -156,8 +158,12 @@ iso_8601_time:
 	| T_INTEGER timesep T_INTEGER o_zone {
 		yylex.(*dateLexer).setTime($1.i, $3.i, 0, $4)
 	}
-	| T_INTEGER timesep T_INTEGER timesep T_INTEGER o_zone {
+	| T_INTEGER timesep T_INTEGER timesep T_INTEGER o_zone o_integer {
 		yylex.(*dateLexer).setTime($1.i, $3.i, $5.i, $6)
+		// Hack to make time.ANSIC, time.UnixDate and time.RubyDate parse
+		if $7.l == 4 {
+			yylex.(*dateLexer).setYear($7.i)
+		}
 	};
 
 // ISO 8601 takes care of dash-separated big-endian date formats,
@@ -249,16 +255,18 @@ date:
 			l.setDate($5.i + 2000, $3, $1.i)
 		}
 	}
-	| T_MONTHNAME o_the T_INTEGER o_dayqual o_comma T_INTEGER {
+	| T_MONTHNAME o_the T_INTEGER o_dayqual comma T_INTEGER {
+		// comma cannot be optional here; T_MONTHNAME T_INTEGER T_INTEGER
+		// can easily match [March 02 10]:30:00 and break parsing.
 		l := yylex.(*dateLexer)
 		if $6.l == 4 {
-			// assume Month [the] DD[th][,] YYYY
+			// assume Month [the] DD[th], YYYY
 			l.setDate($6.i, $1, $3.i)
 		} else if $6.i > 68 {
-			// assume Month [the] DD[th][,] YY, add 1900 if YY > 68
+			// assume Month [the] DD[th], YY, add 1900 if YY > 68
 			l.setDate($6.i + 1900, $1, $3.i)
 		} else {
-			// assume Month [the] DD[th][,] YY, add 2000 otherwise
+			// assume Month [the] DD[th], YY, add 2000 otherwise
 			l.setDate($6.i + 2000, $1, $3.i)
 		}
 	};
