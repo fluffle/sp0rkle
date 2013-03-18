@@ -84,6 +84,7 @@ type lexerState int
 const (
 	HAVE_TIME lexerState = 1 << iota
 	HAVE_DATE
+	HAVE_DAY
 	HAVE_DAYS
 	HAVE_MONTHS
 	HAVE_OFFSET
@@ -107,6 +108,7 @@ type dateLexer struct {
 	*util.Lexer
 	hourfmt, ampmfmt, zonefmt string
 	time, date                time.Time // takes care of absolute time and date specs
+	day                       int       // takes care of absolute day of relative month 
 	offsets                   relTime   // takes care of +- ymd hms
 	days                      relDays   // takes care of specific days into future
 	months                    relMonths // takes care of specific months into future
@@ -219,9 +221,20 @@ func (l *dateLexer) setDate(y, m, d int) {
 	l.date = time.Date(y, time.Month(m), d, 0, 0, 0, 0, time.Local)
 }
 
-func (l *dateLexer) setDay(d, n int, year ...int) {
+func (l *dateLexer) setDay(d int) {
 	if DEBUG {
-		fmt.Printf("Setting day to %d %s\n", n, time.Weekday(d))
+		fmt.Printf("Setting day to %d\n", d)
+	}
+	if l.state(HAVE_DAY, true) {
+		l.Error("Parsed two absolute days")
+		return
+	}
+	l.day = d
+}
+
+func (l *dateLexer) setDays(d, n int, year ...int) {
+	if DEBUG {
+		fmt.Printf("Setting days to %d %s\n", n, time.Weekday(d))
 	}
 	if l.state(HAVE_DAYS, true) {
 		l.Error("Parsed two days")
@@ -248,7 +261,7 @@ func (l *dateLexer) setWeek(year, week, wday int) {
 	l.setDate(year, 1, ord)
 }
 
-func (l *dateLexer) setMonth(m, n int, year ...int) {
+func (l *dateLexer) setMonths(m, n int, year ...int) {
 	if DEBUG {
 		fmt.Printf("Setting month to %d %s\n", n, time.Month(m))
 	}
@@ -330,6 +343,16 @@ func (l *dateLexer) resolveDate(rel time.Time) time.Time {
 	rel = time.Date(y, m, d, h, n, s, 0, rel.Location())
 	if DEBUG {
 		fmt.Printf("Parsed date as %s %s\n", rel.Weekday(), rel)
+	}
+	return rel
+}
+
+func (l *dateLexer) resolveDay(rel time.Time) time.Time {
+	y, m, _ := rel.Date()
+	h, n, s := rel.Clock()
+	rel = time.Date(y, m, l.day, h, n, s, 0, rel.Location())
+	if DEBUG {
+		fmt.Printf("Parsed day as %s %s\n", rel.Weekday(), rel)
 	}
 	return rel
 }
@@ -421,6 +444,9 @@ func resolve(l *dateLexer, rel time.Time) (time.Time, bool) {
 	}
 	if l.state(HAVE_DATE) {
 		rel = l.resolveDate(rel)
+	}
+	if l.state(HAVE_DAY) {
+		rel = l.resolveDay(rel)
 	}
 	// We need to resolve relative or absolute months before relative days
 	if l.state(HAVE_MONTHS) {

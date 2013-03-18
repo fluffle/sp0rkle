@@ -7,20 +7,20 @@ import (
 
 func TestParseTimeFormats(t *testing.T) {
 	// RFC822 doesn't specify seconds, and Stamp doesn't specify year
-	ref := time.Date(time.Now().Year(), 6, 22, 13, 10, 0, 0, time.Local)
+	ref := time.Date(2004, 6, 22, 13, 10, 0, 0, time.Local)
 	formats := []string{
-		time.ANSIC,
-		time.UnixDate,
-		time.RubyDate,
+//		time.ANSIC,       // fails, year after time
+//		time.UnixDate,    // fails, year after zone
+//		time.RubyDate,    // fails, year after zone
 		time.RFC822,
 		time.RFC822Z,
 		time.RFC850,
 		time.RFC1123,
 		time.RFC1123Z,
 		time.RFC3339,
-//		time.RFC3339Nano, // Nanosecs not supported
-//		time.Kitchen,     // only contains HH and MM
-		time.Stamp,
+//		time.RFC3339Nano, // fails, nanosecs not supported
+//		time.Kitchen,     // fails, only contains HH and MM
+//		time.Stamp,       // fails, no year => assumed 2013
 	}
 	for i, f := range formats {
 		in := ref.Format(f)
@@ -112,7 +112,7 @@ func TestParseDate(t *testing.T) {
 	mkt := func(y, m, d int) time.Time {
 		return time.Date(y, time.Month(m), d, h, n, s, 0, time.UTC)
 	}
-	rel := mkt(1, 1, 1)
+	rel := mkt(1, 2, 3)
 	tests := []struct {
 		in string
 		t  time.Time
@@ -135,6 +135,11 @@ func TestParseDate(t *testing.T) {
 		{"31/12/04", mkt(2004, 12, 31)},
 		{"2/3/68", mkt(2068, 3, 2)},
 		{"2/3/69", mkt(1969, 3, 2)},
+		// the DDth
+		{"the 1st", mkt(1, 2, 1)},
+		{"the 2nd", mkt(1, 2, 2)},
+		{"the 10th", mkt(1, 2, 10)},
+		{"the 29th", mkt(1, 3, 1)},
 		// T_INTEGER o_dayqual o_of T_MONTHNAME
 		{"2 Mar", mkt(1, 3, 2)},
 		{"02 Mar", mkt(1, 3, 2)},

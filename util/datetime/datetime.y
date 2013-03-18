@@ -26,7 +26,7 @@ type textint struct {
 	zoneval *time.Location
 }
 
-%token           T_DAYQUAL
+%token           T_DAYQUAL T_THE
 %token <tval>    T_INTEGER
 %token <intval>  T_PLUS T_MINUS
 %token <intval>  T_MONTHNAME T_DAYNAME T_DAYS T_DAYSHIFT
@@ -187,6 +187,10 @@ date:
 			l.setDate($5.i + 2000, $3.i, $1.i)
 		}
 	}
+	| T_THE T_INTEGER T_DAYQUAL {
+		// the DDth
+		yylex.(*dateLexer).setDay($2.i)
+	}
 	| T_INTEGER o_dayqual o_of T_MONTHNAME {
 		// DDth of Mon
 		yylex.(*dateLexer).setDate(0, $4, $1.i)
@@ -310,54 +314,54 @@ iso_8601_date_time:
 day_or_month:
 	T_DAYNAME o_comma {
 		// Tuesday
-		yylex.(*dateLexer).setDay($1, 0)
+		yylex.(*dateLexer).setDays($1, 0)
 	}
 	| T_MONTHNAME {
 		// March
-		yylex.(*dateLexer).setMonth($1, 0)
+		yylex.(*dateLexer).setMonths($1, 0)
 	}
 	| T_RELATIVE T_DAYNAME {
 		// Next tuesday
-		yylex.(*dateLexer).setDay($2, $1)
+		yylex.(*dateLexer).setDays($2, $1)
 	}
 	| T_RELATIVE T_MONTHNAME {
 		// Next march
-		yylex.(*dateLexer).setMonth($2, $1)
+		yylex.(*dateLexer).setMonths($2, $1)
 	}
 	| o_sign_integer T_DAYNAME {
 		// +-N Tuesdays
-		yylex.(*dateLexer).setDay($2, $1.i)
+		yylex.(*dateLexer).setDays($2, $1.i)
 	}
 	| T_INTEGER T_DAYQUAL T_DAYNAME {
 		// 3rd Tuesday 
-		yylex.(*dateLexer).setDay($3, $1.i)
+		yylex.(*dateLexer).setDays($3, $1.i)
 	}
 	| T_INTEGER T_DAYQUAL T_DAYNAME of T_MONTHNAME {
 		// 3rd Tuesday of (implicit this) March
 		l := yylex.(*dateLexer)
-		l.setDay($3, $1.i)
-		l.setMonth($5, 1)
+		l.setDays($3, $1.i)
+		l.setMonths($5, 1)
 	}
 	| T_INTEGER T_DAYQUAL T_DAYNAME of T_INTEGER {
 		// 3rd Tuesday of 2012
-		yylex.(*dateLexer).setDay($3, $1.i, $5.i)
+		yylex.(*dateLexer).setDays($3, $1.i, $5.i)
 	}
 	| T_INTEGER T_DAYQUAL T_DAYNAME of T_MONTHNAME T_INTEGER {
 		// 3rd Tuesday of March 2012
 		l := yylex.(*dateLexer)
-		l.setDay($3, $1.i)
-		l.setMonth($5, 1, $6.i)
+		l.setDays($3, $1.i)
+		l.setMonths($5, 1, $6.i)
 	}
 	| T_INTEGER T_DAYQUAL T_DAYNAME of T_RELATIVE T_MONTHNAME {
 		// 3rd Tuesday of next March
 		l := yylex.(*dateLexer)
-		l.setDay($3, $1.i)
-		l.setMonth($6, $5)
+		l.setDays($3, $1.i)
+		l.setMonths($6, $5)
 	}
 	| T_DAYSHIFT {
 		// yesterday or tomorrow
 		d := time.Now().Weekday()
-		yylex.(*dateLexer).setDay((7+int(d)+$1)%7, $1)
+		yylex.(*dateLexer).setDays((7+int(d)+$1)%7, $1)
 	};
 
 relative:
