@@ -9,6 +9,23 @@ type tokenMap interface {
 	Lookup(input string, lval *yySymType) (tokenType int, ok bool)
 }
 
+type wordMap map[string]int
+
+var wordTokenMap = wordMap{
+	"THE": T_THE,
+	"OF":  T_OF,
+	"IN":  T_IGNORE,
+	"AT":  T_IGNORE,
+	"ON":  T_IGNORE,
+}
+
+func (wtm wordMap) Lookup(input string, lval *yySymType) (int, bool) {
+	if tok, ok := wtm[input]; ok {
+		return tok, ok
+	}
+	return -1, false
+}
+
 type numMap map[string]struct {
 	tokenType int
 	tokenVal  int
@@ -44,8 +61,6 @@ var numTokenMap = numMap{
 	"ND":        {T_DAYQUAL, 2},
 	"RD":        {T_DAYQUAL, 3},
 	"TH":        {T_DAYQUAL, 4},
-	"THE":       {T_THE, 0},
-	"OF":        {T_OF, 0},
 }
 
 func (ntm numMap) Lookup(input string, lval *yySymType) (int, bool) {
@@ -253,7 +268,7 @@ func (ztm zoneMap) Lookup(input string, lval *yySymType) (int, bool) {
 
 type tokenMapList []tokenMap
 
-var tokenMaps = tokenMapList{numTokenMap, abbrTokenMap, relTokenMap, zoneTokenMap}
+var tokenMaps = tokenMapList{wordTokenMap, numTokenMap, abbrTokenMap, relTokenMap, zoneTokenMap}
 
 func (l tokenMapList) Lookup(input string, lval *yySymType) (int, bool) {
 	if DEBUG {

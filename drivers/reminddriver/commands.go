@@ -60,22 +60,23 @@ func set(ctx *bot.Context) {
 		ctx.ReplyN("Invalid remind syntax. Sucka.")
 		return
 	}
-	i := len(s) - 1
-	for i > 0 {
+	at, ok, reminder, timestr := time.Now(), false, "", ""
+	for i := 1; i+1 < len(s); i++ {
 		lc := strings.ToLower(s[i])
 		if lc == "in" || lc == "at" || lc == "on" {
-			break
+			reminder = strings.Join(s[1:i], " ")
+			timestr = strings.ToLower(strings.Join(s[i+1:], " "))
+			// TODO(fluffle): surface better errors from datetime.Parse
+			at, ok = datetime.Parse(timestr)
+			if ok {
+				break
+			}
 		}
-		i--
 	}
-	if i < 1 {
+	if timestr == "" {
 		ctx.ReplyN("Invalid remind syntax. Sucka.")
 		return
 	}
-	reminder := strings.Join(s[1:i], " ")
-	timestr := strings.ToLower(strings.Join(s[i+1:], " "))
-	// TODO(fluffle): surface better errors from datetime.Parse
-	at, ok := datetime.Parse(timestr)
 	if !ok {
 		ctx.ReplyN("Couldn't parse time string '%s'", timestr)
 		return

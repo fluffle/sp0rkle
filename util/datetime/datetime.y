@@ -26,7 +26,7 @@ type textint struct {
 	zoneval *time.Location
 }
 
-%token           T_OF T_THE T_DAYQUAL
+%token           T_OF T_THE T_IGNORE T_DAYQUAL
 %token <tval>    T_INTEGER
 %token <intval>  T_PLUS T_MINUS
 %token <intval>  T_MONTHNAME T_DAYNAME T_DAYS T_DAYSHIFT
@@ -125,7 +125,8 @@ item:
 	| day_or_month
 	| relative
 	| iso_8601_duration
-	| integer;
+	| integer
+	| T_IGNORE;
 
 // ISO 8601 takes care of 24h time formats, so this deals with
 // 12-hour HH, HH:MM or HH:MM:SS with am/pm and optional timezone
