@@ -26,7 +26,7 @@ type textint struct {
 	zoneval *time.Location
 }
 
-%token           T_DAYQUAL T_THE
+%token           T_OF T_THE T_DAYQUAL
 %token <tval>    T_INTEGER
 %token <intval>  T_PLUS T_MINUS
 %token <intval>  T_MONTHNAME T_DAYNAME T_DAYS T_DAYSHIFT
@@ -44,12 +44,11 @@ spec:
 
 comma: ',';
 
-o_comma:
-	/* empty */ | comma;
+o_comma: /* empty */ | comma;
 
-of: 'O' 'F';
+o_of: /* empty */ | T_OF;
 
-o_of: /* empty */ | of;
+o_the: /* empty */ | T_THE;
 
 o_dayqual: /* empty */ | T_DAYQUAL;
 
@@ -191,31 +190,48 @@ date:
 		// the DDth
 		yylex.(*dateLexer).setDay($2.i)
 	}
-	| T_INTEGER o_dayqual o_of T_MONTHNAME {
-		// DDth of Mon
-		yylex.(*dateLexer).setDate(0, $4, $1.i)
+	| T_THE T_INTEGER T_DAYQUAL T_OF T_MONTHNAME {
+		// the DDth of Month
+		yylex.(*dateLexer).setDate(0, $5, $2.i)
 	}
-	| T_MONTHNAME T_INTEGER o_dayqual {
+	| T_THE T_INTEGER T_DAYQUAL T_OF T_MONTHNAME o_comma T_INTEGER {
 		l := yylex.(*dateLexer)
-		if $2.l == 4 {
-			// assume Mon YYYY
-			l.setDate($2.i, $1, 1)
+		if $7.l == 4 {
+			// the DDth of Month[,] YYYY
+			l.setDate($7.i, $5, $2.i)
+		} else if $7.i > 68 {
+			// the DDth of Month[,] YY, add 1900 if YY > 68
+			l.setDate($7.i + 1900, $5, $2.i)
 		} else {
-			// assume Mon DDth
-			l.setDate(0, $1, $2.i)
+			// the DDth of Month[,] YY, add 2000 otherwise
+			l.setDate($7.i + 2000, $5, $2.i)
 		}
 	}
-	| T_INTEGER o_dayqual o_of T_MONTHNAME T_INTEGER {
+	| T_INTEGER o_dayqual o_of T_MONTHNAME {
+		// DD[th] [of] Month
+		yylex.(*dateLexer).setDate(0, $4, $1.i)
+	}
+	| T_MONTHNAME o_the T_INTEGER o_dayqual {
 		l := yylex.(*dateLexer)
-		if $5.l == 4 {
-			// assume DDth of Mon YYYY
-			l.setDate($5.i, $4, $1.i)
-		} else if $5.i > 68 {
-			// assume DDth of Mon YY, add 1900 if YY > 68
-			l.setDate($5.i + 1900, $4, $1.i)
+		if $3.l == 4 {
+			// assume Month YYYY
+			l.setDate($3.i, $1, 1)
 		} else {
-			// assume DDth of Mon YY, add 2000 otherwise
-			l.setDate($5.i + 2000, $4, $1.i)
+			// assume Month [the] DD[th]
+			l.setDate(0, $1, $3.i)
+		}
+	}
+	| T_INTEGER o_dayqual o_of T_MONTHNAME o_comma T_INTEGER {
+		l := yylex.(*dateLexer)
+		if $6.l == 4 {
+			// assume DD[th] [of] Month[,] YYYY
+			l.setDate($6.i, $4, $1.i)
+		} else if $6.i > 68 {
+			// assume DD[th] [of] Month[,] YY, add 1900 if YY > 68
+			l.setDate($6.i + 1900, $4, $1.i)
+		} else {
+			// assume DD[th] [of] Month[,] YY, add 2000 otherwise
+			l.setDate($6.i + 2000, $4, $1.i)
 		}
 	}
 	| T_INTEGER T_MINUS T_MONTHNAME T_MINUS T_INTEGER {
@@ -232,17 +248,17 @@ date:
 			l.setDate($5.i + 2000, $3, $1.i)
 		}
 	}
-	| T_MONTHNAME T_INTEGER o_dayqual comma T_INTEGER {
+	| T_MONTHNAME o_the T_INTEGER o_dayqual o_comma T_INTEGER {
 		l := yylex.(*dateLexer)
-		if $5.l == 4 {
-			// assume Mon DDth, YYYY
-			l.setDate($5.i, $1, $2.i)
-		} else if $5.i > 68 {
-			// assume Mon DDth, YY, add 1900 if YY > 68
-			l.setDate($5.i + 1900, $1, $2.i)
+		if $6.l == 4 {
+			// assume Month [the] DD[th][,] YYYY
+			l.setDate($6.i, $1, $3.i)
+		} else if $6.i > 68 {
+			// assume Month [the] DD[th][,] YY, add 1900 if YY > 68
+			l.setDate($6.i + 1900, $1, $3.i)
 		} else {
-			// assume Mon DDth, YY, add 2000 otherwise
-			l.setDate($5.i + 2000, $1, $2.i)
+			// assume Month [the] DD[th][,] YY, add 2000 otherwise
+			l.setDate($6.i + 2000, $1, $3.i)
 		}
 	};
 
@@ -336,23 +352,23 @@ day_or_month:
 		// 3rd Tuesday 
 		yylex.(*dateLexer).setDays($3, $1.i)
 	}
-	| T_INTEGER T_DAYQUAL T_DAYNAME of T_MONTHNAME {
+	| T_INTEGER T_DAYQUAL T_DAYNAME T_OF T_MONTHNAME {
 		// 3rd Tuesday of (implicit this) March
 		l := yylex.(*dateLexer)
 		l.setDays($3, $1.i)
 		l.setMonths($5, 1)
 	}
-	| T_INTEGER T_DAYQUAL T_DAYNAME of T_INTEGER {
+	| T_INTEGER T_DAYQUAL T_DAYNAME T_OF T_INTEGER {
 		// 3rd Tuesday of 2012
 		yylex.(*dateLexer).setDays($3, $1.i, $5.i)
 	}
-	| T_INTEGER T_DAYQUAL T_DAYNAME of T_MONTHNAME T_INTEGER {
+	| T_INTEGER T_DAYQUAL T_DAYNAME T_OF T_MONTHNAME T_INTEGER {
 		// 3rd Tuesday of March 2012
 		l := yylex.(*dateLexer)
 		l.setDays($3, $1.i)
 		l.setMonths($5, 1, $6.i)
 	}
-	| T_INTEGER T_DAYQUAL T_DAYNAME of T_RELATIVE T_MONTHNAME {
+	| T_INTEGER T_DAYQUAL T_DAYNAME T_OF T_RELATIVE T_MONTHNAME {
 		// 3rd Tuesday of next March
 		l := yylex.(*dateLexer)
 		l.setDays($3, $1.i)

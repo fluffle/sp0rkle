@@ -135,41 +135,51 @@ func TestParseDate(t *testing.T) {
 		{"31/12/04", mkt(2004, 12, 31)},
 		{"2/3/68", mkt(2068, 3, 2)},
 		{"2/3/69", mkt(1969, 3, 2)},
-		// the DDth
+		// T_THE T_INTEGER T_DAYQUAL
 		{"the 1st", mkt(1, 2, 1)},
 		{"the 2nd", mkt(1, 2, 2)},
 		{"the 10th", mkt(1, 2, 10)},
 		{"the 29th", mkt(1, 3, 1)},
+		// T_THE T_INTEGER T_DAYQUAL T_OF T_MONTHNAME
+		{"the 1st of January", mkt(1, 1, 1)},
+		{"the 2nd of February", mkt(1, 2, 2)},
+		{"the 10th of March", mkt(1, 3, 10)},
+		{"the 31st of December", mkt(1, 12, 31)},
+		// T_THE T_INTEGER T_DAYQUAL T_OF T_MONTHNAME o_comma T_INTEGER
+		{"the 1st of January, 2001", mkt(2001, 1, 1)},
+		{"the 2nd of February 2013", mkt(2013, 2, 2)},
+		{"the 10th of March 67", mkt(2067, 3, 10)},
+		{"the 31st of December, 69", mkt(1969, 12, 31)},
 		// T_INTEGER o_dayqual o_of T_MONTHNAME
 		{"2 Mar", mkt(1, 3, 2)},
 		{"02 Mar", mkt(1, 3, 2)},
 		{"2nd March", mkt(1, 3, 2)},
 		{"3rd of March", mkt(1, 3, 3)},
-		// T_MONTHNAME T_INTEGER o_dayqual as Mon YYYY
+		// T_MONTHNAME o_the T_INTEGER o_dayqual as Month YYYY
 		{"March 2004", mkt(2004, 3, 1)},
-		// T_MONTHNAME T_INTEGER o_dayqual as Mon DDth
+		// T_MONTHNAME o_the T_INTEGER o_dayqual as Month [the] DD[th]
 		{"March 2", mkt(1, 3, 2)},
 		{"March 02", mkt(1, 3, 2)},
 		{"Mar 2nd", mkt(1, 3, 2)},
-		{"Mar 3rd", mkt(1, 3, 3)},
-		// T_INTEGER o_dayqual o_of T_MONTHNAME T_INTEGER
+		{"Mar the 3rd", mkt(1, 3, 3)},
+		// T_INTEGER o_dayqual o_of T_MONTHNAME o_comma T_INTEGER
 		{"2 Mar 2004", mkt(2004, 3, 2)},
 		{"02 Mar 2004", mkt(2004, 3, 2)},
-		{"2nd March 2004", mkt(2004, 3, 2)},
+		{"2nd March, 2004", mkt(2004, 3, 2)},
 		{"3rd of March 2004", mkt(2004, 3, 3)},
 		{"2 March 4", mkt(2004, 3, 2)},
 		{"2 March 68", mkt(2068, 3, 2)},
-		{"2 March 69", mkt(1969, 3, 2)},
+		{"2 March, 69", mkt(1969, 3, 2)},
 		// T_INTEGER T_MINUS T_MONTHNAME T_MINUS T_INTEGER
 		{"2-Mar-2004", mkt(2004, 3, 2)},
 		{"02-Mar-2004", mkt(2004, 3, 2)},
 		{"2-March-68", mkt(2068, 3, 2)},
 		{"02-March-69", mkt(1969, 3, 2)},
-		// T_MONTHNAME T_INTEGER o_dayqual comma T_INTEGER
+		// T_MONTHNAME o_the T_INTEGER o_dayqual o_comma T_INTEGER
 		{"March 2, 2004", mkt(2004, 3, 2)},
-		{"Mar 02, 2004", mkt(2004, 3, 2)},
-		{"March 2nd, 04", mkt(2004, 3, 2)},
-		{"March 3rd, 04", mkt(2004, 3, 3)},
+		{"Mar 02 2004", mkt(2004, 3, 2)},
+		{"March the 2nd, 04", mkt(2004, 3, 2)},
+		{"March the 3rd 04", mkt(2004, 3, 3)},
 		{"March 2, 68", mkt(2068, 3, 2)},
 		{"March 2, 69", mkt(1969, 3, 2)},
 		// T_INTEGER T_MINUS T_INTEGER as YYYY-DDD
