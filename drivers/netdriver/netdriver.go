@@ -1,14 +1,10 @@
 package netdriver
 
 import (
-	"flag"
 	"github.com/fluffle/sp0rkle/bot"
 	"io/ioutil"
 	"net/http"
 )
-
-var githubToken = flag.String("github_token", "",
-	"OAuth2 token for accessing the GitHub API.")
 
 func get(req string) ([]byte, error) {
 	res, err := http.Get(req)
