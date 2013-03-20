@@ -155,8 +155,9 @@ func (ss *serverSet) HandleAll(ev string, h client.Handler) {
 // Catch, log, and complain about panics in handlers.
 func unfail(conn *client.Conn, line *client.Line) {
 	if err := recover(); err != nil {
-		_, f, l, _ := runtime.Caller(2)
+		_, f, l, _ := runtime.Caller(4)
 		i := strings.Index(f, "sp0rkle/")
+		if i < 0 { i = 0 } else { i += 8 }
 		logging.Error("panic at %s:%d: %v", f[i:], l, err)
 		conn.Privmsg(line.Target(), fmt.Sprintf(
 			"panic at %s:%d: %v", f[i:], l, err))
