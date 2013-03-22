@@ -2,15 +2,19 @@ package markov
 
 import (
 	"errors"
-	"fmt"
+	"github.com/fluffle/golog/logging"
+	"github.com/fluffle/sp0rkle/util"
 	"math/rand"
+	"strings"
 )
 
-var SENTENCE_START string = "!SENTENCE_START"
-var SENTENCE_END string = "!SENTENCE_END"
+const (
+	SENTENCE_START = "!SENTENCE_START"
+	SENTENCE_END  = "!SENTENCE_END"
+)
 
-var ERROR_OVERFLOW = errors.New("Overflowed output bytes")
 var NOT_ENOUGH_DATA = errors.New("Not enough data")
+var TOO_MUCH_DATA = errors.New("Too much data")
 
 type Link struct {
 	Value string
@@ -21,23 +25,29 @@ type Source interface {
 	GetLinks(value string) ([]Link, error)
 }
 
-func Generate(data Source, start_word string, seed int64, max_bytes int) (string, error) {
-	current_node := start_word
-	output := ""
+func Generate(data Source) (string, error) {
+	s, err := generate(data, SENTENCE_START, 50, util.RNG)
+	return strings.Join(s, " "), err
+}
 
-	random := rand.New(rand.NewSource(seed))
+func generate(data Source, start string, length int, random *rand.Rand) ([]string, error) {
+	current, output := start, make([]string, 0, length)
 
-	for len(output) < max_bytes {
-		fmt.Printf("%s - %s\n", output, current_node)
-		children, err := data.GetLinks(current_node)
+	for len(output) < length {
+		logging.Debug("out: %q; node: %q", output, current)
+		children, err := data.GetLinks(current)
 		if err != nil {
+			logging.Error("Error getting markov links: %v", err)
 			return output, err
 		}
 
 		sum := 0
-
 		for _, child := range children {
 			sum += child.Uses
+			if len(output) > 4*length/5 && child.Value == SENTENCE_END {
+				// start to limit at 80% of length, prefer SENTENCE_END if valid
+				return output, nil
+			}
 		}
 		if sum == 0 {
 			return output, NOT_ENOUGH_DATA
@@ -47,17 +57,14 @@ func Generate(data Source, start_word string, seed int64, max_bytes int) (string
 
 		for _, child := range children {
 			r -= child.Uses
-			if r >= 0 {
-				continue
-			}
+			if r >= 0 { continue }
 			if child.Value == SENTENCE_END {
 				return output, nil
 			}
-			output += " " + child.Value
-			current_node = child.Value
+			output = append(output, child.Value)
+			current = child.Value
 			break
 		}
 	}
-	return output, ERROR_OVERFLOW
-
+	return output, TOO_MUCH_DATA
 }

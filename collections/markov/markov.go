@@ -1,15 +1,15 @@
 package markov
 
 import (
-	//	"github.com/fluffle/golog/logging"
-	"fmt"
+	"github.com/fluffle/golog/logging"
 	"github.com/fluffle/sp0rkle/db"
 	"github.com/fluffle/sp0rkle/util/markov"
 	"labix.org/v2/mgo"
 	"labix.org/v2/mgo/bson"
+	"strings"
 )
 
-const COLLECTION string = "markov"
+const COLLECTION = "markov"
 
 type MarkovLink struct {
 	Source, Dest string
@@ -27,105 +27,90 @@ func New(source, dest, tag string) *MarkovLink {
 	}
 }
 
-// Factoids are stored in a mongo collection of Factoid structs
+// Markov links are stored in a mongo collection
 type Collection struct {
-	// We're wrapping mgo.Collection so we can provide our own methods.
 	*mgo.Collection
 }
 
 // Wrapper to get hold of a factoid collection handle
 func Init() *Collection {
-	fc := &Collection{
-		Collection: db.Init().C(COLLECTION),
+	mc := &Collection{db.Init().C(COLLECTION)}
+	if err := mc.EnsureIndex(mgo.Index{
+		Key: []string{"tag", "source", "dest"},
+	}); err != nil {
+		logging.Error("Couldn't create an index on markov: %s", err)
 	}
-	return fc
+	return mc
 }
 
-func (fc *Collection) Get(source, dest, tag string) (result *MarkovLink) {
-	if q := fc.Find(bson.M{"source": source,
+func (mc *Collection) Get(source, dest, tag string) (result *MarkovLink) {
+	if err := mc.Find(bson.M{
 		"tag":  tag,
-		"dest": dest}).One(&result); q == nil {
+		"source": source,
+		"dest": dest,
+	}).One(result); err == nil {
 		return
 	}
 	return nil
 }
 
-func (mc *Collection) incUses(source, dest, tag string) error {
+func (mc *Collection) incUses(source, dest, tag string) {
 	link := mc.Get(source, dest, tag)
 	if link == nil {
 		link = New(source, dest, tag)
 	}
-	fmt.Printf("%v\n", link)
 	link.Uses++
 
 	if _, err := mc.UpsertId(link.Id, link); err != nil {
-		return fmt.Errorf("Failed to insert MarkovLink %s->%s as %s: 5s",
-			source, dest, tag, err)
+		logging.Error("Failed to insert MarkovLink %s(%s->%s): %s",
+			tag, source, dest, err)
+	}
+}
+
+func (mc *Collection) AddSentence(sentence, tag string) {
+	source := markov.SENTENCE_START
+	for _, dest := range strings.Fields(sentence) {
+		mc.incUses(source, dest, tag)
+		source = dest
+	}
+	mc.incUses(source, markov.SENTENCE_END, tag)
+}
+
+func (mc *Collection) ClearTag(tag string) error {
+	if _, err := mc.RemoveAll(bson.M{"tag": tag}); err != nil {
+		return err
 	}
 	return nil
 }
 
-func (mc *Collection) AddSentence(sentence []string, tag string) error {
-	prev := markov.SENTENCE_START
-	for i := 0; i < len(sentence); i++ {
-		dest := sentence[i]
-		mc.incUses(prev, dest, tag)
-		prev = dest
-	}
-	mc.incUses(prev, markov.SENTENCE_END, tag)
-	return nil
+type MarkovSource struct {
+	*Collection
+	tag bson.RegEx
 }
 
-type CollectionSource struct {
-	collection  *Collection
-	tag         string
-	isTagPrefix bool
+func (mc *Collection) Source(tag string) *MarkovSource {
+	return &MarkovSource{mc, bson.RegEx{"^"+tag+"$", "i"}}
 }
 
-func (cs *CollectionSource) getSearchExpression(value string) (ret bson.M) {
-	ret = bson.M{"source": value}
-
-	if cs.isTagPrefix {
-		ret["tag"] = bson.RegEx{cs.tag + ".*", ""}
-	} else {
-		ret["tag"] = cs.tag
-	}
-	return
-}
-
-func (cs *CollectionSource) GetLinks(value string) ([]markov.Link, error) {
-	search := cs.getSearchExpression(value)
-
-	num, err := cs.collection.Find(search).Count()
+func (ms *MarkovSource) GetLinks(value string) ([]markov.Link, error) {
+	q := ms.Find(bson.M{
+		// Lazy; let the database deal with case-sensitivity and punctuation.
+		"source": bson.RegEx{`^\W*`+value+`\W*$`, "iu"},
+		"tag":    ms.tag,
+	})
+	num, err := q.Count()
 	if err != nil {
 		return nil, err
 	}
 
-	output := make([]markov.Link, 0, num)
-
+	output, iter := make([]markov.Link, 0, num), q.Iter()
 	var result MarkovLink
-	iter := cs.collection.Find(search).Iter()
 	for iter.Next(&result) {
-		output = append(output,
-			markov.Link{result.Dest, result.Uses})
+		output = append(output, markov.Link{result.Dest, result.Uses})
 	}
+
 	if iter.Err() != nil {
 		return output, iter.Err()
 	}
-
 	return output, nil
-}
-
-func (fc *Collection) CreateSourceForTag(tag string) markov.Source {
-	return &CollectionSource{
-		collection:  fc,
-		tag:         tag,
-		isTagPrefix: false}
-}
-
-func (fc *Collection) CreateSourceForTagPrefix(tag string) markov.Source {
-	return &CollectionSource{
-		collection:  fc,
-		tag:         tag,
-		isTagPrefix: true}
 }
