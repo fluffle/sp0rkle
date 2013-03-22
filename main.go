@@ -12,6 +12,7 @@ import (
 	"github.com/fluffle/sp0rkle/drivers/decisiondriver"
 	"github.com/fluffle/sp0rkle/drivers/factdriver"
 	"github.com/fluffle/sp0rkle/drivers/karmadriver"
+	"github.com/fluffle/sp0rkle/drivers/markovdriver"
 	"github.com/fluffle/sp0rkle/drivers/netdriver"
 	"github.com/fluffle/sp0rkle/drivers/quotedriver"
 	"github.com/fluffle/sp0rkle/drivers/reminddriver"
@@ -44,6 +45,7 @@ func main() {
 	decisiondriver.Init()
 	factdriver.Init()
 	karmadriver.Init()
+	markovdriver.Init()
 	netdriver.Init()
 	quotedriver.Init()
 	reminddriver.Init()
