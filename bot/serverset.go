@@ -60,7 +60,7 @@ func (s *server) connectLoop() {
 
 type ServerSet interface {
 	client.Handler
-	Connect() bool
+	Connect() chan bool
 	HandleAll(event string, h client.Handler)
 	Shutdown(rebuild bool)
 }
@@ -82,8 +82,7 @@ func newServerSet() *serverSet {
 
 	ss := &serverSet{
 		servers: make(map[*client.Conn]*server),
-		// May not need to be buffered but seems sensible here
-		rebuild: make(chan bool, 1),
+		rebuild: make(chan bool),
 		wg:      &sync.WaitGroup{},
 	}
 	for _, hostport := range list {
@@ -105,14 +104,12 @@ func newServerSet() *serverSet {
 	return ss
 }
 
-func (ss *serverSet) Connect() bool {
+func (ss *serverSet) Connect() chan bool {
 	for _, server := range ss.servers {
 		go server.connectLoop()
 		ss.wg.Add(1)
 	}
-	// Wait for all connectLoops to terminate before reading the rebuild flag.
-	ss.wg.Wait()
-	return <-ss.rebuild
+	return ss.rebuild
 }
 
 func (ss *serverSet) Shutdown(rebuild bool) {
@@ -120,7 +117,7 @@ func (ss *serverSet) Shutdown(rebuild bool) {
 	if rebuild {
 		message = "Restarting with new build."
 	}
-	logging.Warn(message)
+	logging.Info(message)
 	for _, server := range ss.servers {
 		server.shutdown = true
 		if server.Connected() {
@@ -133,8 +130,8 @@ func (ss *serverSet) Shutdown(rebuild bool) {
 			server.wait <- struct{}{}
 		}
 	}
-	// Buffered write so that Shutdown can finish quickly without waiting for
-	// all connectLoops to die and Connect to read.
+	// Wait for all connectLoops to terminate
+	ss.wg.Wait()
 	ss.rebuild <- rebuild
 }
 

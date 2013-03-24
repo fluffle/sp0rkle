@@ -16,6 +16,7 @@ func HttpHost() string {
 }
 
 type botData struct {
+	connected bool
 	servers   ServerSet
 	rewriters RewriteSet
 	commands  CommandSet
@@ -52,13 +53,30 @@ func Init() {
 		"make the bot unignore <nick> again.")
 }
 
-func Connect() bool {
+func Connect() chan bool {
 	lock.Lock()
 	defer lock.Unlock()
 	if bot == nil {
 		logging.Fatal("Called Connect() before Init().")
 	}
+	if bot.connected {
+		logging.Warn("Already connected to servers.")
+	}
+	bot.connected = true
 	return bot.servers.Connect()
+}
+
+func Shutdown() {
+	lock.Lock()
+	defer lock.Unlock()
+	if bot == nil {
+		logging.Fatal("Called Shutdown() before Init().")
+	}
+	if !bot.connected {
+		logging.Warn("Not connected to servers.")
+	}
+	bot.connected = false
+	bot.servers.Shutdown(false)
 }
 
 func Handle(fn HandlerFunc, events ...string) {

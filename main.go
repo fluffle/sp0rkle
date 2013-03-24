@@ -22,6 +22,7 @@ import (
 	"net/http"
 	"os"
 	"os/exec"
+	"os/signal"
 	"syscall"
 )
 
@@ -56,9 +57,19 @@ func main() {
 	// Start up the HTTP server
 	go http.ListenAndServe(*httpPort, nil)
 
+	// Set up a signal handler to shut things down gracefully.
+	// NOTE: net/http doesn't provide for graceful shutdown :-/
+	go func() {
+		sigint := make(chan os.Signal, 1)
+		signal.Notify(sigint, syscall.SIGINT)
+		if syscall.SIGINT == <-sigint {
+			bot.Shutdown()
+		}
+	}()
+
 	// Connect the bot to IRC and wait; reconnects are handled automatically.
 	// If we get true back from the bot, re-exec the (rebuilt) binary.
-	if bot.Connect() {
+	if <-bot.Connect() {
 		// Calling syscall.Exec probably means deferred functions won't get
 		// called, so disconnect from mongodb first for politeness' sake.
 		db.Close()
