@@ -32,7 +32,7 @@ func randomCmd(ctx *bot.Context) {
 		return
 	}
 	if !shouldMarkov(whom) {
-		if whom == ctx.Nick {
+		if whom == strings.ToLower(ctx.Nick) {
 			ctx.ReplyN("You're not recording markov data. "+
 				"Use 'markov me' to enable collection.")
 		} else {
@@ -50,13 +50,17 @@ func randomCmd(ctx *bot.Context) {
 
 func insult(ctx *bot.Context) {
 	source := mc.Source("tag:insult")
-	if strings.ToLower(ctx.Text()) == strings.ToLower(ctx.Me()) {
+	whom, lc := ctx.Text(), strings.ToLower(ctx.Text())
+	if lc == strings.ToLower(ctx.Me()) || lc == "yourself" {
 		ctx.ReplyN("Ha, you're funny. No, wait. Retarded... I meant retarded.")
 		return
 	}
+	if lc == "me" {
+		whom = ctx.Nick
+	}
 	if out, err := chain.Sentence(source); err == nil {
-		if len(ctx.Text()) > 0 {
-			ctx.Reply("%s: %s", ctx.Text(), out)
+		if len(whom) > 0 {
+			ctx.Reply("%s: %s", whom, out)
 		} else {
 			ctx.Reply("%s", out)
 		}
