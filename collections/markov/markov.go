@@ -67,9 +67,16 @@ func (mc *Collection) incUses(source, dest, tag string) {
 	}
 }
 
+func (mc *Collection) AddAction(action, tag string) {
+	mc.Add(markov.ACTION_START, action, tag)
+}
+
 func (mc *Collection) AddSentence(sentence, tag string) {
-	source := markov.SENTENCE_START
-	for _, dest := range strings.Fields(sentence) {
+	mc.Add(markov.SENTENCE_START, sentence, tag)
+}
+
+func (mc *Collection) Add(source, data, tag string) {
+	for _, dest := range strings.Fields(data) {
 		mc.incUses(source, dest, tag)
 		source = dest
 	}

@@ -26,9 +26,22 @@ func randomCmd(ctx *bot.Context) {
 		ctx.ReplyN("Be who? Your mum?")
 		return
 	}
-
-	source := mc.Source("user:" + strings.Fields(ctx.Text())[0])
-	if out, err := chain.Generate(source); err == nil {
+	whom := strings.ToLower(strings.Fields(ctx.Text())[0])
+	if whom == strings.ToLower(ctx.Me()) {
+		ctx.ReplyN("Ha, you're funny. No, wait. Retarded... I meant retarded.")
+		return
+	}
+	if !shouldMarkov(whom) {
+		if whom == ctx.Nick {
+			ctx.ReplyN("You're not recording markov data. "+
+				"Use 'markov me' to enable collection.")
+		} else {
+			ctx.ReplyN("Not recording markov data for %s.", ctx.Text())
+		}
+		return
+	}
+	source := mc.Source("user:" + whom)
+	if out, err := chain.Sentence(source); err == nil {
 		ctx.ReplyN("%s would say: %s", ctx.Text(), out)
 	} else {
 		ctx.ReplyN("markov error: %v", err)
@@ -37,7 +50,11 @@ func randomCmd(ctx *bot.Context) {
 
 func insult(ctx *bot.Context) {
 	source := mc.Source("tag:insult")
-	if out, err := chain.Generate(source); err == nil {
+	if strings.ToLower(ctx.Text()) == strings.ToLower(ctx.Me()) {
+		ctx.ReplyN("Ha, you're funny. No, wait. Retarded... I meant retarded.")
+		return
+	}
+	if out, err := chain.Sentence(source); err == nil {
 		if len(ctx.Text()) > 0 {
 			ctx.Reply("%s: %s", ctx.Text(), out)
 		} else {

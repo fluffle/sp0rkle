@@ -9,8 +9,9 @@ import (
 )
 
 const (
+	ACTION_START   = "!ACTION_START"
 	SENTENCE_START = "!SENTENCE_START"
-	SENTENCE_END  = "!SENTENCE_END"
+	SENTENCE_END   = "!SENTENCE_END"
 )
 
 var NOT_ENOUGH_DATA = errors.New("Not enough data")
@@ -25,7 +26,12 @@ type Source interface {
 	GetLinks(value string) ([]Link, error)
 }
 
-func Generate(data Source) (string, error) {
+func Action(data Source) (string, error) {
+	s, err := generate(data, ACTION_START, 50, util.RNG)
+	return strings.Join(s, " "), err
+}
+
+func Sentence(data Source) (string, error) {
 	s, err := generate(data, SENTENCE_START, 50, util.RNG)
 	return strings.Join(s, " "), err
 }

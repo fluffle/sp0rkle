@@ -13,7 +13,7 @@ var mc *markov.Collection
 func Init() {
 	mc = markov.Init()
 
-	bot.Handle(recordMarkov, client.PRIVMSG)
+	bot.Handle(recordMarkov, client.PRIVMSG, client.ACTION)
 
 	bot.Command(enableMarkov, "markov me", "markov me  -- "+
 		"Enable recording of your public messages to generate chains.")
@@ -22,8 +22,6 @@ func Init() {
 	bot.Command(enableMarkov, "don't markov me, bro", "don't markov me  -- "+
 		"Disable (and delete) recording of your public messages.")
 	bot.Command(randomCmd, "markov", "markov <nick>  -- "+
-		"Generate random sentence for given <nick>.")
-	bot.Command(randomCmd, "be", "be <nick>  -- "+
 		"Generate random sentence for given <nick>.")
 	bot.Command(insult, "insult", "insult <nick>  -- Insult <nick> at random.")
 	bot.Command(learn, "learn", "learn <tag> <sentence>  -- "+
