@@ -80,6 +80,10 @@ func (ctx *Context) Action(ch, text string) {
 	ctx.conn.Action(ch, text)
 }
 
+func (ctx *Context) Topic(ch string, topic ...string) {
+	ctx.conn.Topic(ch, topic...)
+}
+
 func (ctx *Context) Me() string {
 	return ctx.conn.Me().Nick
 }
