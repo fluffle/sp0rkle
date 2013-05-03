@@ -102,6 +102,11 @@ func poll(server string) (*mcStatus, error) {
 	if err != nil {
 		return nil, err
 	}
+	defer nc.Close()
+	// If we've not finished doing this lot after a minute, bail out.
+	if err = nc.SetDeadline(time.Now().Add(time.Minute)); err != nil {
+		return nil, err
+	}
 
 	// Send initial handshake
 	var n int
