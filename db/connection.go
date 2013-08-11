@@ -16,32 +16,37 @@ var database *string = flag.String("database", "localhost",
 	"Address of MongoDB server to connect to, defaults to localhost.")
 
 var lock sync.Mutex
-var db *mgo.Database
-var session *mgo.Session
+var sessions []*mgo.Session
 
 // Wraps connecting to mongo and selecting the "sp0rkle" database.
 func Init() *mgo.Database {
 	lock.Lock()
 	defer lock.Unlock()
-	if db != nil {
-		return db
+	if sessions != nil {
+		// Give each caller a distinct session to avoid contention.
+		s := sessions[0].Copy()
+		sessions = append(sessions, s)
+		return s.DB(DATABASE)
 	}
+	sessions = make([]*mgo.Session, 1)
 	s, err := mgo.Dial(*database)
 	if err != nil {
 		logging.Fatal("Unable to connect to MongoDB: %s", err)
 	}
-	session, db = s, s.DB(DATABASE)
 	// Let's be explicit about requiring journaling, ehh?
-	session.EnsureSafe(&mgo.Safe{J: true})
-	return db
+	s.EnsureSafe(&mgo.Safe{J: true})
+	sessions[0] = s
+	return s.DB(DATABASE)
 }
 
 func Close() {
 	lock.Lock()
 	defer lock.Unlock()
-	if db == nil {
+	if sessions == nil {
 		return
 	}
-	session.Close()
-	session, db = nil, nil
+	for _, s := range sessions {
+		s.Close()
+	}
+	sessions = nil
 }
