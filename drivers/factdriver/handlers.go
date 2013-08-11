@@ -39,6 +39,7 @@ func insert(ctx *bot.Context) {
 
 	if err := fc.Insert(fact); err == nil {
 		count := fc.GetCount(key)
+		LastSeen(ctx.Target(), fact.Id)
 		ctx.ReplyN("%s, I now know %d things about '%s'.", joy, count, key)
 	} else {
 		ctx.ReplyN("Error storing factoid: %s.", err)
