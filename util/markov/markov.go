@@ -40,7 +40,6 @@ func generate(data Source, start string, length int, random *rand.Rand) ([]strin
 	current, output := start, make([]string, 0, length)
 
 	for len(output) < length {
-		logging.Debug("out: %q; node: %q", output, current)
 		children, err := data.GetLinks(current)
 		if err != nil {
 			logging.Error("Error getting markov links: %v", err)

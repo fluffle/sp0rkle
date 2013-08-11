@@ -23,6 +23,7 @@ func New(source, dest, tag string) *MarkovLink {
 		Source: source,
 		Dest:   dest,
 		Tag:    strings.ToLower(tag),
+		Id:     bson.NewObjectId(),
 	}
 }
 
