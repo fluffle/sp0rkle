@@ -119,6 +119,7 @@ var relTokenMap = relMap{
 	"LAST":    -1,
 	"THIS":     0,
 	"NEXT":     1,
+	"AN":       1,
 	"FIRST":    1,
 	"ONE":      1,
 //	"SECOND":   2,

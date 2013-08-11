@@ -64,16 +64,22 @@ func set(ctx *bot.Context) {
 	for i := 1; i+1 < len(s); i++ {
 		lc := strings.ToLower(s[i])
 		if lc == "in" || lc == "at" || lc == "on" {
-			reminder = strings.Join(s[1:i], " ")
 			timestr = strings.ToLower(strings.Join(s[i+1:], " "))
-			// TODO(fluffle): surface better errors from datetime.Parse
-			at, ok = datetime.Parse(timestr)
-			if ok {
-				break
-			}
+		} else if i + 2 == len(s) {
+			// Hack to test the last word for e.g. "tomorrow"
+			i++
+			timestr = strings.ToLower(s[i])
+		} else {
+			continue
+		}
+		// TODO(fluffle): surface better errors from datetime.Parse
+		at, ok = datetime.Parse(timestr)
+		if ok {
+			reminder = strings.Join(s[1:i], " ")
+			break
 		}
 	}
-	if timestr == "" {
+	if reminder == "" {
 		ctx.ReplyN("Invalid remind syntax. Sucka.")
 		return
 	}
