@@ -21,6 +21,10 @@ func Init() {
 		"Look up <term> on UrbanDictionary.")
 	bot.Command(createGitHubIssue, "file bug:", "file bug: <title>. "+
 		"<descriptive body>  -- Files a bug on GitHub. Abusers will be hurt.")
+	bot.Command(createGitHubIssue, "file bug", "file bug <title>. "+
+		"<descriptive body>  -- Files a bug on GitHub. Abusers will be hurt.")
+	bot.Command(createGitHubIssue, "report bug", "file bug: <title>. "+
+		"<descriptive body>  -- Files a bug on GitHub. Abusers will be hurt.")
 	bot.Handle(mcStartPoller, client.CONNECTED)
 	bot.Handle(mcStopPoller, client.DISCONNECTED)
 	bot.Handle(mcChanTopic, "332")
