@@ -83,33 +83,39 @@ func lookup(ctx *bot.Context) {
 				fact.Key, fact.Id, err)
 
 		}
-		keys := map[string]bool{key: true}
-		val := recurse(fact.Value, keys)
+		recurse(fact, map[string]bool{key: true})
 		switch fact.Type {
 		case factoids.F_ACTION:
-			ctx.Do("%s", val)
+			ctx.Do("%s", fact.Value)
 		default:
-			ctx.Reply("%s", val)
+			ctx.Reply("%s", fact.Value)
 		}
 	}
 }
 
 // Recursively resolve pointers to other factoids
-func recurse(val string, keys map[string]bool) string {
+func recurse(fact *factoids.Factoid, keys map[string]bool) {
+	val := fact.Value
 	key, start, end := util.FactPointer(val)
-	if key == "" {
-		return val
-	}
+	if key == "" { return }
 	if _, ok := keys[key]; ok || len(keys) > 20 {
-		val = val[:start] + "[circular reference]" + val[end:]
-		return val
+		fact.Value = val[:start] + "[circular reference]" + val[end:]
+		return
 	}
 	keys[key] = true
-	if fact := fc.GetPseudoRand(key); fact != nil {
-		val = val[:start] + fact.Value + val[end:]
-		return recurse(val, keys)
+	if f2 := fc.GetPseudoRand(key); fact != nil {
+		fact.Value = val[:start] + f2.Value + val[end:]
+		if start == 0 && fact.Type != f2.Type {
+			// Propagate change of factoid type when the pointer
+			// is at the beginning of the string.
+			fact.Type = f2.Type
+		}
+		recurse(fact, keys)
+		return
 	}
 	// if we get here, we found a pointer key but no matching factoid
 	// so recurse on the stuff after that key *only* to avoid loops.
-	return val[:end] + recurse(val[end:], keys)
+	fact.Value = val[end:]
+	recurse(fact, keys)
+	fact.Value = val[:end] + fact.Value
 }
