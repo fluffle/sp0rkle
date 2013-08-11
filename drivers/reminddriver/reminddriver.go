@@ -29,6 +29,8 @@ func Init() {
 
 	bot.Command(tell, "tell", "tell <nick> <msg>  -- "+
 		"Stores a message for the (absent) nick.")
+	bot.Command(tell, "ask", "ask <nick> <msg>  -- "+
+		"Stores a message for the (absent) nick.")
 	bot.Command(list, "remind list",
 		"remind list  -- Lists reminders set by or for your nick.")
 	bot.Command(del, "remind del",
