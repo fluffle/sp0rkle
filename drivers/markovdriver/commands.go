@@ -8,13 +8,14 @@ import (
 )
 
 func enableMarkov(ctx *bot.Context) {
-	conf.Ns(markovNs).String(ctx.Nick, "markov")
+	conf.Ns(markovNs).String(strings.ToLower(ctx.Nick), "markov")
 	ctx.ReplyN("I'll markov you like I markov'd your mum last night.")
 }
 
 func disableMarkov(ctx *bot.Context) {
-	conf.Ns(markovNs).Delete(ctx.Nick)
-	if err := mc.ClearTag("user:"+ctx.Nick); err != nil {
+	key := strings.ToLower(ctx.Nick)
+	conf.Ns(markovNs).Delete(key)
+	if err := mc.ClearTag("user:"+key); err != nil {
 		ctx.ReplyN("Failed to clear tag: %s", err)
 		return
 	}

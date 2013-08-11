@@ -22,8 +22,7 @@ func New(source, dest, tag string) *MarkovLink {
 	return &MarkovLink{
 		Source: source,
 		Dest:   dest,
-		Tag:    tag,
-		Id:     bson.NewObjectId(),
+		Tag:    strings.ToLower(tag),
 	}
 }
 
@@ -43,13 +42,14 @@ func Init() *Collection {
 	return mc
 }
 
-func (mc *Collection) Get(source, dest, tag string) (result *MarkovLink) {
+func (mc *Collection) Get(source, dest, tag string) *MarkovLink {
+	var res MarkovLink
 	if err := mc.Find(bson.M{
-		"tag":  tag,
+		"tag":    strings.ToLower(tag),
 		"source": source,
-		"dest": dest,
-	}).One(result); err == nil {
-		return
+		"dest":   dest,
+	}).One(&res); err == nil {
+		return &res
 	}
 	return nil
 }
@@ -92,18 +92,17 @@ func (mc *Collection) ClearTag(tag string) error {
 
 type MarkovSource struct {
 	*Collection
-	tag bson.RegEx
+	tag string
 }
 
 func (mc *Collection) Source(tag string) *MarkovSource {
-	return &MarkovSource{mc, bson.RegEx{"^"+tag+"$", "i"}}
+	return &MarkovSource{mc, tag}
 }
 
 func (ms *MarkovSource) GetLinks(value string) ([]markov.Link, error) {
 	q := ms.Find(bson.M{
-		// Lazy; let the database deal with case-sensitivity and punctuation.
-		"source": bson.RegEx{`^\W*`+value+`\W*$`, "iu"},
-		"tag":    ms.tag,
+		"source": value,
+		"tag":  ms.tag,
 	})
 	num, err := q.Count()
 	if err != nil {
