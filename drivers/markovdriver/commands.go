@@ -43,7 +43,7 @@ func randomCmd(ctx *bot.Context) {
 	}
 	source := mc.Source("user:" + whom)
 	if out, err := chain.Sentence(source); err == nil {
-		ctx.ReplyN("%s would say: %s", ctx.Text(), out)
+		ctx.Reply("%s would say: %s", ctx.Text(), out)
 	} else {
 		ctx.ReplyN("markov error: %v", err)
 	}

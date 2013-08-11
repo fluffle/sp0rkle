@@ -249,7 +249,7 @@ func search(ctx *bot.Context) {
 	} else {
 		res := strings.Join(keys, "', '")
 		ctx.ReplyN(
-			"%s: I found %d keys matching '%s', here they are: '%s'.",
+			"I found %d keys matching '%s', here they are: '%s'.",
 			count, ctx.Text(), res)
 
 	}
