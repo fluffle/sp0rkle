@@ -4,7 +4,7 @@ set -e
 
 BACKUPDIR="$1"
 if [ ! -d "$BACKUPDIR" ]; then
-    echo "Backup path '$BACKUPDIR' is not a directory :-(" >2
+    echo "Backup path '$BACKUPDIR' is not a directory :-(" >&2
     exit 1
 fi
 
