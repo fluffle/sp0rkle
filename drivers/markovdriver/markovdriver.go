@@ -14,6 +14,7 @@ func Init() {
 	mc = markov.Init()
 
 	bot.Handle(recordMarkov, client.PRIVMSG, client.ACTION)
+	bot.Rewrite(insultPlugin)
 
 	bot.Command(enableMarkov, "markov me", "markov me  -- "+
 		"Enable recording of your public messages to generate chains.")
