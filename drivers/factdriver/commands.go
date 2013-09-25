@@ -68,7 +68,7 @@ func extractRx(l *util.Lexer, delim rune) string {
 	for {
 		ret += l.Find(delim)
 		for i = len(ret)-1; i >= 0 && ret[i] == '\\'; i-- { }
-		if l.Peek() == 0 || (len(ret)-i-1)%2 == 0 {
+		if l.Peek() == 0 || (len(ret)-i)%2 == 1 {
 			// Even number of backslashes at end of string
 			// => delimiter isn't escaped. (Or we're at EOF).
 			break
@@ -91,8 +91,8 @@ func edit(ctx *bot.Context) {
 	re := extractRx(l, delim) // Extract regex from string
 	l.Next()                  // Skip past next delimiter
 	rp := extractRx(l, delim) // Extract replacement from string
-	if l.Next() != string(delim) || re == "" || rp == "" {
-		ctx.ReplyN("It's 'that =~ s/<regex>/<replacement>/', fool.")
+	if l.Next() != string(delim) {
+		ctx.ReplyN("Couldn't parse regex: re='%s', rp='%s'.", re, rp)
 		return
 	}
 	rx, err := regexp.Compile(re)
