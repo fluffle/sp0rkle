@@ -20,6 +20,7 @@ type botData struct {
 	servers   ServerSet
 	rewriters RewriteSet
 	commands  CommandSet
+	pollers   PollerSet
 }
 
 var bot *botData
@@ -36,10 +37,15 @@ func Init() {
 		servers:   newServerSet(),
 		commands:  newCommandSet(),
 		rewriters: newRewriteSet(),
+		pollers:   newPollerSet(),
 	}
 
 	// This is a special handler that dispatches commands from the command set
 	bot.servers.HandleAll(client.PRIVMSG, bot.commands)
+
+	// The poller set handles these two to start and stop registered pollers
+	bot.servers.HandleAll(client.CONNECTED, bot.pollers)
+	bot.servers.HandleAll(client.DISCONNECTED, bot.pollers)
 
 	// These three in handlers.go
 	Handle(connected, client.CONNECTED)
@@ -91,4 +97,8 @@ func Command(fn HandlerFunc, prefix, help string) {
 
 func Rewrite(fn RewriteFunc) {
 	bot.rewriters.Add(fn)
+}
+
+func Poll(p Poller) {
+	bot.pollers.Add(p)
 }
