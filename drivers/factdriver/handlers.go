@@ -103,7 +103,7 @@ func recurse(fact *factoids.Factoid, keys map[string]bool) {
 		return
 	}
 	keys[key] = true
-	if f2 := fc.GetPseudoRand(key); fact != nil {
+	if f2 := fc.GetPseudoRand(key); f2 != nil {
 		fact.Value = val[:start] + f2.Value + val[end:]
 		if start == 0 && fact.Type != f2.Type {
 			// Propagate change of factoid type when the pointer
