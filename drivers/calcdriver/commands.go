@@ -81,23 +81,30 @@ func parseMask(ips, nms string) string {
 		return fmt.Sprintf("either %s or %s couldn't be parsed as an IP",
 			ips, nms)
 	}
+	if ip.To4() != nmip.To4() {
+		return fmt.Sprintf("can't mix v4 and v6 ip / netmask specifications")
+	}
+	v4 := ip.To4() != nil
+	if v4 {
+		// Ensure we're working with 32-bit addrs.
+		ip = ip.To4()
+		nmip = nmip.To4()
+	}
 	// this is a bit of a hack, because using ParseIP to parse
 	// something that's actually a v4 netmask doesn't quite work
-	nm := net.IPMask(nmip.To4())
+	nm := net.IPMask(nmip)
 	cidr, bits := nm.Size()
-	if ip.To4() != nil && nm != nil {
-		if bits != 32 {
-			return fmt.Sprintf("%s doesn't look like a valid IPv4 netmask", nms)
-		}
-	} else {
-		// IPv6, hopefully
-		nm = net.IPMask(nmip)
-		cidr, bits = nm.Size()
-		if bits != 128 {
-			return fmt.Sprintf("%s doesn't look like a valid IPv6 netmask", nms)
-		}
+	if v4 && bits != 32 {
+		return fmt.Sprintf("%s doesn't look like a valid IPv4 netmask", nms)
+	} else if !v4 && bits != 128 {
+		return fmt.Sprintf("%s doesn't look like a valid IPv6 netmask", nms)
 	}
 	btm, top := maskRange(ip, nm)
+	if v4 {
+		// Ditto.
+		btm = btm.To4()
+		top = top.To4()
+	}
 	return fmt.Sprintf("%s/%d is in the range %s-%s and has the netmask %s",
 		ip, cidr, btm, top, nmip)
 }
