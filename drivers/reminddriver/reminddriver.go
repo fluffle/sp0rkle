@@ -61,10 +61,12 @@ func Remind(r *reminders.Reminder, ctx *bot.Context) {
 
 func Forget(id bson.ObjectId, stop bool) {
 	c, ok := running[id]
-	if !ok { return }
-	delete(running, id)
-	if stop {
-		c <- struct{}{}
+	if ok {
+		// If it's *not* in running, it's probably a Tell.
+		delete(running, id)
+		if stop {
+			c <- struct{}{}
+		}
 	}
 	if err := rc.RemoveId(id); err != nil {
 		logging.Error("Failure removing reminder %s: %v", id, err)
