@@ -23,8 +23,6 @@ type mcStatus struct {
 const playerdata = "\x00\x00\x01player_\x00\x00"
 
 var (
-	status chan *mcStatus
-	quit   chan struct{}
 	mcHandshake = []byte("\xfe\xfd\x09\x00\x00\x00\x00")
 	mcGetStatus = []byte("\xfe\xfd\x00\x00\x00\x00\x00")
 	mcServer    = flag.String("mc_server", "", "Minecraft server to poll")
@@ -34,50 +32,25 @@ var (
 		"Channel whose topic poller should keep updated")
 )
 
-func mcStartPoller(ctx *bot.Context) {
-	if *mcServer == "" {
+func (mcs *mcStatus) Poll(ctxs []*bot.Context) {
+	logging.Debug("polling minecraft server at %s", *mcServer)
+	st, err := pollServer(*mcServer)
+	if err != nil {
+		logging.Error("minecraft poll failed: %v", err)
 		return
 	}
-	status = make(chan *mcStatus, 1)
-	quit = make(chan struct{})
-	t := time.NewTicker(*mcPollFreq)
-	go func() {
-		for {
-			select {
-			case <-t.C:
-				logging.Debug("polling minecraft server at %s", *mcServer)
-				if st, err := poll(*mcServer); err == nil {
-					status <- st
-					ctx.Topic(*mcChan)
-				} else {
-					logging.Error("poll failed: %v", err)
-				}
-			case <-quit:
-				close(status)
-				return
-			}
-		}
-	}()
-}
-
-func mcStopPoller(ctx *bot.Context) {
-	if *mcServer == "" {
-		return
+	*mcs = *st
+	for _, ctx := range ctxs {
+		ctx.Topic(*mcChan)
 	}
-	close(quit)
-	for _ = range status {}
 }
 
-func mcChanTopic(ctx *bot.Context) {
+func (mcs *mcStatus) Start() { /* empty */ }
+func (mcs *mcStatus) Stop() { /* empty */ }
+func (mcs *mcStatus) Tick() time.Duration { return *mcPollFreq }
+
+func (mcs *mcStatus) Topic(ctx *bot.Context) {
 	if ctx.Args[1] != *mcChan {
-		return
-	}
-	logging.Debug("got minecraft topic: %#v", ctx)
-	var st *mcStatus
-	select {
-	case st = <-status:
-	default:
-		logging.Debug("skipping read for empty chan")
 		return
 	}
 	topic := ctx.Text()
@@ -87,17 +60,18 @@ func mcChanTopic(ctx *bot.Context) {
 		topic = topic[idx:]
 	}
 	players := ""
-	if len(st.players) > 0 {
-		players = ": " + strings.Join(st.players, ", ")
+	if len(mcs.players) > 0 {
+		players = ": " + strings.Join(mcs.players, ", ")
 	}
-	topic = fmt.Sprintf("%s %s v%s [%s/%s%s]%s", st.motd, *mcServer,
-		st.version, st.nump, st.maxp, players, topic)
+	topic = fmt.Sprintf("%s %s v%s [%s/%s%s]%s", mcs.motd, *mcServer,
+		mcs.version, mcs.nump, mcs.maxp, players, topic)
 	if topic != ctx.Text() {
 		ctx.Topic(*mcChan, topic)
 	}
 }
 
-func poll(server string) (*mcStatus, error) {
+// Conducts a single poll of a server.
+func pollServer(server string) (*mcStatus, error) {
 	nc, err := net.Dial("udp", server)
 	if err != nil {
 		return nil, err
@@ -137,7 +111,7 @@ func poll(server string) (*mcStatus, error) {
 	binary.Write(b, binary.BigEndian, int32(challenge))
 	b.WriteString("\x00\x00\x00\x00")
 	if n, err = nc.Write(b.Bytes()); err != nil || n != b.Len() {
-		if n != len(handshake) {
+		if n != b.Len() {
 			return nil, fmt.Errorf("short write in status")
 		}
 		return nil, err
