@@ -14,6 +14,7 @@ import (
 	"labix.org/v2/mgo/bson"
 	"net/http"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -114,15 +115,29 @@ func Cache(u *urls.Url) error {
 			return fmt.Errorf("Url contains bad substring '%s'.", s)
 		}
 	}
-	res, err := http.Get(u.Url)
+	// Try a HEAD req first to get Content-Length header.
+	res, err := http.Head(u.Url)
 	if err != nil {
 		return err
 	}
-	defer res.Body.Close()
 	if res.StatusCode != 200 {
 		return fmt.Errorf("Received non-200 response '%s' from server.",
 			res.Status)
 	}
+	if size := res.Header.Get("Content-Length"); size != "" {
+		if bytes, err := strconv.Atoi(size); err != nil {
+			return fmt.Errorf("Received unparseable content length '%s' "+
+				"from server: %v.", size, err)
+		} else if bytes > 1<<22 {
+			return fmt.Errorf("Response too large (%d MB) to cache safely.",
+				bytes/1024/1024)
+		}
+	}
+	res, err = http.Get(u.Url)
+	if err != nil {
+		return err
+	}
+	defer res.Body.Close()
 	// 1 << 22 == 4MB
 	if res.ContentLength > 1<<22 {
 		return fmt.Errorf("Response too large (%d MB) to cache safely.",
