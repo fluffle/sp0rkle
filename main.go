@@ -5,6 +5,7 @@ package main
 import (
 	_ "expvar"
 	"flag"
+	irc "github.com/fluffle/goirc/logging"
 	"github.com/fluffle/golog/logging"
 	"github.com/fluffle/sp0rkle/bot"
 	"github.com/fluffle/sp0rkle/db"
@@ -32,7 +33,7 @@ var (
 
 func main() {
 	flag.Parse()
-	logging.InitFromFlags()
+	irc.SetLogger(logging.InitFromFlags())
 
 	// Initialise bot state
 	bot.Init()
