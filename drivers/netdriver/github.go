@@ -20,7 +20,10 @@ var (
 )
 
 const (
-	githubIssuesURL = "https://github.com/fluffle/sp0rkle/issues"
+	githubUser = "fluffle"
+	githubRepo = "sp0rkle"
+	githubURL = "https://github.com/"+githubUser+"/"+githubRepo
+	githubIssuesURL = githubURL + "/issues"
 	ISO8601 = "2006-01-02T15:04:05Z"
 )
 
@@ -43,20 +46,21 @@ func githubCreateIssue(ctx *bot.Context, gh *github.Client) {
 
 	issue := &github.Issue{
 		Title:    sp(s[0] + "."),
-		Assignee: &github.User{Login: sp("fluffle")},
-		Labels:   []github.Label{
-			{Name: sp("from:IRC")},
-			{Name: sp("nick:"+ctx.Nick)},
-			{Name: sp("chan:"+ctx.Target())},
-		},
 	}
 	if len(s) == 2 {
 		issue.Body = &s[1]
 	}
-	issue, _, err := gh.Issues.Create("fluffle", "sp0rkle", issue)
+	issue, _, err := gh.Issues.Create(githubUser, githubRepo, issue)
 	if err != nil {
 		ctx.ReplyN("Error creating issue: %v", err)
 		return
+	}
+	// Can't set labels on create due to go-github #75 :/
+	_, _, err = gh.Issues.ReplaceLabelsForIssue(
+		githubUser, githubRepo, *issue.Number,
+		[]string{"from:IRC", "nick:"+ctx.Nick, "chan:"+ctx.Target()})
+	if err != nil {
+		ctx.ReplyN("Failed to add labels to issue: %v", err)
 	}
 	ctx.ReplyN("Issue #%d created at %s/%d",
 		*issue.Number, githubIssuesURL, *issue.Number)
