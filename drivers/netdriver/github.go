@@ -25,6 +25,7 @@ const (
 	githubURL = "https://github.com/"+githubUser+"/"+githubRepo
 	githubIssuesURL = githubURL + "/issues"
 	ISO8601 = "2006-01-02T15:04:05Z"
+	timeFormat = "15:04:05, Monday 2 January 2006"
 )
 
 func sp(s string) *string {
@@ -79,13 +80,14 @@ type ghUpdate struct {
 }
 
 func (u ghUpdate) String() string {
-	s := []string{}
+	s := []string{fmt.Sprintf("that issue %s/%d (%s)",
+		githubIssuesURL, u.issue, u.title)}
 	if !u.closed.IsZero() {
-		s = append(s, fmt.Sprintf("Issue %s/%d (%s) closed at %s.",
-			githubIssuesURL, u.issue, u.title, u.closed))
+		s = append(s, fmt.Sprintf("was closed at %s.",
+			u.closed.Format(timeFormat)))
 	} else {
-		s = append(s, fmt.Sprintf("Issue %s/%d (%s) updated at %s.",
-			githubIssuesURL, u.issue, u.title, u.updated))
+		s = append(s, fmt.Sprintf("was updated at %s.",
+			u.updated.Format(timeFormat)))
 	}
 	if u.comment != "" {
 		comment := u.comment
@@ -97,7 +99,7 @@ func (u ghUpdate) String() string {
 				trunc = " (truncated) "
 			}
 		}
-		s = append(s, fmt.Sprintf("Recent%scomment by %s: %s",
+		s = append(s, fmt.Sprintf("Recent%scomment by %s: '%s'",
 			trunc, u.commenter, comment))
 	}
 	return strings.Join(s, " ")
@@ -129,6 +131,7 @@ func (ghp *ghPoller) getIssues() {
 		logging.Error("Error listing open issues: %v", err)
 	}
 	open = append(open, closed...)
+	logging.Debug("Polling github for issues: %d issues found.", len(open))
 	if len(open) == 0 { return }
 	for _, issue := range open {
 		update := ghp.parseIssue(issue)

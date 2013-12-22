@@ -58,8 +58,11 @@ func NewTell(msg string, t, n bot.Nick, c bot.Chan) *Reminder {
 func (r *Reminder) Reply() (s string) {
 	switch {
 	case r.Tell:
-		s = fmt.Sprintf("%s asked me to tell you %s at %s",
-			r.Source, r.Reminder, r.Created.Format(RemindTimeFormat))
+		s = fmt.Sprintf("%s asked me to tell you %s", r.Source, r.Reminder)
+		if r.Source != "github" {
+			// TODO(fluffle): I am not proud of this.
+			s += " at " + r.Created.Format(RemindTimeFormat)
+		}
 	case r.From == r.To:
 		s = fmt.Sprintf("%s, you asked me to remind you %s",
 			r.Source, r.Reminder)
