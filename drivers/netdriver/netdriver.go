@@ -13,7 +13,6 @@ import (
 // We store 'tell' notices for github updates
 var rc *reminders.Collection
 
-
 func get(req string) ([]byte, error) {
 	res, err := http.Get(req)
 	if err != nil {
@@ -54,7 +53,7 @@ func Init() {
 	}
 }
 
-func wrap(f func(*bot.Context, *github.Client), gh *github.Client) func (*bot.Context) {
+func wrap(f func(*bot.Context, *github.Client), gh *github.Client) func(*bot.Context) {
 	return func(ctx *bot.Context) {
 		f(ctx, gh)
 	}

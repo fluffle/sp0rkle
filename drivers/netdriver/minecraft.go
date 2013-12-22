@@ -14,10 +14,10 @@ import (
 )
 
 type mcStatus struct {
-	motd string
+	motd       string
 	nump, maxp string
-	players []string
-	version string
+	players    []string
+	version    string
 }
 
 const playerdata = "\x00\x00\x01player_\x00\x00"
@@ -106,7 +106,7 @@ func pollServer(server string) (*mcStatus, error) {
 		return nil, err
 	}
 
-	// Send status request, 
+	// Send status request,
 	b := bytes.NewBuffer(mcGetStatus)
 	binary.Write(b, binary.BigEndian, int32(challenge))
 	b.WriteString("\x00\x00\x00\x00")
@@ -121,7 +121,7 @@ func pollServer(server string) (*mcStatus, error) {
 	if n, err = nc.Read(buf); err != nil {
 		return nil, err
 	}
-	data := string(buf[11:n-1]) // skip splitnum + int, and strip trailing \x00
+	data := string(buf[11 : n-1]) // skip splitnum + int, and strip trailing \x00
 	idx = strings.Index(data, playerdata)
 	if idx == -1 {
 		return nil, fmt.Errorf("could not find player data")
@@ -139,7 +139,7 @@ func pollServer(server string) (*mcStatus, error) {
 		version: items["version"],
 	}
 	// And the second part is the null-terminated string list of players
-	if idx + len(playerdata) < len(data) {
+	if idx+len(playerdata) < len(data) {
 		st.players = strings.Split(data[idx+len(playerdata):len(data)-1], "\x00")
 	}
 	return st, nil

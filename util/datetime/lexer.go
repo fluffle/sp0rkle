@@ -108,7 +108,7 @@ type dateLexer struct {
 	*util.Lexer
 	hourfmt, ampmfmt, zonefmt string
 	time, date                time.Time // takes care of absolute time and date specs
-	day                       int       // takes care of absolute day of relative month 
+	day                       int       // takes care of absolute day of relative month
 	offsets                   relTime   // takes care of +- ymd hms
 	days                      relDays   // takes care of specific days into future
 	months                    relMonths // takes care of specific months into future

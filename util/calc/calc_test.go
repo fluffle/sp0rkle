@@ -266,7 +266,7 @@ func TestShuntStep(t *testing.T) {
 			"12", "12",
 			true},
 
-		// If the token is a number, then add it to the output queue. 
+		// If the token is a number, then add it to the output queue.
 		{&token{T_NUM, "", 5},
 			"+cos", "+cos",
 			"cos", "cos",
@@ -361,7 +361,7 @@ func TestShuntStep(t *testing.T) {
 
 		// If the token is a function argument separator (e.g., a comma):
 		// - Until the token at the top of the stack is a left parenthesis,
-		//   pop operators off the stack onto the output queue. If no left 
+		//   pop operators off the stack onto the output queue. If no left
 		//   parentheses are encountered, either the separator was misplaced
 		//   or parentheses were mismatched.
 		//

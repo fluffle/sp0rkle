@@ -52,7 +52,7 @@ func list(ctx *bot.Context) {
 	listed[ctx.Nick] = list
 }
 
-// remind 
+// remind
 func set(ctx *bot.Context) {
 	// s == <target> <reminder> in|at|on <time>
 	s := strings.Fields(ctx.Text())
@@ -65,7 +65,7 @@ func set(ctx *bot.Context) {
 		lc := strings.ToLower(s[i])
 		if lc == "in" || lc == "at" || lc == "on" {
 			timestr = strings.ToLower(strings.Join(s[i+1:], " "))
-		} else if i + 2 == len(s) {
+		} else if i+2 == len(s) {
 			// Hack to test the last word for e.g. "tomorrow"
 			i++
 			timestr = strings.ToLower(s[i])

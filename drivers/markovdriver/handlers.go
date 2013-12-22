@@ -21,6 +21,6 @@ func recordMarkov(ctx *bot.Context) {
 			mc.AddSentence(ctx.Text(), "user:"+whom)
 		case client.ACTION:
 			mc.AddAction(ctx.Text(), "user:"+whom)
-		} 
+		}
 	}
 }

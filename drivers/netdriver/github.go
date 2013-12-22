@@ -17,9 +17,9 @@ var (
 )
 
 const (
-	githubUser = "fluffle"
-	githubRepo = "sp0rkle"
-	githubURL = "https://github.com/"+githubUser+"/"+githubRepo
+	githubUser      = "fluffle"
+	githubRepo      = "sp0rkle"
+	githubURL       = "https://github.com/" + githubUser + "/" + githubRepo
 	githubIssuesURL = githubURL + "/issues"
 )
 
@@ -53,7 +53,7 @@ func githubCreateIssue(ctx *bot.Context, gh *github.Client) {
 	// Can't set labels on create due to go-github #75 :/
 	_, _, err = gh.Issues.ReplaceLabelsForIssue(
 		githubUser, githubRepo, *issue.Number,
-		[]string{"from:IRC", "nick:"+ctx.Nick, "chan:"+ctx.Target()})
+		[]string{"from:IRC", "nick:" + ctx.Nick, "chan:" + ctx.Target()})
 	if err != nil {
 		ctx.ReplyN("Failed to add labels to issue: %v", err)
 	}
@@ -71,7 +71,7 @@ func githubWatcher(ctx *bot.Context, gh *github.Client) {
 	text := util.RemoveColours(ctx.Text()) // srsly github why colours :(
 	l := &util.Lexer{Input: text}
 	l.Find(' ')
-	text = text[l.Pos() + 1:]
+	text = text[l.Pos()+1:]
 	l.Find('#')
 	l.Next()
 	issue, nick, channel := int(l.Number()), "", ""
@@ -81,7 +81,7 @@ func githubWatcher(ctx *bot.Context, gh *github.Client) {
 		logging.Error("Error getting labels for issue %d: %v", issue, err)
 		return
 	}
-	ls := make([]string, len(labels))  // FFUUU string pointers again.
+	ls := make([]string, len(labels)) // FFUUU string pointers again.
 	for i, l := range labels {
 		ls[i] = *l.Name
 		kv := strings.Split(*l.Name, ":")
@@ -102,9 +102,9 @@ func githubWatcher(ctx *bot.Context, gh *github.Client) {
 
 	logging.Debug("Recording tell for %s in %s about issue %d.",
 		nick, channel, issue)
-	r := reminders.NewTell("that " + text,
+	r := reminders.NewTell("that "+text,
 		bot.Nick(nick), "github", bot.Chan(channel))
 	if err := rc.Insert(r); err != nil {
-		 logging.Error("Error inserting github tell: %v", err)
+		logging.Error("Error inserting github tell: %v", err)
 	}
 }

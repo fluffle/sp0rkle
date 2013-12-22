@@ -68,7 +68,7 @@ func Init() {
 		"caches the last mentioned URL.")
 	bot.Command(cache, "save", "save <url>  -- caches <url>")
 
-	// This serves "shortened" urls 
+	// This serves "shortened" urls
 	http.Handle(shortenPath, http.StripPrefix(shortenPath,
 		http.HandlerFunc(shortenedServer)))
 

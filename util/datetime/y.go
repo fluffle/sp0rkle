@@ -811,7 +811,7 @@ yydefault:
 	case 71:
 		//line datetime.y:360
 		{
-			// 3rd Tuesday 
+			// 3rd Tuesday
 			yylex.(*dateLexer).setDays(yyS[yypt-0].intval, yyS[yypt-2].tval.i)
 		}
 	case 72:

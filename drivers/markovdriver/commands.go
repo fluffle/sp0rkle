@@ -15,7 +15,7 @@ func enableMarkov(ctx *bot.Context) {
 func disableMarkov(ctx *bot.Context) {
 	key := strings.ToLower(ctx.Nick)
 	conf.Ns(markovNs).Delete(key)
-	if err := mc.ClearTag("user:"+key); err != nil {
+	if err := mc.ClearTag("user:" + key); err != nil {
 		ctx.ReplyN("Failed to clear tag: %s", err)
 		return
 	}
@@ -34,7 +34,7 @@ func randomCmd(ctx *bot.Context) {
 	}
 	if !shouldMarkov(whom) {
 		if whom == strings.ToLower(ctx.Nick) {
-			ctx.ReplyN("You're not recording markov data. "+
+			ctx.ReplyN("You're not recording markov data. " +
 				"Use 'markov me' to enable collection.")
 		} else {
 			ctx.ReplyN("Not recording markov data for %s.", ctx.Text())

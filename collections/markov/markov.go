@@ -103,7 +103,7 @@ func (mc *Collection) Source(tag string) *MarkovSource {
 func (ms *MarkovSource) GetLinks(value string) ([]markov.Link, error) {
 	q := ms.Find(bson.M{
 		"source": value,
-		"tag":  ms.tag,
+		"tag":    ms.tag,
 	})
 	num, err := q.Count()
 	if err != nil {

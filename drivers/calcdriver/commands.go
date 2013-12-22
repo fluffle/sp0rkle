@@ -81,8 +81,8 @@ func parseMask(ips, nms string) string {
 		return fmt.Sprintf("either %s or %s couldn't be parsed as an IP",
 			ips, nms)
 	}
-	if (ip.To4() == nil && nmip.To4() != nil ||
-		ip.To4() != nil && nmip.To4() == nil) {
+	if ip.To4() == nil && nmip.To4() != nil ||
+		ip.To4() != nil && nmip.To4() == nil {
 		return fmt.Sprintf("can't mix v4 and v6 ip / netmask specifications")
 	}
 	v4 := ip.To4() != nil

@@ -33,7 +33,7 @@ const (
 	cAccess
 )
 
-// Parse a row returned from SQLite into a Factoid. 
+// Parse a row returned from SQLite into a Factoid.
 func parseFactoid(row []interface{}, out chan *factoids.Factoid) {
 	values := parseMultipleValues(toString(row[cValue]))
 	c := &factoids.FactoidStat{

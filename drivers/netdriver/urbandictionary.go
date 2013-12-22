@@ -11,6 +11,7 @@ import (
 )
 
 const udUrl = "http://api.urbandictionary.com/v0/define?term=%s"
+
 // TODO(fluffle): Put this in util and clean up the various copies of it.
 const TimeFormat = "15:04:05, Monday 2 January 2006"
 
@@ -26,29 +27,29 @@ type udResult struct {
 }
 
 type udDef struct {
-	Word        string `json:"word"`
-	Definition  string `json:"definition"`
-	Example     string `json:"example"`
-	Author      string `json:"author"`
-	Id          int    `json:"defid"`
-	Url         string `json:"permalink"`
-	Vote        string `json:"current_vote"`
-	Upvotes     int    `json:"thumbs_up"`
-	Downvotes   int    `json:"thumbs_down"`
-	Term        string `json:"term,omitempty"`
-	Type        string `json:"type,omitempty"`
+	Word       string `json:"word"`
+	Definition string `json:"definition"`
+	Example    string `json:"example"`
+	Author     string `json:"author"`
+	Id         int    `json:"defid"`
+	Url        string `json:"permalink"`
+	Vote       string `json:"current_vote"`
+	Upvotes    int    `json:"thumbs_up"`
+	Downvotes  int    `json:"thumbs_down"`
+	Term       string `json:"term,omitempty"`
+	Type       string `json:"type,omitempty"`
 }
 
 type udCacheEntry struct {
-	result    *udResult
-	stamp     time.Time
+	result *udResult
+	stamp  time.Time
 }
 
 type udCache map[string]udCacheEntry
 
 func (udc udCache) prune() {
 	for k, v := range udc {
-		if time.Since(v.stamp) > 24 * time.Hour {
+		if time.Since(v.stamp) > 24*time.Hour {
 			delete(udc, k)
 		}
 	}
@@ -92,7 +93,7 @@ func urbanDictionary(ctx *bot.Context) {
 	// Cycle through all the definitions on repeated calls for the same term
 	r.Pages = (r.Pages + 1) % r.Total
 	def := r.List[r.Pages]
-	ctx.Reply("[%d/%d] %s (%d up, %d down%s)", r.Pages + 1, r.Total,
+	ctx.Reply("[%d/%d] %s (%d up, %d down%s)", r.Pages+1, r.Total,
 		strings.Replace(def.Definition, "\r\n", " ", -1),
 		def.Upvotes, def.Downvotes, cached)
 }
