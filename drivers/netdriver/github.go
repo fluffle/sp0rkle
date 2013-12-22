@@ -62,8 +62,9 @@ func githubCreateIssue(ctx *bot.Context, gh *github.Client) {
 }
 
 func githubWatcher(ctx *bot.Context, gh *github.Client) {
-	// Watch #sp0rklf for IRC messages
-	if ctx.Nick != "fluffle\\sp0rkle" || ctx.Target() != "#sp0rklf" {
+	// Watch #sp0rklf for IRC messages about issues coming from github.
+	if ctx.Nick != "fluffle\\sp0rkle" || ctx.Target() != "#sp0rklf" ||
+		!strings.Contains(ctx.Text(), "issue #") {
 		return
 	}
 
