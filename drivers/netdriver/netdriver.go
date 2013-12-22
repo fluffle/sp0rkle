@@ -1,9 +1,11 @@
 package netdriver
 
 import (
+	"github.com/fluffle/goirc/client"
 	"github.com/fluffle/golog/logging"
 	"github.com/fluffle/sp0rkle/bot"
 	"github.com/fluffle/sp0rkle/collections/reminders"
+	"github.com/google/go-github/github"
 	"io/ioutil"
 	"net/http"
 )
@@ -40,14 +42,20 @@ func Init() {
 
 	if *githubToken != "" {
 		gh := githubClient()
-		bot.Poll(githubPoller(gh))
-		wrap := func (ctx *bot.Context) { githubCreateIssue(ctx, gh) }
 
-		bot.Command(wrap, "file bug:", "file bug: <title>. "+
+		bot.Handle(wrap(githubWatcher, gh), client.PRIVMSG)
+
+		bot.Command(wrap(githubCreateIssue, gh), "file bug:", "file bug: <title>. "+
 			"<descriptive body>  -- Files a bug on GitHub. Abusers will be hurt.")
-		bot.Command(wrap, "file bug", "file bug <title>. "+
+		bot.Command(wrap(githubCreateIssue, gh), "file bug", "file bug <title>. "+
 			"<descriptive body>  -- Files a bug on GitHub. Abusers will be hurt.")
-		bot.Command(wrap, "report bug", "file bug: <title>. "+
+		bot.Command(wrap(githubCreateIssue, gh), "report bug", "file bug: <title>. "+
 			"<descriptive body>  -- Files a bug on GitHub. Abusers will be hurt.")
+	}
+}
+
+func wrap(f func(*bot.Context, *github.Client), gh *github.Client) func (*bot.Context) {
+	return func(ctx *bot.Context) {
+		f(ctx, gh)
 	}
 }
