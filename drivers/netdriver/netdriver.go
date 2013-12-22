@@ -48,7 +48,9 @@ func Init() {
 			"<descriptive body>  -- Files a bug on GitHub. Abusers will be hurt.")
 		bot.Command(githubCreateIssue, "file bug", "file bug <title>. "+
 			"<descriptive body>  -- Files a bug on GitHub. Abusers will be hurt.")
-		bot.Command(githubCreateIssue, "report bug", "file bug: <title>. "+
+		bot.Command(githubCreateIssue, "report bug", "report bug <title>. "+
 			"<descriptive body>  -- Files a bug on GitHub. Abusers will be hurt.")
+		bot.Command(githubUpdateIssue, "update bug #", "update bug #<number> "+
+			"<comment>  -- Adds a comment to bug <number>. Abusers will be hurt.")
 	}
 }

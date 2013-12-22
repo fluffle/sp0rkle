@@ -3,6 +3,7 @@ package netdriver
 import (
 	"code.google.com/p/goauth2/oauth"
 	"flag"
+	"fmt"
 	"github.com/fluffle/golog/logging"
 	"github.com/fluffle/sp0rkle/bot"
 	"github.com/fluffle/sp0rkle/collections/reminders"
@@ -59,6 +60,29 @@ func githubCreateIssue(ctx *bot.Context) {
 	}
 	ctx.ReplyN("Issue #%d created at %s/%d",
 		*issue.Number, githubIssuesURL, *issue.Number)
+}
+
+func githubUpdateIssue(ctx *bot.Context) {
+	l := &util.Lexer{Input: ctx.Text()}
+	issue := int(l.Number())
+	if issue == 0 {
+		ctx.ReplyN("Not sure what issue you're talking about?")
+		return
+	}
+	text := strings.TrimSpace(l.Find(0))
+	if text == "" {
+		ctx.ReplyN("Don't you have anything to say?")
+		return
+	}
+	text = fmt.Sprintf("<%s/%s> %s", ctx.Nick, ctx.Target(), text)
+	comm, _, err := gh.Issues.CreateComment(
+		githubUser, githubRepo, issue, &github.IssueComment{Body: &text})
+	if err != nil {
+		ctx.ReplyN("Error creating issue comment: %v", err)
+		return
+	}
+	ctx.ReplyN("Created comment %s/%d#issuecomment-%d",
+		githubIssuesURL, issue, *comm.ID)
 }
 
 func githubWatcher(ctx *bot.Context) {
