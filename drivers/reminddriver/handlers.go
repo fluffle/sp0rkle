@@ -36,11 +36,15 @@ func tellCheck(ctx *bot.Context) {
 	r := rc.TellsFor(nick)
 	for i := range r {
 		if ctx.Cmd == client.NICK {
-			ctx.Privmsg(string(r[i].Chan), nick+": "+r[i].Reply())
+			if r[i].Chan != "" {
+				ctx.Privmsg(string(r[i].Chan), nick+": "+r[i].Reply())
+			}
 			ctx.Reply("%s", r[i].Reply())
 		} else {
 			ctx.Privmsg(ctx.Nick, r[i].Reply())
-			ctx.ReplyN("%s", r[i].Reply())
+			if r[i].Chan != "" {
+				ctx.ReplyN("%s", r[i].Reply())
+			}
 		}
 		rc.RemoveId(r[i].Id)
 	}

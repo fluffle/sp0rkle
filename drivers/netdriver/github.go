@@ -74,37 +74,21 @@ func githubWatcher(ctx *bot.Context) {
 	text = text[l.Pos()+1:]
 	l.Find('#')
 	l.Next()
-	issue, nick, channel := int(l.Number()), "", ""
+	issue := int(l.Number())
 
 	labels, _, err := gh.Issues.ListLabelsByIssue(githubUser, githubRepo, issue)
 	if err != nil {
 		logging.Error("Error getting labels for issue %d: %v", issue, err)
 		return
 	}
-	ls := make([]string, len(labels)) // FFUUU string pointers again.
-	for i, l := range labels {
-		ls[i] = *l.Name
+	for _, l := range labels {
 		kv := strings.Split(*l.Name, ":")
-		if len(kv) != 2 {
-			continue
+		if len(kv) == 2 && kv[0] == "nick" {
+			logging.Debug("Recording tell for %s about issue %d.", kv[1], issue)
+			r := reminders.NewTell("that "+text, bot.Nick(kv[1]), "github", "")
+			if err := rc.Insert(r); err != nil {
+				logging.Error("Error inserting github tell: %v", err)
+			}
 		}
-		switch kv[0] {
-		case "nick":
-			nick = kv[1]
-		case "chan":
-			channel = kv[1]
-		}
-	}
-	if nick == "" || channel == "" {
-		logging.Error("Couldn't parse nick/chan info from labels %v.", ls)
-		return
-	}
-
-	logging.Debug("Recording tell for %s in %s about issue %d.",
-		nick, channel, issue)
-	r := reminders.NewTell("that "+text,
-		bot.Nick(nick), "github", bot.Chan(channel))
-	if err := rc.Insert(r); err != nil {
-		logging.Error("Error inserting github tell: %v", err)
 	}
 }
