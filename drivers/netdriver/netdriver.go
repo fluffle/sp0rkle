@@ -12,6 +12,7 @@ import (
 
 // We store 'tell' notices for github updates
 var rc *reminders.Collection
+var gh *github.Client
 
 func get(req string) ([]byte, error) {
 	res, err := http.Get(req)
@@ -23,8 +24,6 @@ func get(req string) ([]byte, error) {
 }
 
 func Init() {
-	rc = reminders.Init()
-
 	bot.Command(urbanDictionary, "ud", "ud <term>  -- "+
 		"Look up <term> on UrbanDictionary.")
 
@@ -40,21 +39,16 @@ func Init() {
 	}
 
 	if *githubToken != "" {
-		gh := githubClient()
+		rc = reminders.Init()
+		gh = githubClient()
 
-		bot.Handle(wrap(githubWatcher, gh), client.PRIVMSG)
+		bot.Handle(githubWatcher, client.PRIVMSG)
 
-		bot.Command(wrap(githubCreateIssue, gh), "file bug:", "file bug: <title>. "+
+		bot.Command(githubCreateIssue, "file bug:", "file bug: <title>. "+
 			"<descriptive body>  -- Files a bug on GitHub. Abusers will be hurt.")
-		bot.Command(wrap(githubCreateIssue, gh), "file bug", "file bug <title>. "+
+		bot.Command(githubCreateIssue, "file bug", "file bug <title>. "+
 			"<descriptive body>  -- Files a bug on GitHub. Abusers will be hurt.")
-		bot.Command(wrap(githubCreateIssue, gh), "report bug", "file bug: <title>. "+
+		bot.Command(githubCreateIssue, "report bug", "file bug: <title>. "+
 			"<descriptive body>  -- Files a bug on GitHub. Abusers will be hurt.")
-	}
-}
-
-func wrap(f func(*bot.Context, *github.Client), gh *github.Client) func(*bot.Context) {
-	return func(ctx *bot.Context) {
-		f(ctx, gh)
 	}
 }

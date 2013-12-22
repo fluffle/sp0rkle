@@ -33,7 +33,7 @@ func githubClient() *github.Client {
 	return github.NewClient(t.Client())
 }
 
-func githubCreateIssue(ctx *bot.Context, gh *github.Client) {
+func githubCreateIssue(ctx *bot.Context) {
 	s := strings.SplitN(ctx.Text(), ". ", 2)
 	if s[0] == "" {
 		ctx.ReplyN("I'm not going to create an empty issue.")
@@ -61,7 +61,7 @@ func githubCreateIssue(ctx *bot.Context, gh *github.Client) {
 		*issue.Number, githubIssuesURL, *issue.Number)
 }
 
-func githubWatcher(ctx *bot.Context, gh *github.Client) {
+func githubWatcher(ctx *bot.Context) {
 	// Watch #sp0rklf for IRC messages about issues coming from github.
 	if ctx.Nick != "fluffle\\sp0rkle" || ctx.Target() != "#sp0rklf" ||
 		!strings.Contains(ctx.Text(), "issue #") {
