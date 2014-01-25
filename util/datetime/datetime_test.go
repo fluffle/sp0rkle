@@ -5,6 +5,24 @@ import (
 	"time"
 )
 
+type timeTest struct {
+	in string
+	t  time.Time
+}
+
+type timeTests []timeTest
+
+func (tt timeTests) run(t *testing.T, start time.Time) {
+	for i, test := range tt {
+		ret, ok := parse(test.in, start)
+		if !ok || !ret.Equal(test.t) {
+			t.Errorf("Unable to parse test %d\nin: %s\nexp: %s\ngot: %s",
+				i+1, test.in, test.t, ret)
+		}
+	}
+
+}
+
 func TestParseTimeFormats(t *testing.T) {
 	// RFC822 doesn't specify seconds, and Stamp doesn't specify year
 	ref := time.Date(2004, 6, 22, 13, 10, 0, 0, time.Local)
@@ -40,10 +58,7 @@ func TestParseTime(t *testing.T) {
 		}
 		return time.Date(now.Year(), now.Month(), now.Day(), h, m, s, 0, loc)
 	}
-	tests := []struct {
-		in string
-		t  time.Time
-	}{
+	tests := timeTests{
 		// T_INTEGER T_AMPM o_zone (also tests all possible zone permutations)
 		{"11am", mkt(11, 0, 0)},
 		{"11pm", mkt(23, 0, 0)},
@@ -98,13 +113,7 @@ func TestParseTime(t *testing.T) {
 		{"27:83", mkt(3, 23, 0)},
 		{"27:73:83", mkt(3, 13, 23)},
 	}
-	for i, test := range tests {
-		ret, ok := parse(test.in, now)
-		if !ok || !ret.Equal(test.t) {
-			t.Errorf("Unable to parse time %d\nin: %s\ngot: %s",
-				i, test.in, ret)
-		}
-	}
+	tests.run(t, now)
 }
 
 func TestParseDate(t *testing.T) {
@@ -113,10 +122,7 @@ func TestParseDate(t *testing.T) {
 		return time.Date(y, time.Month(m), d, h, n, s, 0, time.UTC)
 	}
 	rel := mkt(1, 2, 3)
-	tests := []struct {
-		in string
-		t  time.Time
-	}{
+	tests := timeTests{
 		// T_INTEGER / T_INTEGER as MM/YYYY
 		{"3/2004", mkt(2004, 3, 1)},
 		{"03/2004", mkt(2004, 3, 1)},
@@ -223,20 +229,11 @@ func TestParseDate(t *testing.T) {
 		{"2004-W52-6", mkt(2004, 12, 25)},
 		{"2004-W53-7", mkt(2005, 1, 2)},
 	}
-	for i, test := range tests {
-		ret, ok := parse(test.in, rel)
-		if !ok || !ret.Equal(test.t) {
-			t.Errorf("Unable to parse date %d\nin: %s\ngot: %s",
-				i, test.in, ret)
-		}
-	}
+	tests.run(t, rel)
 }
 
 func TestParseIsoDateTime(t *testing.T) {
-	tests := []struct {
-		in string
-		t  time.Time
-	}{
+	tests := timeTests{
 		// some random iso_8601_date 'T' iso_8601_time tests
 		{"2004-03-02T13:14:15",
 			time.Date(2004, 3, 2, 13, 14, 15, 0, time.Local)},
@@ -254,11 +251,151 @@ func TestParseIsoDateTime(t *testing.T) {
 		{"20040302T13+0400",
 			time.Date(2004, 3, 2, 13, 0, 0, 0, zone("Etc/GMT-4"))},
 	}
-	for i, test := range tests {
-		ret, ok := parse(test.in, time.Now())
-		if !ok || !ret.Equal(test.t) {
-			t.Errorf("Unable to parse date %d\nin: %s\nexp: %s\ngot: %s",
-				i, test.in, test.t, ret)
-		}
+	tests.run(t, time.Time{})
+}
+
+func TestParseRelativeDays(t *testing.T) {
+	mkt := func(off int) time.Time {
+		// return offset from Wed 22nd Jan 2014
+		return time.Date(2014, 1, 22+off, 0, 0, 0, 0, time.UTC)
 	}
+	rel := mkt(0)
+	tests := timeTests{
+		{"wednesday", mkt(0)},
+		{"this wednesday", mkt(0)},
+		{"next wednesday", mkt(7)},
+		{"last wednesday", mkt(-7)},
+		{"thursday", mkt(1)},
+		{"this thursday", mkt(1)},
+		{"next thursday", mkt(1)},
+		{"last thursday", mkt(-6)},
+		{"friday", mkt(2)},
+		{"this friday", mkt(2)},
+		{"next friday", mkt(2)},
+		{"last friday", mkt(-5)},
+		{"saturday", mkt(3)},
+		{"this saturday", mkt(3)},
+		{"next saturday", mkt(3)},
+		{"last saturday", mkt(-4)},
+		{"sunday", mkt(4)},
+		{"this sunday", mkt(4)},
+		{"next sunday", mkt(4)},
+		{"last sunday", mkt(-3)},
+		{"monday", mkt(5)},
+		{"this monday", mkt(5)},
+		{"next monday", mkt(5)},
+		{"last monday", mkt(-2)},
+		{"tuesday", mkt(6)},
+		{"this tuesday", mkt(6)},
+		{"next tuesday", mkt(6)},
+		{"last tuesday", mkt(-1)},
+		{"2 wednesdays", mkt(14)},
+		{"-3 wednesdays", mkt(-21)},
+		{"+4 wednesdays", mkt(28)},
+		{"yesterday", mkt(-1)},
+		{"tomorrow", mkt(1)},
+		{"today", mkt(0)},
+		{"now", mkt(0)},
+	}
+	tests.run(t, rel)
+}
+
+func TestParseRelativeMonths(t *testing.T) {
+	mkt := func(off int) time.Time {
+		// return offset from Wed 22nd June 2014
+		return time.Date(2014, time.Month(6+off), 22, 0, 0, 0, 0, time.UTC)
+	}
+	rel := mkt(0)
+	tests := timeTests{
+		{"june", mkt(0)},
+		{"this june", mkt(0)},
+		{"next june", mkt(12)},
+		{"last june", mkt(-12)},
+		{"july", mkt(1)},
+		{"this july", mkt(1)},
+		{"next july", mkt(1)},
+		{"last july", mkt(-11)},
+		{"august", mkt(2)},
+		{"this august", mkt(2)},
+		{"next august", mkt(2)},
+		{"last august", mkt(-10)},
+		{"september", mkt(3)},
+		{"this september", mkt(3)},
+		{"next september", mkt(3)},
+		{"last september", mkt(-9)},
+		{"october", mkt(4)},
+		{"this october", mkt(4)},
+		{"next october", mkt(4)},
+		{"last october", mkt(-8)},
+		{"november", mkt(5)},
+		{"this november", mkt(5)},
+		{"next november", mkt(5)},
+		{"last november", mkt(-7)},
+		{"december", mkt(6)},
+		{"this december", mkt(6)},
+		{"next december", mkt(6)},
+		{"last december", mkt(-6)},
+		{"january", mkt(-5)},
+		{"this january", mkt(-5)},
+		{"next january", mkt(7)},
+		{"last january", mkt(-5)},
+		{"february", mkt(-4)},
+		{"this february", mkt(-4)},
+		{"next february", mkt(8)},
+		{"last february", mkt(-4)},
+		{"march", mkt(-3)},
+		{"this march", mkt(-3)},
+		{"next march", mkt(9)},
+		{"last march", mkt(-3)},
+		{"april", mkt(-2)},
+		{"this april", mkt(-2)},
+		{"next april", mkt(10)},
+		{"last april", mkt(-2)},
+		{"may", mkt(-1)},
+		{"this may", mkt(-1)},
+		{"next may", mkt(11)},
+		{"last may", mkt(-1)},
+	}
+	tests.run(t, rel)
+}
+
+func TestAbsDayMonth(t *testing.T) {
+	h, n, s := 11, 22, 33
+	mkt := func(y, m, d int) time.Time {
+		return time.Date(y, time.Month(m), d, h, n, s, 0, time.UTC)
+	}
+	rel := mkt(2001, 2, 3)
+	tests := timeTests{
+		// ... of implicitly this month
+		{"1st Monday", mkt(2001, 2, 5)},
+		{"1st Wednesday", mkt(2001, 2, 7)},
+		{"1st Thursday", mkt(2001, 2, 1)},
+		{"1st Sunday", mkt(2001, 2, 4)},
+		{"2nd Monday", mkt(2001, 2, 12)},
+		{"2nd Wednesday", mkt(2001, 2, 14)},
+		{"2nd Thursday", mkt(2001, 2, 8)},
+		{"2nd Sunday", mkt(2001, 2, 11)},
+		// ... of explicit month
+		{"3rd Saturday of December", mkt(2000, 12, 16)},
+		{"2nd Sunday of January", mkt(2001, 1, 14)},
+		{"4th Thursday of February", mkt(2001, 2, 22)},
+		{"1st Tuesday of March", mkt(2001, 3, 6)},
+		{"2nd Wednesday of August", mkt(2001, 8, 8)},
+		{"2nd Wednesday of September", mkt(2000, 9, 13)},
+		// ... of explicit month of year
+		{"3rd Tuesday of January 2014", mkt(2014, 1, 21)},
+		{"3rd Friday of January 2014", mkt(2014, 1, 17)},
+		{"1st Monday of April 2014", mkt(2014, 4, 7)},
+		{"1st Wednesday of April 2014", mkt(2014, 4, 2)},
+		// ... of explicit year
+		{"1st Tuesday of 2014", mkt(2014, 1, 7)},
+		{"1st Wednesday of 2014", mkt(2014, 1, 1)},
+		{"1st Friday of 2014", mkt(2014, 1, 3)},
+		{"1st Sunday of 2014", mkt(2014, 1, 5)},
+		{"2nd Tuesday of 2014", mkt(2014, 1, 14)},
+		{"2nd Wednesday of 2014", mkt(2014, 1, 8)},
+		{"2nd Friday of 2014", mkt(2014, 1, 10)},
+		{"2nd Sunday of 2014", mkt(2014, 1, 12)},
+	}
+	tests.run(t, rel)
 }

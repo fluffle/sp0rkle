@@ -86,13 +86,17 @@ const (
 	HAVE_DATE
 	HAVE_DAY
 	HAVE_DAYS
+	HAVE_DYEAR
 	HAVE_MONTHS
+	HAVE_MYEAR
 	HAVE_OFFSET
 	HAVE_AGO
+	HAVE_ABSYEAR = HAVE_DYEAR | HAVE_MYEAR
+	HAVE_DMY     = HAVE_DAYS | HAVE_MONTHS | HAVE_ABSYEAR
 )
 
 var lexerStates = [...]string{
-	"time", "date", "days", "months", "offset", "ago"}
+	"time", "date", "day", "days", "day-year", "months", "month-year", "offset", "ago"}
 
 func (ls lexerState) String() string {
 	s := make([]string, 0, len(lexerStates))
@@ -241,6 +245,7 @@ func (l *dateLexer) setDays(d, n int, year ...int) {
 	}
 	l.days = relDays{time.Weekday(d), n, 0}
 	if len(year) > 0 {
+		l.state(HAVE_DYEAR, true)
 		l.days.year = year[0]
 	}
 }
@@ -271,6 +276,7 @@ func (l *dateLexer) setMonths(m, n int, year ...int) {
 	}
 	l.months = relMonths{time.Month(m), n, 0}
 	if len(year) > 0 {
+		l.state(HAVE_MYEAR, true)
 		l.months.year = year[0]
 	}
 }
@@ -280,10 +286,11 @@ func (l *dateLexer) setYear(year int) {
 		l.date = time.Date(year, l.date.Month(), l.date.Day(),
 			0, 0, 0, 0, time.Local)
 	} else if l.state(HAVE_MONTHS) {
+		l.state(HAVE_MYEAR, true)
 		l.months.year = year
 	} else {
+		l.state(HAVE_DYEAR, true)
 		l.days.year = year
-		l.state(HAVE_DAYS, true)
 	}
 }
 
@@ -357,46 +364,76 @@ func (l *dateLexer) resolveDay(rel time.Time) time.Time {
 	return rel
 }
 
-// Applies a relative number of weeks to either the provided base time or
-// Jan 1 of an absolute year to reach +-N <day>s or the nth <day> of <year>
-func (l *dateLexer) resolveDays(rel time.Time) time.Time {
-	if l.days.year != 0 {
-		// this is num'th weekday of year, so start by finding jan 1
-		h, n, s := rel.Clock()
-		rel = time.Date(l.days.year, 1, 1, h, n, s, 0, rel.Location())
-	}
+func (l *dateLexer) dayOffset(rel time.Time) time.Time {
 	// Correct for the assumption that "<day>" or "this <day>" generally
-	// refers to the coming <day> (unless it refers to *today*), while
-	// "<month>" or "this <month>" refers to <month> of the current year.
+	// refers to the coming <day> unless it refers to the day of this year
+	// or *today* whilst "next <day>" *always* refers to the coming <day>.
 	diff := int(l.days.day - rel.Weekday())
-	if (diff != 0 && l.days.num == 0) || (diff < 0 && l.days.num < 0) {
+	if diff < 0 && l.days.num <= 0 {
 		l.days.num++
-	} else if (diff == 0 && l.days.year != 0) || (diff > 0 && l.days.num > 0) {
+	} else if diff > 0 && l.days.num > 0 {
 		l.days.num--
 	}
 	rel = rel.AddDate(0, 0, l.days.num*7+diff)
-	if DEBUG {
-		fmt.Printf("Parsed days as %s %s\n", rel.Weekday(), rel)
-	}
 	return rel
 }
 
-// Applies a relative number of months to the provided base time, or
-// sets the month of an absolute year.
-func (l *dateLexer) resolveMonths(rel time.Time) time.Time {
-	h, n, s := rel.Clock()
-	if l.months.year != 0 {
-		// this is the month of an absolute year
-		rel = time.Date(l.months.year, l.months.month, rel.Day(),
-			h, n, s, 0, rel.Location())
-		return rel
-	}
-	// this is relative months
+func (l *dateLexer) monthOffset(rel time.Time) time.Time {
 	diff := int(l.months.month - rel.Month())
-	rel = rel.AddDate(0, l.months.num*12+diff, 0)
-	if DEBUG {
-		fmt.Printf("Parsed months as %s %s\n", rel.Weekday(), rel)
+	if l.months.num == 0 {
+		// If just "march" or "this march" find closest month
+		// preferring 6 months in future over 6 months in past
+		diff = ((diff + 5) % 12) - 5
+		return rel.AddDate(0, diff, 0)
 	}
+	if diff < 0 && l.months.num < 0 {
+		l.months.num++
+	} else if diff > 0 && l.months.num > 0 {
+		l.months.num--
+	}
+	return rel.AddDate(0, l.months.num*12+diff, 0)
+}
+
+func (l *dateLexer) resolveDMY(rel time.Time) time.Time {
+	h, n, s := rel.Clock()
+	mkrel := func(y int, m time.Month, d int) time.Time {
+		return time.Date(y, m, d, h, n, s, 0, rel.Location())
+	}
+	switch l.states & HAVE_DMY {
+	case HAVE_MYEAR + HAVE_MONTHS:
+		// this is month year, so just set those and bail out
+		rel = mkrel(l.months.year, l.months.month, rel.Day())
+	case HAVE_DYEAR + HAVE_DAYS:
+		// this is num'th weekday of year, so compute day offset from "jan 0"
+		rel = l.dayOffset(mkrel(l.days.year, 1, 0))
+	case HAVE_MYEAR + HAVE_MONTHS + HAVE_DAYS:
+		// this is num'th weekday of month year, so offset from "0th" of month in year
+		rel = l.dayOffset(mkrel(l.months.year, l.months.month, 0))
+	case HAVE_DAYS:
+		rel = l.dayOffset(rel)
+	case HAVE_MONTHS:
+		rel = l.monthOffset(rel)
+	case HAVE_MONTHS + HAVE_DAYS:
+		if l.months.month == 0 {
+			// just num'th weekday (of this month, implicitly)
+			l.months.month = rel.Month()
+		}
+		rel = l.monthOffset(rel)
+		// this is num'th weekday of month, so we need to offset from "0th"
+		rel = l.dayOffset(mkrel(rel.Year(), rel.Month(), 0))
+	case HAVE_MYEAR:
+		// These on their own are a little odd but probably due to the hack at
+		// datetime.y:163 so just set the explicit year and return
+		rel = mkrel(l.months.year, rel.Month(), rel.Day())
+	case HAVE_DYEAR:
+		rel = mkrel(l.days.year, rel.Month(), rel.Day())
+	default:
+		panic("oh fuck this is too complicated :-(\n" + l.states.String())
+	}
+	if DEBUG {
+		fmt.Printf("Parsed days as %s %s\n", rel.Weekday(), rel)
+	}
+
 	return rel
 }
 
@@ -433,8 +470,10 @@ func lexAndParse(input string) (*dateLexer, int) {
 }
 
 func resolve(l *dateLexer, rel time.Time) (time.Time, bool) {
-	if l.state(HAVE_DATE) && (l.days.year != 0 || l.months.year != 0) {
+	if (l.state(HAVE_DATE) && l.state(HAVE_ABSYEAR)) ||
+		(l.state(HAVE_DYEAR) && l.state(HAVE_MYEAR)) {
 		// DATE is absolute, another absolute DAYS or MONTHS is ambiguous
+		// Providing an absolute monthyear and an absolute dayyear is also bad
 		return time.Time{}, false
 	}
 
@@ -448,12 +487,9 @@ func resolve(l *dateLexer, rel time.Time) (time.Time, bool) {
 	if l.state(HAVE_DAY) {
 		rel = l.resolveDay(rel)
 	}
-	// We need to resolve relative or absolute months before relative days
-	if l.state(HAVE_MONTHS) {
-		rel = l.resolveMonths(rel)
-	}
-	if l.state(HAVE_DAYS) {
-		rel = l.resolveDays(rel)
+	// Resolve relative/absolute day/month/years
+	if l.state(HAVE_DMY) {
+		rel = l.resolveDMY(rel)
 	}
 	// And then apply any offset
 	if l.state(HAVE_OFFSET) {

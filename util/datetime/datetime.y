@@ -8,7 +8,6 @@ package datetime
 // and tokenmaps.go for the token maps.
 
 import (
-	"fmt"
 	"time"
 )
 
@@ -358,14 +357,16 @@ day_or_month:
 		yylex.(*dateLexer).setDays($2, $1.i)
 	}
 	| T_INTEGER T_DAYQUAL T_DAYNAME {
-		// 3rd Tuesday 
-		yylex.(*dateLexer).setDays($3, $1.i)
+		// 3rd Tuesday (of implicit this month)
+		l := yylex.(*dateLexer)
+		l.setDays($3, $1.i)
+		l.setMonths(0, 0)
 	}
 	| T_INTEGER T_DAYQUAL T_DAYNAME T_OF T_MONTHNAME {
 		// 3rd Tuesday of (implicit this) March
 		l := yylex.(*dateLexer)
 		l.setDays($3, $1.i)
-		l.setMonths($5, 1)
+		l.setMonths($5, 0)
 	}
 	| T_INTEGER T_DAYQUAL T_DAYNAME T_OF T_INTEGER {
 		// 3rd Tuesday of 2012
@@ -375,18 +376,13 @@ day_or_month:
 		// 3rd Tuesday of March 2012
 		l := yylex.(*dateLexer)
 		l.setDays($3, $1.i)
-		l.setMonths($5, 1, $6.i)
+		l.setMonths($5, 0, $6.i)
 	}
 	| T_INTEGER T_DAYQUAL T_DAYNAME T_OF T_RELATIVE T_MONTHNAME {
 		// 3rd Tuesday of next March
 		l := yylex.(*dateLexer)
 		l.setDays($3, $1.i)
 		l.setMonths($6, $5)
-	}
-	| T_DAYSHIFT {
-		// yesterday or tomorrow
-		d := time.Now().Weekday()
-		yylex.(*dateLexer).setDays((7+int(d)+$1)%7, $1)
 	};
 
 relative:
@@ -432,8 +428,13 @@ relunit:
 	| o_sign_integer 'M' {
 		// Resolve 'm' ambiguity in favour of minutes outside ISO duration
 		yylex.(*dateLexer).addOffset(O_MIN, $1.i)
-	} o_sign_integer 'W' {
+	}
+	| o_sign_integer 'W' {
 		yylex.(*dateLexer).addOffset(O_DAY, $1.i * 7)
+	}
+	| T_DAYSHIFT {
+		// yesterday or tomorrow
+		yylex.(*dateLexer).addOffset(O_DAY, $1)
 	};
 
 /* date/time based durations not yet supported */
