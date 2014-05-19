@@ -24,11 +24,6 @@ const (
 	githubIssuesURL = githubURL + "/issues"
 )
 
-func sp(s string) *string {
-	//  FFFUUUUuuu string pointers in Issue literals.
-	return &s
-}
-
 func githubClient() *github.Client {
 	t := &oauth.Transport{Token: &oauth.Token{AccessToken: *githubToken}}
 	return github.NewClient(t.Client())
@@ -41,23 +36,23 @@ func githubCreateIssue(ctx *bot.Context) {
 		return
 	}
 
-	issue := &github.Issue{Title: sp(s[0] + ".")}
-	if len(s) == 2 {
-		issue.Body = &s[1]
+	req := &github.IssueRequest{
+		Title:    &s[0],
+		Labels:   []string{
+			"from:IRC",
+			"nick:" + ctx.Nick,
+			"chan:" + ctx.Target(),
+		},
 	}
-	issue, _, err := gh.Issues.Create(githubUser, githubRepo, issue)
+	if len(s) == 2 {
+		req.Body = &s[1]
+	}
+	issue, _, err := gh.Issues.Create(githubUser, githubRepo, req)
 	if err != nil {
 		ctx.ReplyN("Error creating issue: %v", err)
 		return
 	}
 
-	// Can't set labels on create due to go-github #75 :/
-	_, _, err = gh.Issues.ReplaceLabelsForIssue(
-		githubUser, githubRepo, *issue.Number,
-		[]string{"from:IRC", "nick:" + ctx.Nick, "chan:" + ctx.Target()})
-	if err != nil {
-		ctx.ReplyN("Failed to add labels to issue: %v", err)
-	}
 	ctx.ReplyN("Issue #%d created at %s/%d",
 		*issue.Number, githubIssuesURL, *issue.Number)
 }
@@ -100,7 +95,8 @@ func githubWatcher(ctx *bot.Context) {
 	l.Next()
 	issue := int(l.Number())
 
-	labels, _, err := gh.Issues.ListLabelsByIssue(githubUser, githubRepo, issue)
+	labels, _, err := gh.Issues.ListLabelsByIssue(
+		githubUser, githubRepo, issue, &github.ListOptions{})
 	if err != nil {
 		logging.Error("Error getting labels for issue %d: %v", issue, err)
 		return
