@@ -114,6 +114,8 @@ func TestParseTime(t *testing.T) {
 		{"27 PDT", mkt(3, 0, 0, "US/Pacific")},
 		{"27:83", mkt(3, 23, 0)},
 		{"27:73:83", mkt(3, 13, 23)},
+		{"midday", mkt(12, 0, 0)},
+		{"midnight", mkt(0, 0, 0)},
 	}
 	tests.run(t, now)
 }

@@ -61,6 +61,8 @@ var numTokenMap = numMap{
 	"ND":        {T_DAYQUAL, 2},
 	"RD":        {T_DAYQUAL, 3},
 	"TH":        {T_DAYQUAL, 4},
+	"MIDDAY":    {T_MIDTIME, 12},
+	"MIDNIGHT":  {T_MIDTIME, 0},
 }
 
 func (ntm numMap) Lookup(input string, lval *yySymType) (int, bool) {

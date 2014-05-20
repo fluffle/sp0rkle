@@ -27,7 +27,7 @@ type textint struct {
 
 %token           T_OF T_THE T_IGNORE T_DAYQUAL
 %token <tval>    T_INTEGER
-%token <intval>  T_PLUS T_MINUS
+%token <intval>  T_PLUS T_MINUS T_MIDTIME
 %token <intval>  T_MONTHNAME T_DAYNAME T_DAYS T_DAYSHIFT
 %token <intval>  T_OFFSET T_ISOYD T_ISOHS T_RELATIVE T_AGO
 %token <zoneval> T_ZONE
@@ -498,5 +498,8 @@ integer:
 			// assume HH with no zone
 			l.setHMS($1.i, $1.l, nil)
 		}
+	}
+	| T_MIDTIME {
+		yylex.(*dateLexer).setHMS($1, 2, nil)
 	};
 %%
