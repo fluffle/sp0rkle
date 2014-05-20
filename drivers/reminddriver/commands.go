@@ -90,12 +90,7 @@ func set(ctx *bot.Context) {
 	now := time.Now()
 	start := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, time.Local)
 	if at.Before(now) && at.After(start) {
-		// Perform some basic hacky corrections before giving up
-		if strings.Contains(timestr, "am") || strings.Contains(timestr, "pm") {
-			at = at.Add(24 * time.Hour)
-		} else {
-			at = at.Add(12 * time.Hour)
-		}
+		at = at.Add(24 * time.Hour)
 	}
 	if at.Before(now) {
 		ctx.ReplyN("Time '%s' is in the past.", timestr)
