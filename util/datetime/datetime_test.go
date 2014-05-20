@@ -62,6 +62,8 @@ func TestParseTime(t *testing.T) {
 		// T_INTEGER T_AMPM o_zone (also tests all possible zone permutations)
 		{"11am", mkt(11, 0, 0)},
 		{"11pm", mkt(23, 0, 0)},
+		{"12am", mkt(0, 0, 0)},
+		{"12pm", mkt(12, 0, 0)},
 		{"920am", mkt(9, 20, 0)},
 		{"1140pm", mkt(23, 40, 0)},
 		{"3 am PDT", mkt(3, 0, 0, "US/Pacific")},

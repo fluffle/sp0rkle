@@ -79,6 +79,15 @@ func (rm relMonths) String() string {
 	return s
 }
 
+func ampm(hour, offset int) int {
+	// Take care of the fact that 12am is midnight and 12pm midday
+	switch hour + offset {
+	case 12: return 0
+	case 24: return 12
+	default: return hour+offset
+	}
+}
+
 type lexerState int
 
 const (

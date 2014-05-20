@@ -136,9 +136,9 @@ time:
 		l := yylex.(*dateLexer)
 		// Hack to allow HHMMam to parse correctly, cos adie is a mong.
 		if $1.l == 3 || $1.l == 4 {
-			l.setTime($1.i / 100 + $2, $1.i % 100, 0, $3)
+			l.setTime(ampm($1.i / 100, $2), $1.i % 100, 0, $3)
 		} else {
-			l.setTime($1.i + $2, 0, 0, $3)
+			l.setTime(ampm($1.i, $2), 0, 0, $3)
 		}
 	}
 	| T_INTEGER timesep T_INTEGER ampm o_zone {

@@ -554,9 +554,9 @@ yydefault:
 			l := yylex.(*dateLexer)
 			// Hack to allow HHMMam to parse correctly, cos adie is a mong.
 			if yyS[yypt-2].tval.l == 3 || yyS[yypt-2].tval.l == 4 {
-				l.setTime(yyS[yypt-2].tval.i/100+yyS[yypt-1].intval, yyS[yypt-2].tval.i%100, 0, yyS[yypt-0].zoneval)
+				l.setTime(ampm(yyS[yypt-2].tval.i/100, yyS[yypt-1].intval), yyS[yypt-2].tval.i%100, 0, yyS[yypt-0].zoneval)
 			} else {
-				l.setTime(yyS[yypt-2].tval.i+yyS[yypt-1].intval, 0, 0, yyS[yypt-0].zoneval)
+				l.setTime(ampm(yyS[yypt-2].tval.i, yyS[yypt-1].intval), 0, 0, yyS[yypt-0].zoneval)
 			}
 		}
 	case 44:
