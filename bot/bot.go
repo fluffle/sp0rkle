@@ -4,6 +4,9 @@ import (
 	"flag"
 	"github.com/fluffle/goirc/client"
 	"github.com/fluffle/golog/logging"
+	"io/ioutil"
+	"os"
+	"strings"
 	"sync"
 )
 
@@ -101,4 +104,19 @@ func Rewrite(fn RewriteFunc) {
 
 func Poll(p Poller) {
 	bot.pollers.Add(p)
+}
+
+func GetSecret(s string) string {
+	if strings.HasPrefix(s, "$") {
+		if expanded := os.ExpandEnv(s); expanded != s {
+			logging.Debug("Expanded %s to %s.", s, expanded)
+			return expanded
+		}
+	} else if strings.HasPrefix(s, "<") {
+		if bytes, err := ioutil.ReadFile(s[1:]); err == nil {
+			logging.Debug("Read in %s to %s.", s[1:], bytes)
+			return strings.TrimSuffix(string(bytes), "\n")
+		}
+	}
+	return s
 }

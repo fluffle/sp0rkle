@@ -25,7 +25,7 @@ const (
 )
 
 func githubClient() *github.Client {
-	t := &oauth.Transport{Token: &oauth.Token{AccessToken: *githubToken}}
+	t := &oauth.Transport{Token: &oauth.Token{AccessToken: bot.GetSecret(*githubToken)}}
 	return github.NewClient(t.Client())
 }
 

@@ -14,21 +14,21 @@ var (
 	rebuilder *string = flag.String("rebuilder", "",
 		"Nick[:password] to accept rebuild command from.")
 	oper *string = flag.String("oper", "",
-		"user:password for server OPER command on connect.")
+		"user:password for server OPER command on connect, or $ENV_VAR or <file_path to secret.")
 	vhost *string = flag.String("vhost", "",
-		"user:password for server VHOST command on connect.")
+		"user:password for server VHOST command on connect, or $ENV_VAR or <file_path to secret.")
 )
 
 func connected(ctx *Context) {
 	// Set bot mode to keep people informed.
 	ctx.conn.Mode(ctx.Me(), "+B")
-	if *oper != "" {
+	if GetSecret(*oper) != "" {
 		up := strings.SplitN(*oper, ":", 2)
 		if len(up) == 2 {
 			ctx.conn.Oper(up[0], up[1])
 		}
 	}
-	if *vhost != "" {
+	if GetSecret(*vhost) != "" {
 		up := strings.SplitN(*vhost, ":", 2)
 		if len(up) == 2 {
 			ctx.conn.VHost(up[0], up[1])
@@ -68,7 +68,8 @@ func shutdown(ctx *Context) {
 }
 
 func check_rebuilder(cmd string, ctx *Context) bool {
-	s := strings.Split(*rebuilder, ":")
+	s := strings.Split(GetSecret(*rebuilder), ":")
+	logging.Debug("Rebuild secret: %#v", s)
 	if s[0] == "" || s[0] != ctx.Nick || !strings.HasPrefix(ctx.Text(), cmd) {
 		return false
 	}
