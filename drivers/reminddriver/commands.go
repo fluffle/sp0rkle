@@ -4,7 +4,7 @@ import (
 	"github.com/fluffle/sp0rkle/bot"
 	"github.com/fluffle/sp0rkle/collections/reminders"
 	"github.com/fluffle/sp0rkle/util/datetime"
-	"labix.org/v2/mgo/bson"
+	"gopkg.in/mgo.v2/bson"
 	"strconv"
 	"strings"
 	"time"

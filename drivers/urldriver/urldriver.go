@@ -11,7 +11,7 @@ import (
 	"github.com/fluffle/sp0rkle/util"
 	"hash/crc32"
 	"io"
-	"labix.org/v2/mgo/bson"
+	"gopkg.in/mgo.v2/bson"
 	"net/http"
 	"os"
 	"strconv"

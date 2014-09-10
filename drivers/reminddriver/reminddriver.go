@@ -5,7 +5,7 @@ import (
 	"github.com/fluffle/golog/logging"
 	"github.com/fluffle/sp0rkle/bot"
 	"github.com/fluffle/sp0rkle/collections/reminders"
-	"labix.org/v2/mgo/bson"
+	"gopkg.in/mgo.v2/bson"
 	"time"
 )
 

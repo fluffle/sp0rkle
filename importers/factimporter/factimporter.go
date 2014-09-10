@@ -10,7 +10,7 @@ import (
 	"github.com/fluffle/sp0rkle/db"
 	"github.com/fluffle/sp0rkle/util"
 	"github.com/kuroneko/gosqlite3"
-	"labix.org/v2/mgo/bson"
+	"gopkg.in/mgo.v2/bson"
 	"strconv"
 	"strings"
 	"time"

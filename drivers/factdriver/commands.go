@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"github.com/fluffle/sp0rkle/bot"
 	"github.com/fluffle/sp0rkle/util"
-	"labix.org/v2/mgo/bson"
+	"gopkg.in/mgo.v2/bson"
 	"regexp"
 	"strconv"
 	"strings"

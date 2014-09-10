@@ -9,7 +9,7 @@ import (
 	"github.com/fluffle/sp0rkle/collections/quotes"
 	"github.com/fluffle/sp0rkle/db"
 	"github.com/kuroneko/gosqlite3"
-	"labix.org/v2/mgo/bson"
+	"gopkg.in/mgo.v2/bson"
 	"time"
 )
 

@@ -6,7 +6,7 @@ package db
 import (
 	"flag"
 	"github.com/fluffle/golog/logging"
-	"labix.org/v2/mgo"
+	"gopkg.in/mgo.v2"
 	"sync"
 )
 
