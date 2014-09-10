@@ -108,15 +108,12 @@ func Poll(p Poller) {
 
 func GetSecret(s string) string {
 	if strings.HasPrefix(s, "$") {
-		if expanded := os.ExpandEnv(s); expanded != s {
-			logging.Debug("Expanded %s to %s.", s, expanded)
-			return expanded
-		}
+		return os.ExpandEnv(s)
 	} else if strings.HasPrefix(s, "<") {
 		if bytes, err := ioutil.ReadFile(s[1:]); err == nil {
-			logging.Debug("Read in %s to %s.", s[1:], bytes)
 			return strings.TrimSuffix(string(bytes), "\n")
 		}
+		return ""
 	}
 	return s
 }
