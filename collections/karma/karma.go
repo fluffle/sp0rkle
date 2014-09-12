@@ -5,6 +5,7 @@ import (
 	"github.com/fluffle/golog/logging"
 	"github.com/fluffle/sp0rkle/bot"
 	"github.com/fluffle/sp0rkle/db"
+	"github.com/fluffle/sp0rkle/util/datetime"
 	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
 	"strings"
@@ -12,7 +13,6 @@ import (
 )
 
 const COLLECTION = "karma"
-const TimeFormat = "15:04:05, Monday 2 January 2006"
 
 type Karma struct {
 	Subject   string
@@ -49,11 +49,11 @@ func (k *Karma) String() string {
 		k.Subject, k.Score, k.Votes)
 	if k.Upvoter != "" {
 		s += fmt.Sprintf(" Last upvoted by %s at %s.",
-			k.Upvoter, k.Upvtime.Format(TimeFormat))
+			k.Upvoter, datetime.Format(k.Upvtime))
 	}
 	if k.Downvoter != "" {
 		s += fmt.Sprintf(" Last downvoted by %s at %s.",
-			k.Downvoter, k.Downvtime.Format(TimeFormat))
+			k.Downvoter, datetime.Format(k.Downvtime))
 	}
 	return s
 }

@@ -6,6 +6,7 @@ import (
 	"github.com/fluffle/sp0rkle/bot"
 	"github.com/fluffle/sp0rkle/db"
 	"github.com/fluffle/sp0rkle/util"
+	"github.com/fluffle/sp0rkle/util/datetime"
 	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
 	"strings"
@@ -71,12 +72,12 @@ func SawNick(nick bot.Nick, ch bot.Chan, act, txt string) *Nick {
 func (n *Nick) String() string {
 	if act, ok := actionMap[n.Action]; ok {
 		return fmt.Sprintf("I last saw %s on %s (%s ago), %s.",
-			n.Nick, n.Timestamp.Format(time.RFC1123),
+			n.Nick, datetime.Format(n.Timestamp),
 			util.TimeSince(n.Timestamp), act(n))
 	}
 	// No specific message format for the action seen.
 	return fmt.Sprintf("I last saw %s at %s (%s ago).",
-		n.Nick, n.Timestamp.Format(time.RFC1123),
+		n.Nick, datetime.Format(n.Timestamp),
 		util.TimeSince(n.Timestamp))
 }
 

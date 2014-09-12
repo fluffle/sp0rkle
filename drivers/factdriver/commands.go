@@ -4,11 +4,11 @@ import (
 	"fmt"
 	"github.com/fluffle/sp0rkle/bot"
 	"github.com/fluffle/sp0rkle/util"
+	"github.com/fluffle/sp0rkle/util/datetime"
 	"gopkg.in/mgo.v2/bson"
 	"regexp"
 	"strconv"
 	"strings"
-	"time"
 )
 
 // Factoid chance: 'chance of that is' => sets chance of lastSeen[chan]
@@ -158,17 +158,17 @@ func info(ctx *bot.Context) {
 			msgs = append(msgs, fmt.Sprintf("for '%s'", key))
 		}
 		msgs = append(msgs, fmt.Sprintf("was last created on %s by %s,",
-			c.Timestamp.Format(time.ANSIC), c.Nick))
+			datetime.Format(c.Timestamp), c.Nick))
 	}
 	if modified := fc.GetLast("modified", key); modified != nil {
 		m := modified.Modified
 		msgs = append(msgs, fmt.Sprintf("modified on %s by %s,",
-			m.Timestamp.Format(time.ANSIC), m.Nick))
+			datetime.Format(m.Timestamp), m.Nick))
 	}
 	if accessed := fc.GetLast("accessed", key); accessed != nil {
 		a := accessed.Accessed
 		msgs = append(msgs, fmt.Sprintf("and accessed on %s by %s.",
-			a.Timestamp.Format(time.ANSIC), a.Nick))
+			datetime.Format(a.Timestamp), a.Nick))
 	}
 	if info := fc.InfoMR(key); info != nil {
 		if key == "" {

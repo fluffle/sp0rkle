@@ -5,15 +5,13 @@ import (
 	"fmt"
 	"github.com/fluffle/golog/logging"
 	"github.com/fluffle/sp0rkle/bot"
+	"github.com/fluffle/sp0rkle/util/datetime"
 	"net/url"
 	"strings"
 	"time"
 )
 
 const udUrl = "http://api.urbandictionary.com/v0/define?term=%s"
-
-// TODO(fluffle): Put this in util and clean up the various copies of it.
-const TimeFormat = "15:04:05, Monday 2 January 2006"
 
 // These shamelessly stolen from StalkR:
 // https://github.com/StalkR/misc/blob/master/urbandictionary/urbandictionary.go
@@ -84,7 +82,7 @@ func urbanDictionary(ctx *bot.Context) {
 	cached, r := "", entry.result
 	if ok {
 		cached = fmt.Sprintf(", result cached at %s",
-			entry.stamp.Format(TimeFormat))
+			datetime.Format(entry.stamp))
 	}
 	if r.Total == 0 || r.Type == "no_results" {
 		ctx.ReplyN("%s isn't defined yet%s.", ctx.Text(), cached)

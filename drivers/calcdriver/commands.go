@@ -35,10 +35,10 @@ func date(ctx *bot.Context) {
 	}
 	if loc := datetime.Zone(zone); zone != "" && loc != nil {
 		tm = tm.In(loc)
+		ctx.ReplyN("%s", tm.Format(datetime.TimeFormat))
 	} else {
-		tm = tm.In(time.Local)
+		ctx.ReplyN("%s", datetime.Format(tm))
 	}
-	ctx.ReplyN("%s", tm.Format(DateTimeFormat))
 }
 
 func netmask(ctx *bot.Context) {

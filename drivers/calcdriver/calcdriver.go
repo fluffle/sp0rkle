@@ -4,8 +4,6 @@ import (
 	"github.com/fluffle/sp0rkle/bot"
 )
 
-const DateTimeFormat = "15:04:05, Monday 2 January 2006 -0700"
-
 func Init() {
 	bot.Command(calculate, "calc", "calc <expr>  -- does maths for you")
 	bot.Command(date, "date", "date <time/date> [in <zone>] -- "+

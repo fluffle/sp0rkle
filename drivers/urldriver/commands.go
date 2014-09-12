@@ -4,8 +4,8 @@ import (
 	"github.com/fluffle/sp0rkle/bot"
 	"github.com/fluffle/sp0rkle/collections/urls"
 	"github.com/fluffle/sp0rkle/util"
+	"github.com/fluffle/sp0rkle/util/datetime"
 	"strings"
-	"time"
 )
 
 func find(ctx *bot.Context) {
@@ -67,8 +67,7 @@ func cache(ctx *bot.Context) {
 		if u.CachedAs != "" {
 			ctx.ReplyN("That was already cached as %s%s%s at %s",
 				bot.HttpHost(), cachePath, u.CachedAs,
-				u.CacheTime.Format(time.RFC1123))
-
+				datetime.Format(u.CacheTime))
 			return
 		}
 	} else {
@@ -86,7 +85,7 @@ func cache(ctx *bot.Context) {
 		} else if u.CachedAs != "" {
 			ctx.ReplyN("That was already cached as %s%s%s at %s",
 				bot.HttpHost(), cachePath, u.CachedAs,
-				u.CacheTime.Format(time.RFC1123))
+				datetime.Format(u.CacheTime))
 
 			return
 		}

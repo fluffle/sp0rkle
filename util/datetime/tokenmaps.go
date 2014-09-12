@@ -1,9 +1,15 @@
 package datetime
 
 import (
+	"flag"
 	"fmt"
 	"time"
 )
+
+const TimeFormat = "15:04:05, Monday 2 January 2006 MST"
+
+var timezone = flag.String("timezone", "Europe/London",
+	"The timezone to display reminder times in.")
 
 type tokenMap interface {
 	Lookup(input string, lval *yySymType) (tokenType int, ok bool)
@@ -175,6 +181,14 @@ func Zone(loc string) *time.Location {
 		return zone(zoneTokenMap[loc])
 	}
 	return zone(loc)
+}
+
+
+func Format(t time.Time, format ...string) string {
+	if len(format) == 1 {
+		return t.In(Zone(*timezone)).Format(format[0])
+	}
+	return t.In(Zone(*timezone)).Format(TimeFormat)
 }
 
 var zoneTokenMap = zoneMap{
