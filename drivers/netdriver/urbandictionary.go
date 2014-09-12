@@ -76,7 +76,7 @@ var cache = udCache{}
 func urbanDictionary(ctx *bot.Context) {
 	entry, ok, err := cache.fetch(strings.ToLower(ctx.Text()))
 	if err != nil {
-		ctx.ReplyN("ud request failed: %#v", err)
+		ctx.ReplyN("ud request failed: %s", err)
 		return
 	}
 	cached, r := "", entry.result
