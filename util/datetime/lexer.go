@@ -195,7 +195,10 @@ func (l *dateLexer) Error(e string) {
 
 func (l *dateLexer) setTime(h, m, s int, loc *time.Location) {
 	if loc == nil {
-		loc = time.Local
+		// This is a dirty hack.
+		// TODO(fluffle): Pass a timezone into Parse() and deal
+		// with timezones in resolve().
+		loc = Zone(*timezone)
 	}
 	h, m, s = h%24, m%60, s%60
 	if DEBUG {
