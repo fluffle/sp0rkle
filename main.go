@@ -5,7 +5,7 @@ package main
 import (
 	_ "expvar"
 	"flag"
-	irc "github.com/fluffle/goirc/logging"
+	"github.com/fluffle/goirc/logging/golog"
 	"github.com/fluffle/golog/logging"
 	"github.com/fluffle/sp0rkle/bot"
 	"github.com/fluffle/sp0rkle/db"
@@ -24,6 +24,7 @@ import (
 	"os"
 	"os/exec"
 	"os/signal"
+	"sync/atomic"
 	"syscall"
 )
 
@@ -33,7 +34,8 @@ var (
 
 func main() {
 	flag.Parse()
-	irc.SetLogger(logging.InitFromFlags())
+	logging.InitFromFlags()
+	golog.Init()
 
 	// Initialise bot state
 	bot.Init()
@@ -61,9 +63,13 @@ func main() {
 	// Set up a signal handler to shut things down gracefully.
 	// NOTE: net/http doesn't provide for graceful shutdown :-/
 	go func() {
+		called := new(int32)
 		sigint := make(chan os.Signal, 1)
 		signal.Notify(sigint, syscall.SIGINT)
-		if syscall.SIGINT == <-sigint {
+		for _ = range sigint {
+			if atomic.AddInt32(called, 1) > 1 {
+				logging.Fatal("Recieved multiple interrupts, dying.")
+			}
 			bot.Shutdown()
 		}
 	}()
