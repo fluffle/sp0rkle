@@ -4,6 +4,7 @@ import (
 	"github.com/fluffle/goirc/client"
 	"github.com/fluffle/golog/logging"
 	"github.com/fluffle/sp0rkle/bot"
+	"github.com/fluffle/sp0rkle/collections/conf"
 	"github.com/fluffle/sp0rkle/collections/reminders"
 	"github.com/google/go-github/github"
 	"io/ioutil"
@@ -27,8 +28,10 @@ func Init() {
 	bot.Command(urbanDictionary, "ud", "ud <term>  -- "+
 		"Look up <term> on UrbanDictionary.")
 
-	if *mcServer != "" {
-		if st, err := pollServer(*mcServer); err == nil {
+	mcConf = conf.Ns("mc")
+	srv := mcConf.String(mcServer)
+	if srv != "" {
+		if st, err := pollServer(srv); err == nil {
 			bot.Poll(st)
 			bot.Handle(func(ctx *bot.Context) {
 				st.Topic(ctx)
@@ -37,6 +40,11 @@ func Init() {
 			logging.Error("Not starting MC poller: %v", err)
 		}
 	}
+	bot.Command(mcSet, "mc set", "mc set <key> <value>  -- "+
+		"Set minecraft server polling config vars.")
+	// TODO(fluffle): Polling can only be en/disabled at reconnect.
+	//	bot.Command(mcPoll, "mc poll", "mc poll start|stop  -- "+
+	//		"Enable or disable minecraft server polling.")
 
 	if *githubToken != "" {
 		rc = reminders.Init()

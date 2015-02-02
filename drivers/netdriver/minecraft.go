@@ -3,10 +3,10 @@ package netdriver
 import (
 	"bytes"
 	"encoding/binary"
-	"flag"
 	"fmt"
 	"github.com/fluffle/golog/logging"
 	"github.com/fluffle/sp0rkle/bot"
+	"github.com/fluffle/sp0rkle/collections/conf"
 	"net"
 	"strconv"
 	"strings"
@@ -20,37 +20,69 @@ type mcStatus struct {
 	version    string
 }
 
-const playerdata = "\x00\x00\x01player_\x00\x00"
-
-var (
-	mcHandshake = []byte("\xfe\xfd\x09\x00\x00\x00\x00")
-	mcGetStatus = []byte("\xfe\xfd\x00\x00\x00\x00\x00")
-	mcServer    = flag.String("mc_server", "", "Minecraft server to poll")
-	mcPollFreq  = flag.Duration("mc_poll_freq", 5*time.Minute,
-		"How regularly to poll server")
-	mcChan      = flag.String("mc_chan", "#minecraft",
-		"Channel whose topic poller should keep updated")
+const (
+	playerdata = "\x00\x00\x01player_\x00\x00"
+	mcServer   = "server"
+	mcFreq     = "freq"
+	mcChan     = "chan"
 )
 
+var (
+	mcConf      conf.Namespace
+	mcHandshake = []byte("\xfe\xfd\x09\x00\x00\x00\x00")
+	mcGetStatus = []byte("\xfe\xfd\x00\x00\x00\x00\x00")
+)
+
+func mcSet(ctx *bot.Context) {
+	kv := strings.Fields(ctx.Text())
+	if len(kv) < 2 {
+		ctx.ReplyN("I need a key and a value.")
+		return
+	}
+	switch kv[0] {
+	case mcServer:
+		mcConf.String(mcServer, kv[1])
+	case mcChan:
+		if !strings.HasPrefix(kv[1], "#") {
+			ctx.ReplyN("Channel '%s' doesn't start with #.", kv[1])
+			return
+		}
+		mcConf.String(mcChan, kv[1])
+	case mcFreq:
+		freq, err := strconv.Atoi(kv[1])
+		if err != nil {
+			ctx.ReplyN("Couldn't convert '%s' to an integer.", kv[1])
+			return
+		}
+		mcConf.Int(mcFreq, freq)
+	default:
+		ctx.ReplyN("Valid keys are: %s, %s, %s", mcServer, mcFreq, mcChan)
+	}
+}
+
 func (mcs *mcStatus) Poll(ctxs []*bot.Context) {
-	logging.Debug("polling minecraft server at %s", *mcServer)
-	st, err := pollServer(*mcServer)
+	srv := mcConf.String(mcServer)
+	logging.Debug("polling minecraft server at %s", srv)
+	st, err := pollServer(srv)
 	if err != nil {
 		logging.Error("minecraft poll failed: %v", err)
 		return
 	}
 	*mcs = *st
 	for _, ctx := range ctxs {
-		ctx.Topic(*mcChan)
+		ctx.Topic(mcConf.String(mcChan))
 	}
 }
 
 func (mcs *mcStatus) Start() { /* empty */ }
-func (mcs *mcStatus) Stop() { /* empty */ }
-func (mcs *mcStatus) Tick() time.Duration { return *mcPollFreq }
+func (mcs *mcStatus) Stop()  { /* empty */ }
+func (mcs *mcStatus) Tick() time.Duration {
+	return time.Duration(mcConf.Int(mcFreq)) * time.Minute
+}
 
 func (mcs *mcStatus) Topic(ctx *bot.Context) {
-	if ctx.Args[1] != *mcChan {
+	ch := mcConf.String(mcChan)
+	if ctx.Args[1] != ch {
 		return
 	}
 	topic := ctx.Text()
@@ -63,10 +95,10 @@ func (mcs *mcStatus) Topic(ctx *bot.Context) {
 	if len(mcs.players) > 0 {
 		players = ": " + strings.Join(mcs.players, ", ")
 	}
-	topic = fmt.Sprintf("%s %s v%s [%s/%s%s]%s", mcs.motd, *mcServer,
-		mcs.version, mcs.nump, mcs.maxp, players, topic)
+	topic = fmt.Sprintf("%s %s v%s [%s/%s%s]%s", mcs.motd,
+		mcConf.String(mcServer), mcs.version, mcs.nump, mcs.maxp, players, topic)
 	if topic != ctx.Text() {
-		ctx.Topic(*mcChan, topic)
+		ctx.Topic(ch, topic)
 	}
 }
 
