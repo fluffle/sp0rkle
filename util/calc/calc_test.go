@@ -151,6 +151,10 @@ func TestToken(t *testing.T) {
 			t.Errorf("token(%d) '%s' num mismatch, %f != %f",
 				i, tc.i, tok.numval, tc.n)
 		}
+		if l.Pos() != len(tc.i) {
+			t.Errorf("token(%d) failed to consume all input '%s'",
+				i, tc.i)
+		}
 	}
 }
 

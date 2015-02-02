@@ -221,6 +221,7 @@ func (l *lexer) token() (tok *token) {
 		// ** is often the power operator
 		l.Next()
 		if l.Peek() == '*' {
+			l.Next()
 			tok = &token{T_OP, "**", 0}
 		} else {
 			tok = &token{T_OP, "*", 0}
