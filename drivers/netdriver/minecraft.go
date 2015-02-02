@@ -59,7 +59,7 @@ func mcSet(ctx *bot.Context) {
 		ctx.ReplyN("Valid keys are: %s, %s, %s", mcServer, mcFreq, mcChan)
 		return
 	}
-	ctx.ReplyN("Set %s to '%s'", kv[0], kv[1]
+	ctx.ReplyN("Set %s to '%s'", kv[0], kv[1])
 }
 
 func (mcs *mcStatus) Poll(ctxs []*bot.Context) {
