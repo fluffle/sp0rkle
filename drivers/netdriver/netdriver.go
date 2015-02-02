@@ -32,6 +32,7 @@ func Init() {
 	srv := mcConf.String(mcServer)
 	if srv != "" {
 		if st, err := pollServer(srv); err == nil {
+			logging.Info("Starting MC poller for '%s'", srv)
 			bot.Poll(st)
 			bot.Handle(func(ctx *bot.Context) {
 				st.Topic(ctx)
