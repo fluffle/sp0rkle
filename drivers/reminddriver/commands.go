@@ -114,6 +114,37 @@ func set(ctx *bot.Context) {
 	Remind(r, ctx)
 }
 
+// snooze
+func snooze(ctx *bot.Context) {
+	r, ok := finished[strings.ToLower(ctx.Nick)]
+	if !ok {
+		ctx.ReplyN("No record of an expired reminder for you, sorry!")
+		return
+	}
+	now := time.Now()
+	at := now.Add(30*time.Minute)
+	if ctx.Text() != "" {
+		at, ok = datetime.Parse(ctx.Text())
+		if !ok {
+			ctx.ReplyN("Couldn't parse time string '%s'.")
+			return
+		}
+		if at.Before(now) {
+			ctx.ReplyN("You can't snooze reminder into the past, fool.")
+			return
+		}
+	}
+	r.Created = now
+	r.RemindAt = at
+	if _, err := rc.UpsertId(r.Id, r); err != nil {
+		ctx.ReplyN("Error saving reminder: %v", err)
+		return
+	}
+	delete(listed, ctx.Nick)
+	ctx.ReplyN("%s", r.Acknowledge())
+	Remind(r, ctx)
+}
+
 // tell
 func tell(ctx *bot.Context) {
 	// s == <target> <stuff>

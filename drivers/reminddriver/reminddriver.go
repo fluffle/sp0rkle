@@ -6,6 +6,7 @@ import (
 	"github.com/fluffle/sp0rkle/bot"
 	"github.com/fluffle/sp0rkle/collections/reminders"
 	"gopkg.in/mgo.v2/bson"
+	"strings"
 	"time"
 )
 
@@ -14,6 +15,9 @@ var rc *reminders.Collection
 
 // We need to be able to kill reminder goroutines
 var running = map[bson.ObjectId]chan struct{}{}
+
+// It's also nice for people to be able to snooze them
+var finished = map[string]*reminders.Reminder{}
 
 // And it's useful to index them for deletion per-person
 var listed = map[string][]bson.ObjectId{}
@@ -37,6 +41,8 @@ func Init() {
 		"remind del <N>  -- Deletes (previously listed) reminder N.")
 	bot.Command(set, "remind", "remind <nick> <msg> "+
 		"in|at|on <time>  -- Reminds nick about msg at time.")
+	bot.Command(snooze, "snooze", "snooze [duration]  -- "+
+		"Resets the previously-triggered reminder.")
 }
 
 func Remind(r *reminders.Reminder, ctx *bot.Context) {
@@ -52,6 +58,8 @@ func Remind(r *reminders.Reminder, ctx *bot.Context) {
 			ctx.Privmsg(string(r.Chan), r.Reply())
 			// TODO(fluffle): Tie this into state tracking properly.
 			ctx.Privmsg(string(r.Target), r.Reply())
+			// This is used in snooze to reinstate reminders.
+			finished[strings.ToLower(ctx.Nick)] = r
 			Forget(r.Id, false)
 		case <-c:
 			return
