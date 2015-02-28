@@ -21,6 +21,8 @@ func Init() {
 		"choose a random number in range [lo-]hi")
 	bot.Command(decideCmd, "decide", "decide <options>  -- "+
 		"choose one of the (space, pipe, quote) delimited options at random")
+	bot.Command(decideCmd, "choose", "choose <options>  -- "+
+		"choose one of the (space, pipe, quote) delimited options at random")
 }
 
 func randomFloatAsString(val string, r *rand.Rand) string {
