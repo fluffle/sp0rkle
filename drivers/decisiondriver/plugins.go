@@ -5,12 +5,13 @@ package decisiondriver
 import (
 	"github.com/fluffle/sp0rkle/bot"
 	"github.com/fluffle/sp0rkle/util"
+	"math/rand"
 	"strings"
 )
 
 func randPlugin(val string, ctx *bot.Context) string {
 	f := func(s string) string {
-		return randomFloatAsString(s, util.RNG)
+		return randomFloatAsString(s)
 	}
 	return util.ApplyPluginFunction(val, "rand", f)
 }
@@ -18,7 +19,7 @@ func randPlugin(val string, ctx *bot.Context) string {
 func decidePlugin(val string, ctx *bot.Context) string {
 	f := func(s string) string {
 		if options := splitDelimitedString(s); len(options) > 0 {
-			return strings.TrimSpace(options[util.RNG.Intn(len(options))])
+			return strings.TrimSpace(options[rand.Intn(len(options))])
 		}
 		return "<plugin error>"
 	}

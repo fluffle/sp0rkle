@@ -5,9 +5,9 @@ import (
 	"github.com/fluffle/golog/logging"
 	"github.com/fluffle/sp0rkle/bot"
 	"github.com/fluffle/sp0rkle/db"
-	"github.com/fluffle/sp0rkle/util"
 	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
+	"math/rand"
 	"time"
 )
 
@@ -99,7 +99,7 @@ func (uc *Collection) GetRand(regex string) *Url {
 	}
 	var res Url
 	if count > 1 {
-		query.Skip(util.RNG.Intn(count))
+		query.Skip(rand.Intn(count))
 	}
 	if err = query.One(&res); err != nil {
 		logging.Warn("Fetch for URL lookup '%s' failed: %s", regex, err)

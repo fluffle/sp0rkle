@@ -7,6 +7,7 @@ import (
 	"github.com/fluffle/sp0rkle/util"
 	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
+	"math/rand"
 	"strings"
 	"time"
 )
@@ -156,7 +157,7 @@ func (fc *Collection) GetPseudoRand(key string) *Factoid {
 	}
 	var res Factoid
 	if count > 1 {
-		query = query.Skip(util.RNG.Intn(count))
+		query = query.Skip(rand.Intn(count))
 	}
 	if err = query.One(&res); err != nil {
 		logging.Warn("Fetching factoid for key failed: %v", err)

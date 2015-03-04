@@ -9,9 +9,10 @@ import (
 	"github.com/fluffle/sp0rkle/bot"
 	"github.com/fluffle/sp0rkle/collections/urls"
 	"github.com/fluffle/sp0rkle/util"
+	"gopkg.in/mgo.v2/bson"
 	"hash/crc32"
 	"io"
-	"gopkg.in/mgo.v2/bson"
+	"math/rand"
 	"net/http"
 	"os"
 	"strconv"
@@ -95,7 +96,7 @@ func Encode(url string) string {
 		if n, err := q.Count(); n == 0 && err == nil {
 			return s
 		}
-		crcb[util.RNG.Intn(4)]++
+		crcb[rand.Intn(4)]++
 	}
 	logging.Warn("Collided ten times while encoding URL.")
 	return ""

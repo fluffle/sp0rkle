@@ -4,9 +4,9 @@ import (
 	"github.com/fluffle/golog/logging"
 	"github.com/fluffle/sp0rkle/bot"
 	"github.com/fluffle/sp0rkle/db"
-	"github.com/fluffle/sp0rkle/util"
 	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
+	"math/rand"
 	"sync/atomic"
 	"time"
 )
@@ -97,7 +97,7 @@ func (qc *Collection) GetPseudoRand(regex string) *Quote {
 	}
 	var res Quote
 	if count > 1 {
-		query = query.Skip(util.RNG.Intn(count))
+		query = query.Skip(rand.Intn(count))
 	}
 	if err = query.One(&res); err != nil {
 		logging.Warn("Fetch for quote lookup '%s' failed: %s", regex, err)

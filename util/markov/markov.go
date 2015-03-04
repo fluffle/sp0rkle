@@ -3,7 +3,6 @@ package markov
 import (
 	"errors"
 	"github.com/fluffle/golog/logging"
-	"github.com/fluffle/sp0rkle/util"
 	"math/rand"
 	"strings"
 )
@@ -27,16 +26,16 @@ type Source interface {
 }
 
 func Action(data Source) (string, error) {
-	s, err := generate(data, ACTION_START, 50, util.RNG)
+	s, err := generate(data, ACTION_START, 50)
 	return strings.Join(s, " "), err
 }
 
 func Sentence(data Source) (string, error) {
-	s, err := generate(data, SENTENCE_START, 50, util.RNG)
+	s, err := generate(data, SENTENCE_START, 50)
 	return strings.Join(s, " "), err
 }
 
-func generate(data Source, start string, length int, random *rand.Rand) ([]string, error) {
+func generate(data Source, start string, length int) ([]string, error) {
 	current, output := start, make([]string, 0, length)
 
 	for len(output) < length {
@@ -58,7 +57,7 @@ func generate(data Source, start string, length int, random *rand.Rand) ([]strin
 			return output, NOT_ENOUGH_DATA
 		}
 
-		r := random.Intn(sum)
+		r := rand.Intn(sum)
 
 		for _, child := range children {
 			r -= child.Uses

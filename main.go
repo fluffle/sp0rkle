@@ -20,12 +20,14 @@ import (
 	"github.com/fluffle/sp0rkle/drivers/seendriver"
 	"github.com/fluffle/sp0rkle/drivers/statsdriver"
 	"github.com/fluffle/sp0rkle/drivers/urldriver"
+	"math/rand"
 	"net/http"
 	"os"
 	"os/exec"
 	"os/signal"
 	"sync/atomic"
 	"syscall"
+	"time"
 )
 
 var (
@@ -36,6 +38,9 @@ func main() {
 	flag.Parse()
 	logging.InitFromFlags()
 	golog.Init()
+
+	// Slightly more random than 1.
+	rand.Seed(time.Now().UnixNano() * int64(os.Getpid()))
 
 	// Initialise bot state
 	bot.Init()
