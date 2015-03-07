@@ -11,7 +11,7 @@ import (
 )
 
 // This is here because I'm not sure where better to put it...
-var httpHost *string = flag.String("http_host", "http://sp0rk.ly",
+var httpHost *string = flag.String("http_host", "https://s.pl0rt.org",
 	"Hostname for HTTP paths served by bot.")
 
 func HttpHost() string {
