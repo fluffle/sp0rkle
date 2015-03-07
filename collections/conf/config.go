@@ -2,11 +2,12 @@ package conf
 
 import (
 	"fmt"
+	"sync"
+
 	"github.com/fluffle/golog/logging"
 	"github.com/fluffle/sp0rkle/db"
 	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
-	"sync"
 )
 
 const COLLECTION string = "conf"
