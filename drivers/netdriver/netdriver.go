@@ -6,6 +6,7 @@ import (
 	"github.com/fluffle/sp0rkle/bot"
 	"github.com/fluffle/sp0rkle/collections/conf"
 	"github.com/fluffle/sp0rkle/collections/reminders"
+	"github.com/fluffle/sp0rkle/util/push"
 	"github.com/google/go-github/github"
 	"io/ioutil"
 	"net/http"
@@ -61,5 +62,14 @@ func Init() {
 			"<descriptive body>  -- Files a bug on GitHub. Abusers will be hurt.")
 		bot.Command(githubUpdateIssue, "update bug #", "update bug #<number> "+
 			"<comment>  -- Adds a comment to bug <number>. Abusers will be hurt.")
+	}
+
+	if push.Enabled() {
+		bot.Handle(pushEnable, "push enable", "push enable  -- "+
+			"Start the OAuth flow to enable pushbullet notifications.")
+		bot.Handle(pushDisable, "push disable", "push disable  -- "+
+			"Disable pushbullet notifications and delete tokens.")
+		bot.Handle(pushAuth, "push auth", "push auth <pin>  -- "+
+			"Confirm pushed PIN to finish pushbullet auth dance.")
 	}
 }

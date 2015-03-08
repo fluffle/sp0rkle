@@ -20,6 +20,7 @@ import (
 	"github.com/fluffle/sp0rkle/drivers/seendriver"
 	"github.com/fluffle/sp0rkle/drivers/statsdriver"
 	"github.com/fluffle/sp0rkle/drivers/urldriver"
+	"github.com/fluffle/sp0rkle/util/push"
 	"math/rand"
 	"net/http"
 	"os"
@@ -61,6 +62,9 @@ func main() {
 	seendriver.Init()
 	statsdriver.Init()
 	urldriver.Init()
+
+	// Set up Pushbullet OAuth handlers
+	push.Init()
 
 	// Start up the HTTP server
 	go http.ListenAndServe(*httpPort, nil)
