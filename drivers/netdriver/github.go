@@ -1,15 +1,16 @@
 package netdriver
 
 import (
-	"code.google.com/p/goauth2/oauth"
 	"flag"
 	"fmt"
+	"strings"
+
+	"code.google.com/p/goauth2/oauth"
 	"github.com/fluffle/golog/logging"
 	"github.com/fluffle/sp0rkle/bot"
 	"github.com/fluffle/sp0rkle/collections/reminders"
 	"github.com/fluffle/sp0rkle/util"
 	"github.com/google/go-github/github"
-	"strings"
 )
 
 var (
@@ -37,8 +38,8 @@ func githubCreateIssue(ctx *bot.Context) {
 	}
 
 	req := &github.IssueRequest{
-		Title:    &s[0],
-		Labels:   []string{
+		Title: &s[0],
+		Labels: []string{
 			"from:IRC",
 			"nick:" + ctx.Nick,
 			"chan:" + ctx.Target(),

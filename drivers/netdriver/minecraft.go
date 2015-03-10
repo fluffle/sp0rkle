@@ -4,13 +4,14 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
-	"github.com/fluffle/golog/logging"
-	"github.com/fluffle/sp0rkle/bot"
-	"github.com/fluffle/sp0rkle/collections/conf"
 	"net"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/fluffle/golog/logging"
+	"github.com/fluffle/sp0rkle/bot"
+	"github.com/fluffle/sp0rkle/collections/conf"
 )
 
 type mcStatus struct {

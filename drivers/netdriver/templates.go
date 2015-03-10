@@ -1,16 +1,17 @@
-package push
+package netdriver
 
 import (
 	"html/template"
+
+	"github.com/fluffle/sp0rkle/util/push"
 )
 
-type deviceData struct {
+type pushDevice struct {
 	State   string
-	Devices []*Device
+	Devices []*push.Device
 }
 
-var deviceTmpl = template.Must(template.New("device").Parse(
-	`<html>
+var pushDeviceTmpl = template.Must(template.New("pushdevice").Parse(`<html>
 <head>
   <title>sp0rkle's shonky device chooser</title>
 </head>
@@ -29,7 +30,7 @@ var deviceTmpl = template.Must(template.New("device").Parse(
 </body>
 </html>`))
 
-var successHtml = `<html>
+var pushSuccessHTML = `<html>
 <head>
   <title>You are teh winnar!</title>
 </head>
@@ -41,7 +42,7 @@ var successHtml = `<html>
 </body>
 </html>`
 
-var failures = map[string]string{
+var pushFailures = map[string]string{
 	"parse":    "Parsing HTTP form values failed.",
 	"denied":   "Authorization denied by user.",
 	"exchange": "Could not exchange response for token.",
@@ -53,12 +54,11 @@ var failures = map[string]string{
 	"nofail":   "No failure reason provided, suckah.",
 }
 
-type failureData struct {
+type pushFailure struct {
 	Message string
 }
 
-var failureTmpl = template.Must(template.New("failure").Parse(
-	`<html>
+var pushFailureTmpl = template.Must(template.New("pushfailure").Parse(`<html>
 <head>
   <title>You are teh losar!</title>
 </head>

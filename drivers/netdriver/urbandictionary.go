@@ -3,12 +3,13 @@ package netdriver
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/fluffle/golog/logging"
-	"github.com/fluffle/sp0rkle/bot"
-	"github.com/fluffle/sp0rkle/util/datetime"
 	"net/url"
 	"strings"
 	"time"
+
+	"github.com/fluffle/golog/logging"
+	"github.com/fluffle/sp0rkle/bot"
+	"github.com/fluffle/sp0rkle/util/datetime"
 )
 
 const udUrl = "http://api.urbandictionary.com/v0/define?term=%s"
@@ -56,10 +57,14 @@ func (udc udCache) prune() {
 func (udc udCache) fetch(term string) (entry udCacheEntry, ok bool, err error) {
 	udc.prune()
 	entry, ok = udc[term]
-	if ok { return }
+	if ok {
+		return
+	}
 	entry.result = &udResult{}
 	data, err := get(fmt.Sprintf(udUrl, url.QueryEscape(term)))
-	if err != nil { return }
+	if err != nil {
+		return
+	}
 	if err = json.Unmarshal(data, entry.result); err != nil {
 		logging.Debug("JSON: %s", data)
 		return

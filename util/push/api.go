@@ -1,32 +1,64 @@
 package push
 
 import (
+	"bytes"
+	"encoding/json"
 	"errors"
 	"flag"
+	"fmt"
 	"net/http"
-	"net/url"
-	"strings"
 
 	"github.com/fluffle/sp0rkle/bot"
-	"github.com/fluffle/sp0rkle/collections/conf"
+	"github.com/fluffle/sp0rkle/collections/pushes"
+	"golang.org/x/oauth2"
 )
 
 var (
-	pushNs conf.Namespace
-
-	authURL    = bot.HttpHost() + "/oauth/auth"
-	deviceURL  = bot.HttpHost() + "/oauth/device"
-	successURL = bot.HttpHost() + "/oauth/success"
-	failureURL = bot.HttpHost() + "/oauth/failure"
-
 	pushClientID = flag.String("push_client_id", "",
 		"Pushbullet client ID.")
 	pushClientSecret = flag.String("push_client_secret", "",
 		"Pushbullet client secret.")
-	pushNotEnabledError = errors.New("pushbullet is not enabled")
 )
 
-// must be public for JSON decode of above, feh.
+func pushAPI(path string) string {
+	return "https://api.pushbullet.com" + path
+}
+
+func config() *oauth2.Config {
+	return &oauth2.Config{
+		ClientID:     bot.GetSecret(*pushClientID),
+		ClientSecret: bot.GetSecret(*pushClientSecret),
+		Endpoint: oauth2.Endpoint{
+			AuthURL:  "https://www.pushbullet.com/authorize",
+			TokenURL: pushAPI("/oauth/token"),
+		},
+		RedirectURL: bot.HttpHost() + "/oauth/auth",
+		Scopes:      []string{"everything"},
+	}
+}
+
+func client(s *pushes.State) *http.Client {
+	return config().Client(oauth2.NoContext, s.Token)
+}
+
+func checkResponseOK(resp *http.Response) error {
+	if resp.StatusCode != http.StatusOK {
+		errmsg := &struct {
+			Error struct {
+				Message string `json:"message"`
+				Type    string `json:"type"`
+				Param   string `json:"param,omitempty"`
+				Cat     string `json:"cat"`
+			} `json:"error"`
+		}{}
+		if err := json.NewDecoder(resp.Body).Decode(errmsg); err != nil {
+			return errors.New(resp.Status)
+		}
+		return fmt.Errorf("%s: %s", resp.Status, errmsg.Error.Message)
+	}
+	return nil
+}
+
 type Device struct {
 	Iden         string  `json:"iden"`
 	PushToken    string  `json:"push_token"`
@@ -46,51 +78,68 @@ func Enabled() bool {
 	return !(*pushClientID == "" || *pushClientSecret == "")
 }
 
-func Init() {
-	if !Enabled() {
-		return
-	}
-	pushNs = conf.Ns("push")
-	http.HandleFunc("/oauth/auth", authTokenRedirect)
-	http.HandleFunc("/oauth/device", chooseDevice)
-	http.HandleFunc("/oauth/success", youAreTehWinnar)
-	http.HandleFunc("/oauth/failure", youAreTehLosar)
+func AuthCodeURL(s *pushes.State) string {
+	return config().AuthCodeURL(string(s.Id), oauth2.AccessTypeOffline)
 }
 
-func StartFor(nick, pin string) error {
-	s := getState(pin)
-	if s == nil || nick != s.Nick {
-		return errors.New("No authentication state found.")
+func Exchange(code string) (*oauth2.Token, error) {
+	return config().Exchange(oauth2.NoContext, code)
+}
+
+func GetDevices(s *pushes.State) ([]*Device, error) {
+	u := pushAPI("/v2/devices")
+	resp, err := client(s).Get(u)
+	if err != nil {
+		return nil, err
 	}
-	setToken(nick, s.Token)
-	setIden(nick, s.Iden)
+
+	defer resp.Body.Close()
+	if err := checkResponseOK(resp); err != nil {
+		return nil, fmt.Errorf("GET %s: %v", u, err)
+	}
+	devs := &struct {
+		Devices []*Device `json:"devices"`
+	}{}
+	if err := json.NewDecoder(resp.Body).Decode(devs); err != nil {
+		return nil, fmt.Errorf("GET %s JSON decode failed: %v", u, err)
+	}
+	return devs.Devices, nil
+}
+
+func Confirm(s *pushes.State) error {
+	if s.CanConfirm() {
+		return push(s, "Pushbullet PIN = "+s.Pin,
+			"Tell sp0rkle 'push auth <pin>' to complete setup.")
+	}
+	return errors.New("Not in correct state to send confirmation push.")
+}
+
+func Push(s *pushes.State, title, body string) error {
+	if s.CanPush() {
+		return push(s, title, body)
+	}
+	return errors.New("Push not enabled.")
+}
+
+func push(s *pushes.State, title, body string) error {
+	u := pushAPI("/v2/pushes")
+	enc, err := json.Marshal(&struct {
+		Iden  string `json:"device_iden"`
+		Type  string `json:"type"`
+		Title string `json:"title"`
+		Body  string `json:"body"`
+	}{s.Iden, "note", title, body})
+	if err != nil {
+		return fmt.Errorf("POST %s JSON encode failed: %v", u, err)
+	}
+	resp, err := client(s).Post(u, "application/json", bytes.NewBuffer(enc))
+	if err != nil {
+		return err
+	}
+
+	defer resp.Body.Close()
+	if err := checkResponseOK(resp); err != nil {
+		return fmt.Errorf("POST %s: %v", u, err)
+	}
 	return nil
-}
-
-func StopFor(nick string) {
-	pushNs.Delete("token:" + strings.ToLower(nick))
-	pushNs.Delete("iden:" + strings.ToLower(nick))
-}
-
-// GenAuthURL generates a URL to start the OAuth dance for a nick.
-// Once the user visits this URL and approves the access, they
-// get redirected back to /oauth/auth (see http.go). There, we
-// complete the OAuth dance and request a list of devices. The
-// user chooses the target device for push notifications. Once
-// this is done, Push() can push messages to the nick.
-func GenAuthURL(nick string) string {
-	return "https://www.pushbullet.com/authorize?" + url.Values{
-		"client_id":     []string{bot.GetSecret(*pushClientID)},
-		"redirect_uri":  []string{authURL},
-		"response_type": []string{"code"},
-		"state":         []string{newState(nick)},
-	}.Encode()
-}
-
-func Push(nick, title, body string) error {
-	token, iden := getToken(nick), getIden(nick)
-	if !Enabled() || token == "" || iden == "" {
-		return pushNotEnabledError
-	}
-	return push(token, iden, title, body)
 }

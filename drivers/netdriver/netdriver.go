@@ -1,18 +1,20 @@
 package netdriver
 
 import (
+	"io/ioutil"
+	"net/http"
+
 	"github.com/fluffle/goirc/client"
 	"github.com/fluffle/golog/logging"
 	"github.com/fluffle/sp0rkle/bot"
 	"github.com/fluffle/sp0rkle/collections/conf"
+	"github.com/fluffle/sp0rkle/collections/pushes"
 	"github.com/fluffle/sp0rkle/collections/reminders"
 	"github.com/fluffle/sp0rkle/util/push"
 	"github.com/google/go-github/github"
-	"io/ioutil"
-	"net/http"
 )
 
-// We store 'tell' notices for github updates
+var pc *pushes.Collection
 var rc *reminders.Collection
 var gh *github.Client
 
@@ -65,11 +67,17 @@ func Init() {
 	}
 
 	if push.Enabled() {
+		pc = pushes.Init()
 		bot.Handle(pushEnable, "push enable", "push enable  -- "+
 			"Start the OAuth flow to enable pushbullet notifications.")
 		bot.Handle(pushDisable, "push disable", "push disable  -- "+
 			"Disable pushbullet notifications and delete tokens.")
-		bot.Handle(pushAuth, "push auth", "push auth <pin>  -- "+
+		bot.Handle(pushConfirm, "push auth", "push auth <pin>  -- "+
 			"Confirm pushed PIN to finish pushbullet auth dance.")
+
+		http.HandleFunc("/oauth/auth", pushAuthHTTP)
+		http.HandleFunc("/oauth/device", pushDeviceHTTP)
+		http.HandleFunc("/oauth/success", pushSuccessHTTP)
+		http.HandleFunc("/oauth/failure", pushFailureHTTP)
 	}
 }
