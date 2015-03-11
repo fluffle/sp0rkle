@@ -20,7 +20,7 @@ var pushDeviceTmpl = template.Must(template.New("pushdevice").Parse(`<html>
   <form action="/oauth/device" method="POST">
     <input type="hidden" name="state" value="{{.State}}">
 {{ range $i, $d := .Devices }}
-    <input type="radio" name="dev" value="$d.Iden" {{ if not $i }}checked{{ end }}>
+    <input type="radio" name="iden" value="{{ $d.Iden }}" {{ if not $i }}checked{{ end }}>
     {{ $d.Nickname }} -- {{ $d.Manufacturer }} {{ $d.Model }}
     ({{ if not $d.Active }}in{{ end }}active,
     {{ if not $d.Pushable }}not {{ end }}pushable)<br />
