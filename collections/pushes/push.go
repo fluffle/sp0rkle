@@ -1,6 +1,7 @@
 package pushes
 
 import (
+	"encoding/base64"
 	"strings"
 	"time"
 
@@ -35,6 +36,10 @@ func (s *State) CanConfirm() bool {
 
 func (s *State) CanPush() bool {
 	return s != nil && s.Token != nil && s.Iden != "" && s.Done
+}
+
+func (s *State) State() string {
+	return base64.URLEncoding.EncodeToString([]byte(s.Id))
 }
 
 type Collection struct {
@@ -75,7 +80,11 @@ func (pc *Collection) DelState(s *State) error {
 	return pc.RemoveId(s.Id)
 }
 
-func (pc *Collection) GetById(id string) *State {
+func (pc *Collection) GetByB64(b64 string) *State {
+	id, err := base64.URLEncoding.DecodeString(b64)
+	if err != nil {
+		return nil
+	}
 	s := &State{}
 	if err := pc.FindId(bson.ObjectId(id)).One(s); err != nil {
 		return nil

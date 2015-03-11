@@ -34,6 +34,15 @@ func pushDeviceURL(state string) string {
 // a confirmation notification to the chosen device with a 6
 // digit pin and require that they msg that to us via IRC.
 func pushEnable(ctx *bot.Context) {
+	s := pc.GetByNick(ctx.Nick)
+	if s != nil {
+		if s.CanPush() {
+			ctx.ReplyN("Pushes already enabled.")
+			return
+		}
+		ctx.Privmsg(ctx.Nick, "Hmm. Deleting partially-complete state...")
+		pc.DelState(s)
+	}
 	s, err := pc.NewState(ctx.Nick)
 	if err != nil {
 		ctx.ReplyN("Error creating push state: %v", err)
@@ -90,7 +99,7 @@ func pushAuthHTTP(rw http.ResponseWriter, req *http.Request) {
 		return
 	}
 	id := req.FormValue("state")
-	s := pc.GetById(id)
+	s := pc.GetByB64(id)
 	if id == "" || s == nil {
 		http.Redirect(rw, req, pushFailureURL("nostate"), 302)
 		return
@@ -118,7 +127,7 @@ func pushDeviceHTTP(rw http.ResponseWriter, req *http.Request) {
 		return
 	}
 	id := req.FormValue("state")
-	s := pc.GetById(id)
+	s := pc.GetByB64(id)
 	if id == "" || s == nil {
 		http.Redirect(rw, req, pushFailureURL("nostate"), 302)
 		return
