@@ -38,7 +38,7 @@ var pushSuccessHTML = `<html>
   <h1>YAY.</h1>
   <p>sp0rkle has successfully negotiated the OAuth dance, and you ought
   to be receiving a confirmation push any time soon. Simply tell sp0rkle
-  "push auth <pin>" to complete the setup.</p>
+  "push auth &lt;pin&gt;" to complete the setup.</p>
 </body>
 </html>`
 
