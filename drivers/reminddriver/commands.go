@@ -1,13 +1,16 @@
 package reminddriver
 
 import (
-	"github.com/fluffle/sp0rkle/bot"
-	"github.com/fluffle/sp0rkle/collections/reminders"
-	"github.com/fluffle/sp0rkle/util/datetime"
-	"gopkg.in/mgo.v2/bson"
+	"fmt"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/fluffle/sp0rkle/bot"
+	"github.com/fluffle/sp0rkle/collections/reminders"
+	"github.com/fluffle/sp0rkle/util/datetime"
+	"github.com/fluffle/sp0rkle/util/push"
+	"gopkg.in/mgo.v2/bson"
 )
 
 // remind del
@@ -166,6 +169,10 @@ func tell(ctx *bot.Context) {
 	if err := rc.Insert(r); err != nil {
 		ctx.ReplyN("Error saving tell: %v", err)
 		return
+	}
+	if s := pc.GetByNick(txt[:idx]); s.CanPush() {
+		push.Push(s, fmt.Sprintf("%s in %s asked me to tell you:",
+			ctx.Nick, ctx.Target()), tell)
 	}
 	// Any previously-generated list of reminders is now obsolete.
 	delete(listed, ctx.Nick)

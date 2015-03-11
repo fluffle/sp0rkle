@@ -4,7 +4,9 @@ import (
 	"github.com/fluffle/goirc/client"
 	"github.com/fluffle/golog/logging"
 	"github.com/fluffle/sp0rkle/bot"
+	"github.com/fluffle/sp0rkle/collections/pushes"
 	"github.com/fluffle/sp0rkle/collections/reminders"
+	"github.com/fluffle/sp0rkle/util/push"
 	"gopkg.in/mgo.v2/bson"
 	"strings"
 	"time"
@@ -12,6 +14,7 @@ import (
 
 // We use the reminders collection
 var rc *reminders.Collection
+var pc *pushes.Collection
 
 // We need to be able to kill reminder goroutines
 var running = map[bson.ObjectId]chan struct{}{}
@@ -24,6 +27,9 @@ var listed = map[string][]bson.ObjectId{}
 
 func Init() {
 	rc = reminders.Init()
+	if push.Enabled() {
+		pc = pushes.Init()
+	}
 
 	// Set up the handlers and commands.
 	bot.Handle(load, client.CONNECTED)
