@@ -79,7 +79,7 @@ func Enabled() bool {
 }
 
 func AuthCodeURL(s *pushes.State) string {
-	return config().AuthCodeURL(string(s.Id))
+	return config().AuthCodeURL(s.State())
 }
 
 func Exchange(code string) (*oauth2.Token, error) {
