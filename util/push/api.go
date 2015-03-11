@@ -7,6 +7,7 @@ import (
 	"flag"
 	"fmt"
 	"net/http"
+	"net/url"
 
 	"github.com/fluffle/sp0rkle/bot"
 	"github.com/fluffle/sp0rkle/collections/pushes"
@@ -83,7 +84,36 @@ func AuthCodeURL(s *pushes.State) string {
 }
 
 func Exchange(code string) (*oauth2.Token, error) {
-	return config().Exchange(oauth2.NoContext, code)
+	// Pushbullet don't support passing client secret via http basic auth headers.
+	// return config().Exchange(oauth2.NoContext, code)
+	// Do it ourselves :(
+	c := config()
+	resp, err := http.PostForm(c.Endpoint.TokenURL, url.Values{
+		"grant_type":    {"authorization_code"},
+		"code":          {code},
+		"client_id":     {c.ClientID},
+		"client_secret": {c.ClientSecret},
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	defer resp.Body.Close()
+	if err := checkResponseOK(resp); err != nil {
+		return nil, fmt.Errorf("POST %s: %v", c.Endpoint.TokenURL, err)
+	}
+	auth := &struct {
+		TokenType string `json:"token_type"`
+		Token     string `json:"access_token"`
+	}{}
+	if err := json.NewDecoder(resp.Body).Decode(auth); err != nil {
+		return nil, fmt.Errorf("POST %s JSON decode failed: %v",
+			c.Endpoint.TokenURL, err)
+	}
+	return &oauth2.Token{
+		TokenType:   auth.TokenType,
+		AccessToken: auth.Token,
+	}, nil
 }
 
 func GetDevices(s *pushes.State) ([]*Device, error) {

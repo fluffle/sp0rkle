@@ -12,7 +12,7 @@ import (
 	"github.com/fluffle/sp0rkle/util/push"
 )
 
-func pushFailureURL(fail string) string{
+func pushFailureURL(fail string) string {
 	return bot.HttpHost() + "/oauth/failure?fail=" + fail
 }
 
