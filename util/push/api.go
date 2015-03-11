@@ -30,7 +30,7 @@ func config() *oauth2.Config {
 		ClientSecret: bot.GetSecret(*pushClientSecret),
 		Endpoint: oauth2.Endpoint{
 			AuthURL:  "https://www.pushbullet.com/authorize",
-			TokenURL: pushAPI("/oauth/token"),
+			TokenURL: pushAPI("/oauth2/token"),
 		},
 		RedirectURL: bot.HttpHost() + "/oauth/auth",
 		Scopes:      []string{"everything"},
