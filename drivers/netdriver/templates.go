@@ -30,6 +30,18 @@ var pushDeviceTmpl = template.Must(template.New("pushdevice").Parse(`<html>
 </body>
 </html>`))
 
+var pushNoDeviceHTML = `<html>
+<head>
+  <title>No devices found :-(</title>
+</head>
+<body>
+  <h1>No devices found :-(</h1>
+  <p>sp0rkle has successfully negotiated the OAuth dance, but you don't
+  have any devices linked to your Pushbullet account, so you can't
+  receive notifications. You should fix that and then refresh this page.</p>
+</body>
+</html>`
+
 var pushSuccessHTML = `<html>
 <head>
   <title>You are teh winnar!</title>

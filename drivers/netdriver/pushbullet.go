@@ -1,7 +1,6 @@
 package netdriver
 
 import (
-	"bytes"
 	"fmt"
 	"math/rand"
 	"net/http"
@@ -149,9 +148,13 @@ func pushDeviceHTTP(rw http.ResponseWriter, req *http.Request) {
 	}
 	// get device list and print a form
 	devs, err := push.GetDevices(s)
-	if err != nil || len(devs) == 0 {
+	if err != nil  {
 		logging.Error("Failed to get devices for %s: %v", s.Nick, err)
 		http.Redirect(rw, req, pushFailureURL("device"), 302)
+		return
+	}
+	if len(devs) == 0 {
+		strings.NewReader(pushNoDeviceHTML).WriteTo(rw)
 		return
 	}
 	if err = pushDeviceTmpl.Execute(rw, &pushDevice{id, devs}); err != nil {
@@ -162,7 +165,7 @@ func pushDeviceHTTP(rw http.ResponseWriter, req *http.Request) {
 }
 
 func pushSuccessHTTP(rw http.ResponseWriter, req *http.Request) {
-	bytes.NewBufferString(pushSuccessHTML).WriteTo(rw)
+	strings.NewReader(pushSuccessHTML).WriteTo(rw)
 }
 
 func pushFailureHTTP(rw http.ResponseWriter, req *http.Request) {
