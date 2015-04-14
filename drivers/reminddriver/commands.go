@@ -67,7 +67,7 @@ func set(ctx *bot.Context) {
 	for i := 1; i+1 < len(s); i++ {
 		lc := strings.ToLower(s[i])
 		if lc == "in" || lc == "at" || lc == "on" {
-			timestr = strings.ToLower(strings.Join(s[i+1:], " "))
+			timestr = strings.Join(s[i+1:], " ")
 		} else if i+2 == len(s) {
 			// Hack to test the last word for e.g. "tomorrow"
 			i++
