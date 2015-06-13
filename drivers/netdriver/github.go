@@ -39,7 +39,7 @@ func githubCreateIssue(ctx *bot.Context) {
 
 	req := &github.IssueRequest{
 		Title: &s[0],
-		Labels: []string{
+		Labels: &[]string{
 			"from:IRC",
 			"nick:" + ctx.Nick,
 			"chan:" + ctx.Target(),
