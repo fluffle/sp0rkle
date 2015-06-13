@@ -65,8 +65,8 @@ func Remind(r *reminders.Reminder, ctx *bot.Context) {
 			// TODO(fluffle): Tie this into state tracking properly.
 			ctx.Privmsg(string(r.Target), r.Reply())
 			// This is used in snooze to reinstate reminders.
-			finished[strings.ToLower(r.Target)] = r
-			if s := pc.GetByNick(r.Target); s.CanPush() {
+			finished[strings.ToLower(string(r.Target))] = r
+			if s := pc.GetByNick(string(r.Target)); s.CanPush() {
 				push.Push(s, "Reminder from sp0rkle!", r.Reply())
 			}
 			Forget(r.Id, false)
