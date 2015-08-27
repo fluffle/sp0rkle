@@ -74,6 +74,10 @@ func Init() {
 			"Disable pushbullet notifications and delete tokens.")
 		bot.Command(pushConfirm, "push auth", "push auth <pin>  -- "+
 			"Confirm pushed PIN to finish pushbullet auth dance.")
+		bot.Command(pushAddAlias, "push add alias", "push add alias  -- "+
+			"Add a push alias for your nick.")
+		bot.Command(pushDelAlias, "push del alias", "push del alias  -- "+
+			"Delete a push alias for your nick.")
 
 		http.HandleFunc("/oauth/auth", pushAuthHTTP)
 		http.HandleFunc("/oauth/device", pushDeviceHTTP)

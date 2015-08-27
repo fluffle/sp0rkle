@@ -33,8 +33,11 @@ func pushDeviceURL(state string) string {
 // a confirmation notification to the chosen device with a 6
 // digit pin and require that they msg that to us via IRC.
 func pushEnable(ctx *bot.Context) {
-	s := pc.GetByNick(ctx.Nick)
-	if s != nil {
+	if s := pc.GetByNick(ctx.Nick); s != nil {
+		if s.HasAlias(ctx.Nick) {
+			ctx.ReplyN("Your nick is already used as an alias for %s.", s.Nick)
+			return
+		}
 		if s.CanPush() {
 			ctx.ReplyN("Pushes already enabled.")
 			return
@@ -54,7 +57,9 @@ func pushEnable(ctx *bot.Context) {
 }
 
 func pushDisable(ctx *bot.Context) {
-	s := pc.GetByNick(ctx.Nick)
+	// Do not search by aliases here: it allows someone to change nick
+	// to a known alias and then disable pushes for that user.
+	s := pc.GetByNick(ctx.Nick, false)
 	if s == nil {
 		ctx.ReplyN("Pushes not enabled.")
 		return
@@ -68,7 +73,7 @@ func pushDisable(ctx *bot.Context) {
 
 func pushConfirm(ctx *bot.Context) {
 	pin := strings.Fields(ctx.Text())[0]
-	s := pc.GetByNick(ctx.Nick)
+	s := pc.GetByNick(ctx.Nick, false)
 	switch {
 	case s == nil:
 		ctx.ReplyN("No authentication state found.")
@@ -86,6 +91,48 @@ func pushConfirm(ctx *bot.Context) {
 		return
 	}
 	ctx.ReplyN("Pushes enabled! Yay!")
+}
+
+func pushAddAlias(ctx *bot.Context) {
+	alias := strings.Fields(ctx.Text())[0]
+	s := pc.GetByNick(ctx.Nick, false)
+	if s == nil || !s.CanPush() {
+		ctx.ReplyN("Pushes not enabled.")
+		return
+	}
+	if s.HasAlias(alias) {
+		ctx.ReplyN("Alias %q already exists.", alias)
+		return
+	}
+	if a := pc.GetByNick(alias); a != nil {
+		ctx.ReplyN("Alias %q already exists for nick %s.", alias, a.Nick)
+		return
+	}
+	s.AddAlias(alias)
+	if err := pc.SetState(s); err != nil {
+		ctx.ReplyN("Error setting push state: %v", err)
+		return
+	}
+	ctx.ReplyN("Added alias %q to your push state.", alias)
+}
+
+func pushDelAlias(ctx *bot.Context) {
+	alias := strings.Fields(ctx.Text())[0]
+	s := pc.GetByNick(ctx.Nick, false)
+	if s == nil || !s.CanPush() {
+		ctx.ReplyN("Pushes not enabled.")
+		return
+	}
+	if !s.HasAlias(alias) {
+		ctx.ReplyN("%q is not one of your aliases.", alias)
+		return
+	}
+	s.DelAlias(alias)
+	if err := pc.SetState(s); err != nil {
+		ctx.ReplyN("Error setting push state: %v", err)
+		return
+	}
+	ctx.ReplyN("Deleted alias %q from your push state.", alias)
 }
 
 func pushAuthHTTP(rw http.ResponseWriter, req *http.Request) {

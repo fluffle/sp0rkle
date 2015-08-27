@@ -15,13 +15,14 @@ import (
 const COLLECTION = "push"
 
 type State struct {
-	Nick  string        `json:"nick"`
-	Iden  string        `json:"iden,omitempty"`
-	Pin   string        `json:"pin"`
-	Token *oauth2.Token `json:"token,omitempty"`
-	Done  bool          `json:"done"`
-	Time  time.Time     `json:"time"`
-	Id    bson.ObjectId `bson:"_id,omitempty"`
+	Nick    string        `json:"nick"`
+	Aliases []string      `json:"aliases,omitempty"`
+	Iden    string        `json:"iden,omitempty"`
+	Pin     string        `json:"pin"`
+	Token   *oauth2.Token `json:"token,omitempty"`
+	Done    bool          `json:"done"`
+	Time    time.Time     `json:"time"`
+	Id      bson.ObjectId `bson:"_id,omitempty"`
 }
 
 func (s *State) AuthWindowExpired() bool {
@@ -40,6 +41,30 @@ func (s *State) CanPush() bool {
 
 func (s *State) State() string {
 	return base64.URLEncoding.EncodeToString([]byte(s.Id))
+}
+
+func (s *State) HasAlias(alias string) bool {
+	return s.aliasIndex(alias) != -1
+}
+
+func (s *State) AddAlias(alias string) {
+	s.Aliases = append(s.Aliases, strings.ToLower(alias))
+}
+
+func (s *State) DelAlias(alias string) {
+	idx := s.aliasIndex(alias)
+	if idx == -1 { return }
+	s.Aliases = append(s.Aliases[:idx], s.Aliases[idx+1:]...)
+}	
+
+func (s *State) aliasIndex(alias string) int {
+	lc := strings.ToLower(alias)
+	for i, a := range s.Aliases {
+		if a == lc {
+			return i
+		}
+	}
+	return -1
 }
 
 type Collection struct {
@@ -96,9 +121,17 @@ func (pc *Collection) GetByB64(b64 string) *State {
 	return s
 }
 
-func (pc *Collection) GetByNick(nick string) *State {
+func (pc *Collection) GetByNick(nick string, aliases ...bool) *State {
 	s := &State{}
-	if err := pc.Find(bson.M{"nick": strings.ToLower(nick)}).One(s); err != nil {
+	query := bson.M{"$or": []bson.M{
+		{"nick": strings.ToLower(nick)},
+		{"aliases": strings.ToLower(nick)},
+	}}
+	if len(aliases) > 0 && !aliases[0] {
+		// If aliases is explicitly false do not allow aliases to match when querying.
+		query = bson.M{"nick": strings.ToLower(nick)}
+	}
+	if err := pc.Find(query).One(s); err != nil {
 		return nil
 	}
 	if s.AuthWindowExpired() {
