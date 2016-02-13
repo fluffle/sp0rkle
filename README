@@ -67,7 +67,7 @@ while coding in $GOPATH/src/github.com/fluffle/sp0rkle/sp0rkle:
   vim <stuff>:wq
   go build
   # Run local build for testing ...
-  ./sp0rkle --server irc.pl0rt.org[:port]  [--nick=mybot] [--channels='#test']
+  ./sp0rkle --servers irc.pl0rt.org[:port]  [--nick=mybot] [--channels='#test']
   ^C
 
 git add <stuff>
