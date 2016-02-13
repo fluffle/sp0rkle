@@ -34,6 +34,7 @@ mkdir -p $GOPATH/{src,pkg,bin}
 
 go get github.com/fluffle/goirc/client
 go get github.com/kuroneko/gosqlite3
+go get github.com/golang/oauth2
 go get gopkg.in/mgo.v2
 
 4) Clone sp0rkle's code from github.

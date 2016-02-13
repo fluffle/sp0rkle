@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"strings"
 
-	"code.google.com/p/goauth2/oauth"
+	"github.com/golang/oauth2"
 	"github.com/fluffle/golog/logging"
 	"github.com/fluffle/sp0rkle/bot"
 	"github.com/fluffle/sp0rkle/collections/reminders"
@@ -26,8 +26,12 @@ const (
 )
 
 func githubClient() *github.Client {
-	t := &oauth.Transport{Token: &oauth.Token{AccessToken: bot.GetSecret(*githubToken)}}
-	return github.NewClient(t.Client())
+	ts := oauth2.StaticTokenSource(
+		&oauth2.Token{AccessToken: bot.GetSecret(*githubToken)},
+	)
+	tc := oauth2.NewClient(oauth2.NoContext, ts)
+
+	return github.NewClient(tc)
 }
 
 func githubCreateIssue(ctx *bot.Context) {
