@@ -19,7 +19,12 @@ install:
     #sudo apt-get install mercurial git bzr
 
 script:
-  - find /home/travis/.gimme/versions/go1.3.linux.amd64/src/pkg/github.com
+# HORRIBLE HACK
+#    main.go:10:2: cannot find package "github.com/fluffle/sp0rkle/bot" in any of:
+#    Work around by symlinking in
+#    FIXME: This is only needed on !fluffle, maybe detect repo, or just ignore this once it's in upstream?
+  - ln -s $HOME/gopath/src/github.com/bob-smith/sp0rkle /home/travis/gopath/src/github.com/fluffle/sp0rkle
+    ls -la /home/travis/gopath/src/github.com/fluffle/
   - find /home/travis/gopath/src/github.com/fluffle
   - go build
 
