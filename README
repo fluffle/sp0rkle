@@ -10,7 +10,7 @@ mongod --version
 db version v2.2.1, pdfile version 4.5
 
 If not the following page may help
-http://www.mongodb.org/display/DOCS/Ubuntu+and+Debian+packages
+https://docs.mongodb.org/manual/administration/install-on-linux/
 
 2) Build go.
 
