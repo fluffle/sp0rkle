@@ -33,7 +33,9 @@ mkdir -p $GOPATH/{src,pkg,bin}
 3) Use the `go` tool to get dependencies.
 
 go get github.com/fluffle/goirc/client
+go get github.com/fluffle/golog/logging
 go get github.com/kuroneko/gosqlite3
+go get github.com/google/go-github/github
 go get github.com/golang/oauth2
 go get gopkg.in/mgo.v2
 
