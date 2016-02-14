@@ -5,7 +5,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/golang/oauth2"
+//	"github.com/golang/oauth2"
+    "golang.org/x/oauth2"
 	"github.com/fluffle/golog/logging"
 	"github.com/fluffle/sp0rkle/bot"
 	"github.com/fluffle/sp0rkle/collections/reminders"
