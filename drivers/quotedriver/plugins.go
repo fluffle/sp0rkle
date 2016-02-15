@@ -1,10 +1,11 @@
 package quotedriver
 
 import (
+	"strconv"
+
 	"github.com/fluffle/sp0rkle/bot"
 	"github.com/fluffle/sp0rkle/collections/quotes"
 	"github.com/fluffle/sp0rkle/util"
-	"strconv"
 )
 
 func quotePlugin(in string, ctx *bot.Context) string {

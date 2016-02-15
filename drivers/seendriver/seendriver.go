@@ -1,11 +1,12 @@
 package seendriver
 
 import (
+	"regexp"
+	"time"
+
 	"github.com/fluffle/goirc/client"
 	"github.com/fluffle/sp0rkle/bot"
 	"github.com/fluffle/sp0rkle/collections/seen"
-	"regexp"
-	"time"
 )
 
 var smokeRx *regexp.Regexp = regexp.MustCompile(`(?i)^(?:->\s*?)?(?:s(?:c?h)?m[o0]keh?|cig|fag|spliff|ch[o0]ng|t[o0]ke?)(?:s|z?[0o]r)?\W*?(\?)?$`)

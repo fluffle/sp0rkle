@@ -2,9 +2,10 @@ package markov
 
 import (
 	"errors"
-	"github.com/fluffle/golog/logging"
 	"math/rand"
 	"strings"
+
+	"github.com/fluffle/golog/logging"
 )
 
 const (
@@ -61,7 +62,9 @@ func generate(data Source, start string, length int) ([]string, error) {
 
 		for _, child := range children {
 			r -= child.Uses
-			if r >= 0 { continue }
+			if r >= 0 {
+				continue
+			}
 			if child.Value == SENTENCE_END {
 				return output, nil
 			}

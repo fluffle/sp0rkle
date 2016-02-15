@@ -1,14 +1,15 @@
 package quotes
 
 import (
+	"math/rand"
+	"sync/atomic"
+	"time"
+
 	"github.com/fluffle/golog/logging"
 	"github.com/fluffle/sp0rkle/bot"
 	"github.com/fluffle/sp0rkle/db"
 	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
-	"math/rand"
-	"sync/atomic"
-	"time"
 )
 
 const COLLECTION string = "quotes"

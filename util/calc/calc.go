@@ -2,10 +2,11 @@ package calc
 
 import (
 	"fmt"
-	"github.com/fluffle/sp0rkle/util"
 	"math"
 	"strings"
 	"unicode"
+
+	"github.com/fluffle/sp0rkle/util"
 )
 
 //------------------------------------------------------------------------------

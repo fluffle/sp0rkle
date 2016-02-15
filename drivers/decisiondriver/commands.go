@@ -1,9 +1,10 @@
 package decisiondriver
 
 import (
-	"github.com/fluffle/sp0rkle/bot"
 	"math/rand"
 	"strings"
+
+	"github.com/fluffle/sp0rkle/bot"
 )
 
 func decideCmd(ctx *bot.Context) {

@@ -36,9 +36,9 @@ func TestParseTimeFormats(t *testing.T) {
 		time.RFC1123,
 		time.RFC1123Z,
 		time.RFC3339,
-//		time.RFC3339Nano, // fails, nanosecs not supported
-//		time.Kitchen,     // fails, only contains HH and MM
-//		time.Stamp,       // fails, no year => assumed 2013
+		//		time.RFC3339Nano, // fails, nanosecs not supported
+		//		time.Kitchen,     // fails, only contains HH and MM
+		//		time.Stamp,       // fails, no year => assumed 2013
 	}
 	for i, f := range formats {
 		in := ref.Format(f)

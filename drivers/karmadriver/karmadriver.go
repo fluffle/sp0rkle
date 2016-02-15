@@ -1,10 +1,11 @@
 package karmadriver
 
 import (
+	"strings"
+
 	"github.com/fluffle/goirc/client"
 	"github.com/fluffle/sp0rkle/bot"
 	"github.com/fluffle/sp0rkle/collections/karma"
-	"strings"
 )
 
 var kc *karma.Collection

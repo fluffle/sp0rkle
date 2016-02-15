@@ -1,10 +1,11 @@
 package bot
 
 import (
-	"github.com/fluffle/goirc/client"
-	"github.com/fluffle/golog/logging"
 	"sync"
 	"time"
+
+	"github.com/fluffle/goirc/client"
+	"github.com/fluffle/golog/logging"
 )
 
 type Poller interface {

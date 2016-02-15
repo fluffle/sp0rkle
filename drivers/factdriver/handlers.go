@@ -1,13 +1,14 @@
 package factdriver
 
 import (
+	"math/rand"
+	"strings"
+
 	"github.com/fluffle/goirc/client"
 	"github.com/fluffle/sp0rkle/bot"
 	"github.com/fluffle/sp0rkle/collections/factoids"
 	"github.com/fluffle/sp0rkle/util"
 	"gopkg.in/mgo.v2/bson"
-	"math/rand"
-	"strings"
 )
 
 // Factoid add: 'key := value' or 'key :is value'
@@ -97,7 +98,9 @@ func lookup(ctx *bot.Context) {
 func recurse(fact *factoids.Factoid, keys map[string]bool) {
 	val := fact.Value
 	key, start, end := util.FactPointer(val)
-	if key == "" { return }
+	if key == "" {
+		return
+	}
 	if _, ok := keys[key]; ok || len(keys) > 20 {
 		fact.Value = val[:start] + "[circular reference]" + val[end:]
 		return

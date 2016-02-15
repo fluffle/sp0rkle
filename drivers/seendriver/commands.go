@@ -1,9 +1,10 @@
 package seendriver
 
 import (
+	"strings"
+
 	"github.com/fluffle/golog/logging"
 	"github.com/fluffle/sp0rkle/bot"
-	"strings"
 )
 
 func seenCmd(ctx *bot.Context) {

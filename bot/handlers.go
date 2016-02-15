@@ -3,9 +3,10 @@ package bot
 import (
 	"flag"
 	"fmt"
-	"github.com/fluffle/golog/logging"
 	"os/exec"
 	"strings"
+
+	"github.com/fluffle/golog/logging"
 )
 
 var (

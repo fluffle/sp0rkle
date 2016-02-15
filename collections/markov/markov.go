@@ -1,12 +1,13 @@
 package markov
 
 import (
+	"strings"
+
 	"github.com/fluffle/golog/logging"
 	"github.com/fluffle/sp0rkle/db"
 	"github.com/fluffle/sp0rkle/util/markov"
 	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
-	"strings"
 )
 
 const COLLECTION = "markov"

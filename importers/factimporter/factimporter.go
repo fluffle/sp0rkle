@@ -5,15 +5,17 @@ package main
 import (
 	"flag"
 	"fmt"
+	"strconv"
+	"strings"
+	"time"
+
 	"github.com/fluffle/golog/logging"
+	"github.com/fluffle/sp0rkle/bot"
 	"github.com/fluffle/sp0rkle/collections/factoids"
 	"github.com/fluffle/sp0rkle/db"
 	"github.com/fluffle/sp0rkle/util"
 	"github.com/kuroneko/gosqlite3"
 	"gopkg.in/mgo.v2/bson"
-	"strconv"
-	"strings"
-	"time"
 )
 
 var file *string = flag.String("db", "Facts.db",

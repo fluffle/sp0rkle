@@ -125,7 +125,7 @@ func snooze(ctx *bot.Context) {
 		return
 	}
 	now := time.Now()
-	at := now.Add(30*time.Minute)
+	at := now.Add(30 * time.Minute)
 	if ctx.Text() != "" {
 		at, ok = datetime.Parse(ctx.Text())
 		if !ok {

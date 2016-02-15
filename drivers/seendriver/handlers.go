@@ -1,11 +1,12 @@
 package seendriver
 
 import (
+	"time"
+
 	"github.com/fluffle/golog/logging"
 	"github.com/fluffle/sp0rkle/bot"
 	"github.com/fluffle/sp0rkle/collections/seen"
 	"github.com/fluffle/sp0rkle/util"
-	"time"
 )
 
 func smoke(ctx *bot.Context) {
@@ -29,7 +30,9 @@ func smoke(ctx *bot.Context) {
 }
 
 func recordPrivmsg(ctx *bot.Context) {
-	if !ctx.Public() { return }
+	if !ctx.Public() {
+		return
+	}
 	sn := seenNickFromLine(ctx)
 	sn.Text = ctx.Text()
 	if _, err := sc.Upsert(sn.Id(), sn); err != nil {
