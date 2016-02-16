@@ -3,7 +3,7 @@ Getting started, from scratch:
 1) Install some dependencies and MANY version control systems.
 
 sudo apt-get install build-essential bison mongodb libsqlite3-dev
-sudo apt-get install mercurial git bzr
+sudo apt-get install git bzr
 
 Ensure you have mongodb 2.x or higher
 mongod --version
@@ -14,12 +14,7 @@ http://www.mongodb.org/display/DOCS/Ubuntu+and+Debian+packages
 
 2) Build go.
 
-cd $HOME # do this in your home directory
-hg clone -u release https://go.googlecode.com/hg/ go
-cd go/src
-./all.bash
-
-# ... wait for compile ...
+Install go https://golang.org/doc/install
 
 # consider putting these in ~/.bashrc too...
 export GOROOT="$HOME/go"
