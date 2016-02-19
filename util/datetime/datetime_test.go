@@ -403,3 +403,11 @@ func TestAbsDayMonth(t *testing.T) {
 	}
 	tests.run(t, rel)
 }
+
+func TestUnixTime(t *testing.T) {
+	rel := time.Now()
+	tests := timeTests{
+		{"@1234567890", time.Date(2009, 2, 13, 23, 31, 30, 0, time.UTC)},
+	}
+	tests.run(t, rel)
+}

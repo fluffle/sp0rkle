@@ -1,3 +1,4 @@
+//go:generate go tool yacc datetime.y
 package datetime
 
 import (
@@ -104,8 +105,9 @@ const (
 	HAVE_MYEAR
 	HAVE_OFFSET
 	HAVE_AGO
-	HAVE_ABSYEAR = HAVE_DYEAR | HAVE_MYEAR
-	HAVE_DMY     = HAVE_DAYS | HAVE_MONTHS | HAVE_ABSYEAR
+	HAVE_ABSYEAR  = HAVE_DYEAR | HAVE_MYEAR
+	HAVE_DMY      = HAVE_DAYS | HAVE_MONTHS | HAVE_ABSYEAR
+	HAVE_DATETIME = HAVE_DATE | HAVE_TIME
 )
 
 var lexerStates = [...]string{
@@ -195,6 +197,18 @@ func (l *dateLexer) Lex(lval *yySymType) int {
 
 func (l *dateLexer) Error(e string) {
 	fmt.Println(e)
+}
+
+func (l *dateLexer) setUnix(epoch int64) {
+	if DEBUG {
+		fmt.Printf("Setting unix timestamp to %d.\n", epoch)
+	}
+	if l.state(HAVE_DATETIME, true) {
+		l.Error("unix timestamp plus other time/date specifier")
+		return
+	}
+	l.time = time.Unix(epoch, 0)
+	l.date = l.time
 }
 
 func (l *dateLexer) setTime(h, m, s int, loc *time.Location) {

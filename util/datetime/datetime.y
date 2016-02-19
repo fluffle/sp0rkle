@@ -107,10 +107,7 @@ o_zone:
 	
 unixtime:
 	'@' o_sign_integer {
-		l := yylex.(*dateLexer)
-		if ! l.state(HAVE_TIME, true) {
-			l.time = time.Unix(int64($2.i), 0)
-		}
+		yylex.(*dateLexer).setUnix(int64($2.i))
 	};
 
 items:
