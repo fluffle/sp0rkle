@@ -1,0 +1,31 @@
+---
+language: go
+
+go:
+  - 1.3
+
+sudo : false
+
+# NOTE: Any extra dependencies added here must be reflected in README.md
+install:
+  - go get github.com/fluffle/goirc/client
+  - go get github.com/fluffle/golog/logging
+  - go get github.com/kuroneko/gosqlite3
+  - go get github.com/google/go-github/github
+  - go get github.com/golang/oauth2
+  - go get gopkg.in/mgo.v2
+
+    # Not testing with DB, just that it builds
+    #sudo apt-get install build-essential bison mongodb libsqlite3-dev
+    #sudo apt-get install mercurial git bzr
+
+script:
+# HORRIBLE HACK
+#    main.go:10:2: cannot find package "github.com/fluffle/sp0rkle/bot" in any of:
+#    Work around by symlinking in
+#    FIXME: This is only needed on !fluffle, maybe detect repo, or just ignore this once it's in upstream?
+  - ln -s $HOME/gopath/src/github.com/bob-smith/sp0rkle /home/travis/gopath/src/github.com/fluffle/sp0rkle
+  - ls -la /home/travis/gopath/src/github.com/fluffle/
+  - find /home/travis/gopath/src/github.com/fluffle
+  - go build
+
