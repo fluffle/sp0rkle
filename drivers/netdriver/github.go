@@ -9,8 +9,8 @@ import (
 	"github.com/fluffle/sp0rkle/bot"
 	"github.com/fluffle/sp0rkle/collections/reminders"
 	"github.com/fluffle/sp0rkle/util"
-	"github.com/golang/oauth2"
 	"github.com/google/go-github/github"
+	"golang.org/x/oauth2"
 )
 
 var (
