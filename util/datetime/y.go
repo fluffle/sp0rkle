@@ -85,7 +85,7 @@ const yyEofCode = 1
 const yyErrCode = 2
 const yyInitialStackSize = 16
 
-//line datetime.y:502
+//line datetime.y:503
 
 //line yacctab:1
 var yyExca = [...]int{
@@ -1120,26 +1120,27 @@ yydefault:
 		//line datetime.y:480
 		{
 			l := yylex.(*dateLexer)
-			if yyDollar[1].tval.l == 8 {
+			switch yyDollar[1].tval.l {
+			case 8:
 				// assume ISO 8601 YYYYMMDD
 				l.setYMD(yyDollar[1].tval.i, yyDollar[1].tval.l)
-			} else if yyDollar[1].tval.l == 7 {
+			case 7:
 				// assume ISO 8601 ordinal YYYYDDD
 				l.setDate(yyDollar[1].tval.i/1000, 1, yyDollar[1].tval.i%1000)
-			} else if yyDollar[1].tval.l == 6 {
+			case 6:
 				// assume ISO 8601 HHMMSS with no zone
 				l.setHMS(yyDollar[1].tval.i, yyDollar[1].tval.l, nil)
-			} else if yyDollar[1].tval.l == 4 {
+			case 4:
 				// Assuming HHMM because that's more useful on IRC.
 				l.setHMS(yyDollar[1].tval.i, yyDollar[1].tval.l, nil)
-			} else if yyDollar[1].tval.l == 2 {
+			case 2:
 				// assume HH with no zone
 				l.setHMS(yyDollar[1].tval.i, yyDollar[1].tval.l, nil)
 			}
 		}
 	case 106:
 		yyDollar = yyS[yypt-1 : yypt+1]
-		//line datetime.y:499
+		//line datetime.y:500
 		{
 			yylex.(*dateLexer).setHMS(yyDollar[1].intval, 2, nil)
 		}
