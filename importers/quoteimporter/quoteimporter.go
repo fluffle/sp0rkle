@@ -5,12 +5,14 @@ package main
 import (
 	"flag"
 	"fmt"
+	"time"
+
 	"github.com/fluffle/golog/logging"
+	"github.com/fluffle/sp0rkle/bot"
 	"github.com/fluffle/sp0rkle/collections/quotes"
 	"github.com/fluffle/sp0rkle/db"
 	"github.com/kuroneko/gosqlite3"
 	"gopkg.in/mgo.v2/bson"
-	"time"
 )
 
 var file *string = flag.String("db", "Quotes.db",

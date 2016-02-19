@@ -1,10 +1,11 @@
 package quotedriver
 
 import (
+	"strconv"
+
 	"github.com/fluffle/sp0rkle/bot"
 	"github.com/fluffle/sp0rkle/collections/quotes"
 	"gopkg.in/mgo.v2/bson"
-	"strconv"
 )
 
 func add(ctx *bot.Context) {

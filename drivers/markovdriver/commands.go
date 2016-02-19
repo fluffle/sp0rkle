@@ -1,10 +1,11 @@
 package markovdriver
 
 import (
+	"strings"
+
 	"github.com/fluffle/sp0rkle/bot"
 	"github.com/fluffle/sp0rkle/collections/conf"
 	chain "github.com/fluffle/sp0rkle/util/markov"
-	"strings"
 )
 
 func enableMarkov(ctx *bot.Context) {

@@ -53,7 +53,9 @@ func (s *State) AddAlias(alias string) {
 
 func (s *State) DelAlias(alias string) {
 	idx := s.aliasIndex(alias)
-	if idx == -1 { return }
+	if idx == -1 {
+		return
+	}
 	s.Aliases = append(s.Aliases[:idx], s.Aliases[idx+1:]...)
 }
 

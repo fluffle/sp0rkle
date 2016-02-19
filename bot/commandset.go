@@ -1,11 +1,12 @@
 package bot
 
 import (
+	"strings"
+	"sync"
+
 	"github.com/fluffle/goirc/client"
 	"github.com/fluffle/golog/logging"
 	"github.com/fluffle/sp0rkle/util"
-	"strings"
-	"sync"
 )
 
 type HandlerFunc func(*Context)

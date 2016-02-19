@@ -4,13 +4,14 @@ package decisiondriver
 
 import (
 	"fmt"
-	"github.com/fluffle/sp0rkle/bot"
-	"github.com/fluffle/sp0rkle/util"
 	"math/rand"
 	"strconv"
 	"strings"
 	"unicode"
 	"unicode/utf8"
+
+	"github.com/fluffle/sp0rkle/bot"
+	"github.com/fluffle/sp0rkle/util"
 )
 
 func Init() {

@@ -1,12 +1,13 @@
 package factdriver
 
 import (
+	"strings"
+
 	"github.com/fluffle/goirc/client"
 	"github.com/fluffle/sp0rkle/bot"
 	"github.com/fluffle/sp0rkle/collections/factoids"
 	"github.com/fluffle/sp0rkle/util"
 	"gopkg.in/mgo.v2/bson"
-	"strings"
 )
 
 // We talk to the factoids collection

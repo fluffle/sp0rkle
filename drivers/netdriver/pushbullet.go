@@ -195,7 +195,7 @@ func pushDeviceHTTP(rw http.ResponseWriter, req *http.Request) {
 	}
 	// get device list and print a form
 	devs, err := push.GetDevices(s)
-	if err != nil  {
+	if err != nil {
 		logging.Error("Failed to get devices for %s: %v", s.Nick, err)
 		http.Redirect(rw, req, pushFailureURL("device"), 302)
 		return

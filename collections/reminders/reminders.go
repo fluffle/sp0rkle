@@ -2,14 +2,15 @@ package reminders
 
 import (
 	"fmt"
+	"strings"
+	"time"
+
 	"github.com/fluffle/golog/logging"
 	"github.com/fluffle/sp0rkle/bot"
 	"github.com/fluffle/sp0rkle/db"
 	"github.com/fluffle/sp0rkle/util/datetime"
 	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
-	"strings"
-	"time"
 )
 
 const COLLECTION = "reminders"

@@ -1,8 +1,9 @@
 package bot
 
 import (
-	"github.com/fluffle/sp0rkle/collections/conf"
 	"strings"
+
+	"github.com/fluffle/sp0rkle/collections/conf"
 )
 
 const ignoreNs = "ignore"

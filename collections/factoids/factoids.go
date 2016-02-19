@@ -1,15 +1,16 @@
 package factoids
 
 import (
+	"math/rand"
+	"strings"
+	"time"
+
 	"github.com/fluffle/golog/logging"
 	"github.com/fluffle/sp0rkle/bot"
 	"github.com/fluffle/sp0rkle/db"
 	"github.com/fluffle/sp0rkle/util"
 	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
-	"math/rand"
-	"strings"
-	"time"
 )
 
 const COLLECTION string = "factoids"

@@ -2,11 +2,12 @@ package datetime
 
 import (
 	"fmt"
-	"github.com/fluffle/sp0rkle/util"
 	"strconv"
 	"strings"
 	"time"
 	"unicode"
+
+	"github.com/fluffle/sp0rkle/util"
 )
 
 var DEBUG = false
@@ -82,9 +83,12 @@ func (rm relMonths) String() string {
 func ampm(hour, offset int) int {
 	// Take care of the fact that 12am is midnight and 12pm midday
 	switch hour + offset {
-	case 12: return 0
-	case 24: return 12
-	default: return hour+offset
+	case 12:
+		return 0
+	case 24:
+		return 12
+	default:
+		return hour + offset
 	}
 }
 

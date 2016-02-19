@@ -4,12 +4,6 @@ import (
 	"encoding/base64"
 	"flag"
 	"fmt"
-	"github.com/fluffle/goirc/client"
-	"github.com/fluffle/golog/logging"
-	"github.com/fluffle/sp0rkle/bot"
-	"github.com/fluffle/sp0rkle/collections/urls"
-	"github.com/fluffle/sp0rkle/util"
-	"gopkg.in/mgo.v2/bson"
 	"hash/crc32"
 	"io"
 	"math/rand"
@@ -18,6 +12,13 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/fluffle/goirc/client"
+	"github.com/fluffle/golog/logging"
+	"github.com/fluffle/sp0rkle/bot"
+	"github.com/fluffle/sp0rkle/collections/urls"
+	"github.com/fluffle/sp0rkle/util"
+	"gopkg.in/mgo.v2/bson"
 )
 
 const shortenPath string = "/s/"

@@ -2,13 +2,14 @@ package factdriver
 
 import (
 	"fmt"
+	"regexp"
+	"strconv"
+	"strings"
+
 	"github.com/fluffle/sp0rkle/bot"
 	"github.com/fluffle/sp0rkle/util"
 	"github.com/fluffle/sp0rkle/util/datetime"
 	"gopkg.in/mgo.v2/bson"
-	"regexp"
-	"strconv"
-	"strings"
 )
 
 // Factoid chance: 'chance of that is' => sets chance of lastSeen[chan]
@@ -67,7 +68,8 @@ func extractRx(l *util.Lexer, delim rune) string {
 	ret, i := "", 0
 	for {
 		ret += l.Find(delim)
-		for i = len(ret) - 1; i >= 0 && ret[i] == '\\'; i-- { }
+		for i = len(ret) - 1; i >= 0 && ret[i] == '\\'; i-- {
+		}
 		if l.Peek() == 0 || (len(ret)-i)%2 == 1 {
 			// Even number of backslashes at end of string
 			// => delimiter isn't escaped. (Or we're at EOF).

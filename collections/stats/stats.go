@@ -2,13 +2,14 @@ package stats
 
 import (
 	"fmt"
+	"strings"
+	"time"
+
 	"github.com/fluffle/golog/logging"
 	"github.com/fluffle/sp0rkle/bot"
 	"github.com/fluffle/sp0rkle/db"
 	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
-	"strings"
-	"time"
 )
 
 const COLLECTION string = "stats"

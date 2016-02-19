@@ -1,11 +1,12 @@
 package factdriver
 
 import (
+	"testing"
+	"time"
+
 	"github.com/fluffle/goirc/client"
 	"github.com/fluffle/sp0rkle/bot"
 	"github.com/fluffle/sp0rkle/util"
-	"testing"
-	"time"
 )
 
 func TestIdentifiers(t *testing.T) {
