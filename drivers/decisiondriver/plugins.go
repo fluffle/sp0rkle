@@ -3,10 +3,11 @@ package decisiondriver
 // A simple driver to implement decisions based on random numbers. No, not 4.
 
 import (
-	"github.com/fluffle/sp0rkle/bot"
-	"github.com/fluffle/sp0rkle/util"
 	"math/rand"
 	"strings"
+
+	"github.com/fluffle/sp0rkle/bot"
+	"github.com/fluffle/sp0rkle/util"
 )
 
 func randPlugin(val string, ctx *bot.Context) string {

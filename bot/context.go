@@ -2,10 +2,11 @@ package bot
 
 import (
 	"fmt"
+	"strings"
+
 	"github.com/fluffle/goirc/client"
 	"github.com/fluffle/sp0rkle/collections/conf"
 	"github.com/fluffle/sp0rkle/util"
-	"strings"
 )
 
 // Basic types representing the information we want to store about IRC things

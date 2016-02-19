@@ -5,9 +5,10 @@ package db
 
 import (
 	"flag"
+	"sync"
+
 	"github.com/fluffle/golog/logging"
 	"gopkg.in/mgo.v2"
-	"sync"
 )
 
 const DATABASE string = "sp0rkle"

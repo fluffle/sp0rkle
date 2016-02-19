@@ -1,9 +1,10 @@
 package quotedriver
 
 import (
+	"time"
+
 	"github.com/fluffle/sp0rkle/bot"
 	"github.com/fluffle/sp0rkle/collections/quotes"
-	"time"
 )
 
 var qc *quotes.Collection

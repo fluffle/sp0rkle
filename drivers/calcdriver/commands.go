@@ -2,14 +2,15 @@ package calcdriver
 
 import (
 	"fmt"
-	"github.com/fluffle/sp0rkle/bot"
-	"github.com/fluffle/sp0rkle/util/calc"
-	"github.com/fluffle/sp0rkle/util/datetime"
 	"net"
 	"strconv"
 	"strings"
 	"time"
 	"unicode/utf8"
+
+	"github.com/fluffle/sp0rkle/bot"
+	"github.com/fluffle/sp0rkle/util/calc"
+	"github.com/fluffle/sp0rkle/util/datetime"
 )
 
 func calculate(ctx *bot.Context) {

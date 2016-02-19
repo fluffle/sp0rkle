@@ -5,6 +5,15 @@ package main
 import (
 	_ "expvar"
 	"flag"
+	"math/rand"
+	"net/http"
+	"os"
+	"os/exec"
+	"os/signal"
+	"sync/atomic"
+	"syscall"
+	"time"
+
 	"github.com/fluffle/goirc/logging/golog"
 	"github.com/fluffle/golog/logging"
 	"github.com/fluffle/sp0rkle/bot"
@@ -20,14 +29,6 @@ import (
 	"github.com/fluffle/sp0rkle/drivers/seendriver"
 	"github.com/fluffle/sp0rkle/drivers/statsdriver"
 	"github.com/fluffle/sp0rkle/drivers/urldriver"
-	"math/rand"
-	"net/http"
-	"os"
-	"os/exec"
-	"os/signal"
-	"sync/atomic"
-	"syscall"
-	"time"
 )
 
 var (

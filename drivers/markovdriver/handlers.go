@@ -1,10 +1,11 @@
 package markovdriver
 
 import (
+	"strings"
+
 	"github.com/fluffle/goirc/client"
 	"github.com/fluffle/sp0rkle/bot"
 	"github.com/fluffle/sp0rkle/collections/conf"
-	"strings"
 )
 
 func shouldMarkov(nick string) bool {

@@ -2,8 +2,9 @@ package statsdriver
 
 import (
 	"fmt"
-	"github.com/fluffle/sp0rkle/bot"
 	"strings"
+
+	"github.com/fluffle/sp0rkle/bot"
 )
 
 func statsCmd(ctx *bot.Context) {

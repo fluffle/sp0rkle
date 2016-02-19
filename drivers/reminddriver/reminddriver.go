@@ -1,6 +1,9 @@
 package reminddriver
 
 import (
+	"strings"
+	"time"
+
 	"github.com/fluffle/goirc/client"
 	"github.com/fluffle/golog/logging"
 	"github.com/fluffle/sp0rkle/bot"
@@ -8,8 +11,6 @@ import (
 	"github.com/fluffle/sp0rkle/collections/reminders"
 	"github.com/fluffle/sp0rkle/util/push"
 	"gopkg.in/mgo.v2/bson"
-	"strings"
-	"time"
 )
 
 // We use the reminders collection

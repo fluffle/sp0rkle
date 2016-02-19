@@ -107,10 +107,7 @@ o_zone:
 	
 unixtime:
 	'@' o_sign_integer {
-		l := yylex.(*dateLexer)
-		if ! l.state(HAVE_TIME, true) {
-			l.time = time.Unix(int64($2.i), 0)
-		}
+		yylex.(*dateLexer).setUnix(int64($2.i))
 	};
 
 items:
@@ -482,19 +479,20 @@ o_t_hms_units:
 integer:
 	T_INTEGER {
 		l := yylex.(*dateLexer)
-		if $1.l == 8 {
+		switch $1.l {
+		case 8:
 			// assume ISO 8601 YYYYMMDD
 			l.setYMD($1.i, $1.l)
-		} else if $1.l == 7 {
+		case 7:
 			// assume ISO 8601 ordinal YYYYDDD
 			l.setDate($1.i / 1000, 1, $1.i % 1000)
-		} else if $1.l == 6 {
+		case 6:
 			// assume ISO 8601 HHMMSS with no zone
 			l.setHMS($1.i, $1.l, nil)
-		} else if $1.l == 4 {
+		case 4:
 			// Assuming HHMM because that's more useful on IRC.
 			l.setHMS($1.i, $1.l, nil)
-		} else if $1.l == 2 {
+		case 2:
 			// assume HH with no zone
 			l.setHMS($1.i, $1.l, nil)
 		}

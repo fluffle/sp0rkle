@@ -1,11 +1,12 @@
 package urldriver
 
 import (
+	"strings"
+
 	"github.com/fluffle/sp0rkle/bot"
 	"github.com/fluffle/sp0rkle/collections/urls"
 	"github.com/fluffle/sp0rkle/util"
 	"github.com/fluffle/sp0rkle/util/datetime"
-	"strings"
 )
 
 func find(ctx *bot.Context) {

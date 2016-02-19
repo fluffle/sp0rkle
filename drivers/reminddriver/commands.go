@@ -60,7 +60,7 @@ func set(ctx *bot.Context) {
 	// s == <target> <reminder> in|at|on <time>
 	s := strings.Fields(ctx.Text())
 	if len(s) < 4 {
-		ctx.ReplyN("Invalid remind syntax. Sucka.")
+		ctx.ReplyN("You asked me to remind %s.", ctx.Text())
 		return
 	}
 	at, ok, reminder, timestr := time.Now(), false, "", ""
@@ -83,7 +83,7 @@ func set(ctx *bot.Context) {
 		}
 	}
 	if reminder == "" {
-		ctx.ReplyN("Invalid remind syntax. Sucka.")
+		ctx.ReplyN("You asked me to remind %s.", ctx.Text())
 		return
 	}
 	if !ok {
@@ -125,7 +125,7 @@ func snooze(ctx *bot.Context) {
 		return
 	}
 	now := time.Now()
-	at := now.Add(30*time.Minute)
+	at := now.Add(30 * time.Minute)
 	if ctx.Text() != "" {
 		at, ok = datetime.Parse(ctx.Text())
 		if !ok {

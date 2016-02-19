@@ -5,12 +5,12 @@ import (
 	"fmt"
 	"strings"
 
-	"golang.org/x/oauth2"
 	"github.com/fluffle/golog/logging"
 	"github.com/fluffle/sp0rkle/bot"
 	"github.com/fluffle/sp0rkle/collections/reminders"
 	"github.com/fluffle/sp0rkle/util"
 	"github.com/google/go-github/github"
+	"golang.org/x/oauth2"
 )
 
 var (

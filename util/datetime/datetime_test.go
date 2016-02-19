@@ -36,9 +36,9 @@ func TestParseTimeFormats(t *testing.T) {
 		time.RFC1123,
 		time.RFC1123Z,
 		time.RFC3339,
-//		time.RFC3339Nano, // fails, nanosecs not supported
-//		time.Kitchen,     // fails, only contains HH and MM
-//		time.Stamp,       // fails, no year => assumed 2013
+		//		time.RFC3339Nano, // fails, nanosecs not supported
+		//		time.Kitchen,     // fails, only contains HH and MM
+		//		time.Stamp,       // fails, no year => assumed 2013
 	}
 	for i, f := range formats {
 		in := ref.Format(f)
@@ -400,6 +400,14 @@ func TestAbsDayMonth(t *testing.T) {
 		{"2nd Wednesday of 2014", mkt(2014, 1, 8)},
 		{"2nd Friday of 2014", mkt(2014, 1, 10)},
 		{"2nd Sunday of 2014", mkt(2014, 1, 12)},
+	}
+	tests.run(t, rel)
+}
+
+func TestUnixTime(t *testing.T) {
+	rel := time.Now()
+	tests := timeTests{
+		{"@1234567890", time.Date(2009, 2, 13, 23, 31, 30, 0, time.UTC)},
 	}
 	tests.run(t, rel)
 }

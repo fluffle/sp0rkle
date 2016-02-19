@@ -1,10 +1,11 @@
 package factdriver
 
 import (
-	"github.com/fluffle/sp0rkle/bot"
-	"github.com/fluffle/sp0rkle/util/datetime"
 	"strings"
 	"time"
+
+	"github.com/fluffle/sp0rkle/bot"
+	"github.com/fluffle/sp0rkle/util/datetime"
 )
 
 // Replicate perlfu's $<stuff> identifiers

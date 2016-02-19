@@ -2,12 +2,13 @@ package bot
 
 import (
 	"flag"
-	"github.com/fluffle/goirc/client"
-	"github.com/fluffle/golog/logging"
 	"io/ioutil"
 	"os"
 	"strings"
 	"sync"
+
+	"github.com/fluffle/goirc/client"
+	"github.com/fluffle/golog/logging"
 )
 
 // This is here because I'm not sure where better to put it...
