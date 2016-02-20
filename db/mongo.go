@@ -20,10 +20,6 @@ type mongoDatabase struct {
 
 var Mongo Database = &mongoDatabase{}
 
-type mongoCollection struct {
-	*mgo.Collection
-}
-
 func (m *mongoDatabase) Init(db string) error {
 	m.Lock()
 	defer m.Unlock()
@@ -61,4 +57,29 @@ func (m *mongoDatabase) C(name string) Collection {
 	s := m.sessions[0].Copy()
 	m.sessions = append(m.sessions, s)
 	return &mongoCollection{s.DB(DATABASE).C(name)}
+}
+
+type mongoCollection struct {
+	*mgo.Collection
+}
+
+func (m *mongoCollection) Get(key Key, value interface{}) error {
+	return m.Collection.Find(key.M()).One(value)
+}
+
+func (m *mongoCollection) All(key Key, value interface{}) error {
+	return m.Collection.Find(key.M()).All(value)
+}
+
+func (m *mongoCollection) Put(key Key, value interface{}) error {
+	_, err := m.Collection.Upsert(key.M(), value)
+	return err
+}
+
+func (m *mongoCollection) Del(key Key) error {
+	return m.Collection.Remove(key.M())
+}
+
+func (m *mongoCollection) Mongo() *mgo.Collection {
+	return m.Collection
 }
