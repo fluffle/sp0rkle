@@ -6,11 +6,11 @@ import (
 
 type inMem struct {
 	sync.Mutex
-	ns   namespace
+	ns   string
 	data map[string]interface{}
 }
 
-func InMem(ns namespace) Namespace {
+func InMem(ns string) Namespace {
 	return &inMem{ns: ns, data: make(map[string]interface{})}
 }
 
