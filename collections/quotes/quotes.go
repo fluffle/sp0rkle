@@ -41,7 +41,7 @@ type Collection struct {
 
 func Init() *Collection {
 	qc := &Collection{
-		Collection: db.Init().C(COLLECTION),
+		Collection: db.Mongo.C(COLLECTION).Mongo(),
 		seen:       make(map[string][]bson.ObjectId),
 		maxQID:     1,
 	}
