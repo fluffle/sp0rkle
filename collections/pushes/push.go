@@ -74,7 +74,7 @@ type Collection struct {
 }
 
 func Init() *Collection {
-	pc := &Collection{db.Init().C(COLLECTION)}
+	pc := &Collection{db.Mongo.C(COLLECTION).Mongo()}
 	if err := pc.EnsureIndex(mgo.Index{
 		Key:    []string{"nick"},
 		Unique: true,
