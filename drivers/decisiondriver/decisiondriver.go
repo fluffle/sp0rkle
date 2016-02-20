@@ -100,7 +100,7 @@ func simpleSplit(val string) []string {
 		// NOTE: spaces either side of the | are taken care of by the caller
 		return strings.Split(val, "|")
 	}
-	// String doesn't contain any seperator chars,
+	// String doesn't contain any separator chars,
 	// so is just a list of options to choose from
 	return strings.Split(val, " ")
 }
