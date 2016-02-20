@@ -121,7 +121,7 @@ type Collection struct {
 
 func Init() *Collection {
 	rc := &Collection{
-		Collection: db.Init().C(COLLECTION),
+		Collection: db.Mongo.C(COLLECTION).Mongo(),
 	}
 	for _, k := range []string{"remindat", "from", "to", "tell"} {
 		if err := rc.EnsureIndexKey(k); err != nil {

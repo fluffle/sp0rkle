@@ -97,7 +97,7 @@ type Collection struct {
 // Wrapper to get hold of a factoid collection handle
 func Init() *Collection {
 	fc := &Collection{
-		Collection: db.Init().C(COLLECTION),
+		Collection: db.Mongo.C(COLLECTION).Mongo(),
 		seen:       make(map[string][]bson.ObjectId),
 	}
 	err := fc.EnsureIndex(mgo.Index{Key: []string{"key"}})
