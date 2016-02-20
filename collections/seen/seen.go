@@ -92,7 +92,7 @@ type Collection struct {
 }
 
 func Init() *Collection {
-	sc := &Collection{db.Init().C(COLLECTION)}
+	sc := &Collection{db.Mongo.C(COLLECTION).Mongo()}
 	indexes := [][]string{
 		{"key", "action"}, // For searching ...
 		{"timestamp"},     // ... and ordering seen entries.

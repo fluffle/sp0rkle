@@ -35,7 +35,7 @@ type Collection struct {
 
 // Wrapper to get hold of a factoid collection handle
 func Init() *Collection {
-	mc := &Collection{db.Init().C(COLLECTION)}
+	mc := &Collection{db.Mongo.C(COLLECTION).Mongo()}
 	if err := mc.EnsureIndex(mgo.Index{
 		Key: []string{"tag", "source", "dest"},
 	}); err != nil {

@@ -52,7 +52,7 @@ type Collection struct {
 }
 
 func Init() *Collection {
-	uc := &Collection{db.Init().C(collection)}
+	uc := &Collection{db.Mongo.C(collection).Mongo()}
 	err := uc.EnsureIndex(mgo.Index{Key: []string{"url"}, Unique: true})
 	if err != nil {
 		logging.Error("Couldn't create url index on sp0rkle.urls: %s", err)
