@@ -33,7 +33,7 @@ import (
 
 var (
 	httpPort = flag.String("http", ":6666", "Port to serve HTTP requests on.")
-	boltDB   = flag.String("bolt_db", "sp0rkle.boltdb", "Path to boltdb file.")
+	boltDB   = flag.String("boltdb", "sp0rkle.boltdb", "Path to boltdb file.")
 	mongoDB  = flag.String("mongodb", "localhost",
 		"Address of MongoDB server to connect to, defaults to localhost.")
 )
@@ -50,13 +50,12 @@ func main() {
 	bot.Init()
 
 	// Connect to databases
-	err := db.Mongo.Init(*mongoDB)
-	if err != nil {
+
+	if err := db.Mongo.Init(*mongoDB); err != nil {
 		logging.Fatal("Unable to connect to MongoDB at %q: %v", *mongoDB, err)
 	}
 	defer db.Mongo.Close()
-	err := db.Bolt.Init(*boltDB)
-	if err != nil {
+	if err := db.Bolt.Init(*boltDB); err != nil {
 		logging.Fatal("Unable to open BoltDB file %q: %v", *boltDB, err)
 	}
 	defer db.Bolt.Close()
@@ -95,8 +94,9 @@ func main() {
 	// If we get true back from the bot, re-exec the (rebuilt) binary.
 	if <-bot.Connect() {
 		// Calling syscall.Exec probably means deferred functions won't get
-		// called, so disconnect from mongodb first for politeness' sake.
-		db.Close()
+		// called, so disconnect from DBs first for politeness' sake.
+		db.Mongo.Close()
+		db.Bolt.Close()
 		// If sp0rkle was run from PATH, we need to do that lookup manually.
 		fq, _ := exec.LookPath(os.Args[0])
 		logging.Warn("Re-executing sp0rkle with args '%v'.", os.Args)
