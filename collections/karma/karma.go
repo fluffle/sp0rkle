@@ -68,7 +68,7 @@ type Collection struct {
 }
 
 func Init() *Collection {
-	kc := &Collection{db.Init().C(COLLECTION)}
+	kc := &Collection{db.Mongo.C(COLLECTION).Mongo()}
 	if err := kc.EnsureIndex(mgo.Index{
 		Key:    []string{"key"},
 		Unique: true,
