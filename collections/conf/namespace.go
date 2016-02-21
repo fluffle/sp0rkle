@@ -1,8 +1,10 @@
 package conf
 
 import (
+	boltdb "github.com/boltdb/bolt"
 	"github.com/fluffle/goirc/logging"
 	"github.com/fluffle/sp0rkle/db"
+	"gopkg.in/mgo.v2"
 )
 
 type Namespace interface {
@@ -29,16 +31,17 @@ func (ns *namespace) K(key ...string) db.K {
 func (ns *namespace) set(key string, value interface{}) {
 	e := Entry{Ns: ns.ns, Key: key, Value: value}
 	if err := ns.Put(e.K(), e); err != nil {
-		logging.Error("Couldn't upsert config entry '%s': %s", e, err)
+		logging.Error("Couldn't set config entry %q: %v", e, err)
 	}
 }
 
 func (ns *namespace) get(key string) interface{} {
 	var e Entry
-	if err := ns.Get(ns.K(key), &e); err == nil {
-		return e.Value
+	if err := ns.Get(ns.K(key), &e); err != nil && err != mgo.ErrNotFound && err != boltdb.ErrTxNotWritable {
+		logging.Error("Couldn't get config entry for ns=%q key=%q: %v", ns.ns, key, err)
+		return nil
 	}
-	return nil
+	return e.Value
 }
 
 func (ns *namespace) All() []Entry {
@@ -90,6 +93,6 @@ func (ns *namespace) Value(key string, value ...interface{}) interface{} {
 	return ns.get(key)
 }
 
-func (ns namespace) Delete(key string) {
+func (ns *namespace) Delete(key string) {
 	ns.Del(ns.K(key))
 }

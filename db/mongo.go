@@ -56,11 +56,16 @@ func (m *mongoDatabase) C(name string) Collection {
 	}
 	s := m.sessions[0].Copy()
 	m.sessions = append(m.sessions, s)
-	return &mongoCollection{s.DB(DATABASE).C(name)}
+	return &mongoCollection{Collection: s.DB(DATABASE).C(name)}
 }
 
 type mongoCollection struct {
 	*mgo.Collection
+	debug bool
+}
+
+func (m *mongoCollection) Debug(on bool) {
+	m.debug = on
 }
 
 func (m *mongoCollection) Get(key Key, value interface{}) error {
