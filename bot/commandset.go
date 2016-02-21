@@ -125,8 +125,8 @@ func (cs *commandSet) Run(ctx *Context) {
 		ctx.ReplyN("https://github.com/fluffle/sp0rkle/wiki " +
 			"-- pull requests welcome ;-)")
 	} else if poss := cs.possible(ctx.Text()); len(poss) > 0 {
-		ctx.ReplyN("Commands matching %q: %s.", ctx.Text(),
-			strings.Join(poss, ", "))
+		ctx.ReplyN("Commands matching %q: \"%s\".", ctx.Text(),
+			strings.Join(poss, "\", \""))
 	} else {
 		ctx.ReplyN("Unrecognised command '%s'.", ctx.Text())
 	}
