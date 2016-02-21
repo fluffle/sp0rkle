@@ -83,6 +83,26 @@ func (cs *commandSet) match(txt string) (final Runner, prefixlen int) {
 	return
 }
 
+func (cs *commandSet) possible(txt string) []string {
+	cs.RLock()
+	defer cs.RUnlock()
+
+	poss := []string{}
+	words := strings.Fields(txt)
+	for prefix := range cs.set {
+		for _, w := range words {
+			if strings.Contains(prefix, w) {
+				poss = append(poss, prefix)
+				break
+			}
+		}
+	}
+	if len(poss) > 10 {
+		poss = poss[:10]
+	}
+	return poss
+}
+
 // Implement client.Handler so commandSet can Handle things directly.
 func (cs *commandSet) Handle(conn *client.Conn, line *client.Line) {
 	// This is a dirty hack to treat factoid additions as a special
@@ -104,6 +124,9 @@ func (cs *commandSet) Run(ctx *Context) {
 	} else if len(ctx.Text()) == 0 {
 		ctx.ReplyN("https://github.com/fluffle/sp0rkle/wiki " +
 			"-- pull requests welcome ;-)")
+	} else if poss := cs.possible(ctx.Text()); len(poss) > 0 {
+		ctx.ReplyN("Commands matching %q: %s.", ctx.Text(),
+			strings.Join(poss, ", "))
 	} else {
 		ctx.ReplyN("Unrecognised command '%s'.", ctx.Text())
 	}
