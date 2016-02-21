@@ -36,7 +36,7 @@ func context(conn *client.Conn, line *client.Line) *Context {
 	ctx := &Context{conn: conn, Line: line.Copy(), rws: bot.rewriters}
 	// This is a bit of a dirty hack; context() returns nil to ignore a line.
 	// TODO(fluffle): Ignores based on masks (or more likely regex).
-	if conf.Ns(ignoreNs).String(strings.ToLower(ctx.Nick)) != "" {
+	if ctx.Nick != "" && conf.Ns(ignoreNs).String(strings.ToLower(ctx.Nick)) != "" {
 		return nil
 	}
 	if ctx.Cmd != client.PRIVMSG {
