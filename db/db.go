@@ -1,6 +1,7 @@
 package db
 
 import (
+	"bytes"
 	"strings"
 	"sync"
 
@@ -10,9 +11,9 @@ import (
 
 const (
 	// RSEP is the ascii record separator non-printable character.
-	RSEP = "\x1e"
+	RSEP = '\x1e'
 	// USEP is the ascii unit separator non-printable character.
-	USEP = "\x1f"
+	USEP = '\x1f'
 )
 
 type Database interface {
@@ -45,8 +46,12 @@ func (c *C) Init(db Database, name string, f func(Collection)) {
 }
 
 type Key interface {
+	String() string
+	// MongoDB repr
+	D() bson.D
 	M() bson.M
-	B() []byte
+	// BoltDB repr
+	B() ([][]byte, []byte)
 }
 
 // Basically bson.D but only string->string.
@@ -58,8 +63,8 @@ type K []Elem
 // This is one-way, loses ordering.
 func (k K) M() bson.M {
 	m := bson.M{}
-	for _, v := range k {
-		m[v.Name] = v.Value
+	for _, e := range k {
+		m[e.Name] = e.Value
 	}
 	return m
 }
@@ -67,17 +72,33 @@ func (k K) M() bson.M {
 // Ordered version of the above, reversible.
 func (k K) D() bson.D {
 	d := make(bson.D, 0, len(k))
-	for _, v := range k {
-		d = append(d, bson.DocElem{v.Name, v.Value})
+	for _, e := range k {
+		d = append(d, bson.DocElem{e.Name, e.Value})
 	}
 	return d
 }
 
-// This is reversible and suitable for a BoltDB key.
-func (k K) B() []byte {
-	items := make([]string, 0, len(k))
-	for _, v := range k {
-		items = append(items, v.Name+USEP+string(v.Value))
+// Successive key elements create nested BoltDB buckets.
+// The final key element is used as the bucket key.
+func (k K) B() ([][]byte, []byte) {
+	if len(k) == 0 {
+		return nil, nil
 	}
-	return []byte(strings.Join(items, RSEP))
+	items := make([][]byte, 0, len(k))
+	for _, e := range k {
+		b := &bytes.Buffer{}
+		b.WriteString(e.Name)
+		b.WriteByte(USEP)
+		b.WriteString(e.Value)
+		items = append(items, b.Bytes())
+	}
+	return items[:len(items)-1], items[len(items)-1]
+}
+
+func (k K) String() string {
+	s := make([]string, 0, len(k))
+	for _, e := range k {
+		s = append(s, e.Name+": "+e.Value)
+	}
+	return "K<" + strings.Join(s, ", ") + ">"
 }
