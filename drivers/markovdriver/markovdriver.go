@@ -20,7 +20,7 @@ func Init() {
 		"Enable recording of your public messages to generate chains.")
 	bot.Command(disableMarkov, "don't markov me", "don't markov me  -- "+
 		"Disable (and delete) recording of your public messages.")
-	bot.Command(enableMarkov, "don't markov me, bro", "don't markov me  -- "+
+	bot.Command(disableMarkov, "don't markov me, bro", "don't markov me  -- "+
 		"Disable (and delete) recording of your public messages.")
 	bot.Command(randomCmd, "markov", "markov <nick>  -- "+
 		"Generate random sentence for given <nick>.")
