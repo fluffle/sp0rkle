@@ -17,8 +17,11 @@ func mongoIndexes(c db.Collection) {
 	if err != nil {
 		logging.Error("Couldn't create index on sp0rkle.conf: %s", err)
 	}
-	// Dirty hacks to migrate data.
+}
+
+func Migrate() {
 	var all []Entry
+	mongo.Init(db.Mongo, COLLECTION, mongoIndexes)
 	mongo.All(db.K{}, &all)
 	for _, e := range all {
 		logging.Debug("Migrating entry %s.", e)
