@@ -60,6 +60,10 @@ type Elem struct {
 }
 type K []Elem
 
+func (e *Elem) Len() int {
+	return len(e.Name) + len(e.Value)
+}
+
 // This is one-way, loses ordering.
 func (k K) M() bson.M {
 	m := bson.M{}
@@ -70,6 +74,7 @@ func (k K) M() bson.M {
 }
 
 // Ordered version of the above, reversible.
+// TODO(fluffle): needed?
 func (k K) D() bson.D {
 	d := make(bson.D, 0, len(k))
 	for _, e := range k {
@@ -86,7 +91,7 @@ func (k K) B() ([][]byte, []byte) {
 	}
 	items := make([][]byte, 0, len(k))
 	for _, e := range k {
-		b := &bytes.Buffer{}
+		b := bytes.NewBuffer(make([]byte, 0, e.Len()+1))
 		b.WriteString(e.Name)
 		b.WriteByte(USEP)
 		b.WriteString(e.Value)
