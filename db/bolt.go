@@ -105,28 +105,42 @@ func (bucket *boltBucket) All(key Key, value interface{}) error {
 		if err != nil {
 			return err
 		}
-		c := b.Cursor()
+		// All implies that the last key elem is also a bucket,
+		// but we support a zero-length key to perform a scan
+		// over the root bucket.
+		cs := []*bolt.Cursor{b.Cursor()}
 		if len(last) > 0 {
-			// All implies that the last key elem is also a bucket,
-			// but we support a zero-length key to perform a scan
-			// over the root bucket.
-			c = b.Bucket(last).Cursor()
-		}
-		i := 0
-		for k, v := c.First(); k != nil; k, v = c.Next() {
-			if sv.Len() == i {
-				ev := reflect.New(et)
-				if err := bson.Unmarshal(v, ev.Interface()); err != nil {
-					return err
-				}
-				sv = reflect.Append(sv, ev.Elem())
-				sv = sv.Slice(0, sv.Cap())
-			} else {
-				if err := bson.Unmarshal(v, sv.Index(i).Addr().Interface()); err != nil {
-					return err
-				}
+			if b = b.Bucket(last); b == nil {
+				return bolt.ErrBucketNotFound
 			}
-			i++
+			cs[0] = b.Cursor()
+		}
+		var i int
+		var c *bolt.Cursor
+		for len(cs) > 0 {
+			c, cs = cs[0], cs[1:]
+			for k, v := c.First(); k != nil; k, v = c.Next() {
+				if v == nil {
+					// All flattens the nested buckets under key.
+					if nest := b.Bucket(k); nest != nil {
+						cs = append(cs, nest.Cursor())
+					}
+					continue
+				}
+				if sv.Len() == i {
+					ev := reflect.New(et)
+					if err := bson.Unmarshal(v, ev.Interface()); err != nil {
+						return err
+					}
+					sv = reflect.Append(sv, ev.Elem())
+					sv = sv.Slice(0, sv.Cap())
+				} else {
+					if err := bson.Unmarshal(v, sv.Index(i).Addr().Interface()); err != nil {
+						return err
+					}
+				}
+				i++
+			}
 		}
 		vv.Elem().Set(sv.Slice(0, i))
 		return nil
