@@ -19,6 +19,9 @@ type migrator struct {
 func (m *migrator) Migrate() error {
 	m.Lock()
 	defer m.Unlock()
+	if m.migrated == true {
+		return nil
+	}
 	var all []Entry
 	mongo.Init(db.Mongo, COLLECTION, mongoIndexes)
 	if err := mongo.All(db.K{}, &all); err != nil {
@@ -32,6 +35,7 @@ func (m *migrator) Migrate() error {
 		return err
 	}
 	m.migrated = true
+	Bolt(MigrateNs).String(COLLECTION, MigrateNs)
 	return nil
 }
 
@@ -58,6 +62,15 @@ func (m *migrator) diff() error {
 		return diff.ErrDiff
 	}
 	return nil
+}
+
+func (m *migrator) check() {
+	m.Lock()
+	defer m.Unlock()
+	// If the new DB says we've migrated then we should be cool with that.
+	if m.migrated == false && Bolt(MigrateNs).String(COLLECTION) == MigrateNs {
+		m.migrated = true
+	}
 }
 
 func (m *migrator) Migrated() bool {
