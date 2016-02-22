@@ -8,7 +8,9 @@ import (
 	"gopkg.in/mgo.v2"
 )
 
-const COLLECTION string = "conf"
+const (
+	COLLECTION = "conf"
+)
 
 var mongo db.C
 
@@ -16,16 +18,6 @@ func mongoIndexes(c db.Collection) {
 	err := c.Mongo().EnsureIndex(mgo.Index{Key: []string{"ns", "key"}, Unique: true})
 	if err != nil {
 		logging.Error("Couldn't create index on sp0rkle.conf: %s", err)
-	}
-}
-
-func Migrate() {
-	var all []Entry
-	mongo.Init(db.Mongo, COLLECTION, mongoIndexes)
-	mongo.All(db.K{}, &all)
-	for _, e := range all {
-		logging.Debug("Migrating entry %s.", e)
-		Bolt(e.Ns).Value(e.Key, e.Value)
 	}
 }
 
@@ -41,8 +33,11 @@ func Bolt(ns string) *namespace {
 	return &namespace{ns: ns, Collection: &bolt}
 }
 
+var checker db.M
+
 func Ns(ns string) *both {
-	return &both{bolt: Bolt(ns), mongo: Mongo(ns)}
+	checker.Init(migrator{}, COLLECTION)
+	return &both{bolt: Bolt(ns), mongo: Mongo(ns), Checker: checker}
 }
 
 type Entry struct {
