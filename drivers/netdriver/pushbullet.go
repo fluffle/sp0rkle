@@ -206,7 +206,7 @@ func pushDeviceHTTP(rw http.ResponseWriter, req *http.Request) {
 	}
 	if err = pushDeviceTmpl.Execute(rw, &pushDevice{id, devs}); err != nil {
 		logging.Error("Template execution failed: %v", err)
-		// assuming here that failure occured because we couldn't write
+		// assuming here that failure occurred because we couldn't write
 		return
 	}
 }
