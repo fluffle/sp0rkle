@@ -61,6 +61,9 @@ func Init() {
 		"make the bot ignore <nick> completely.")
 	Command(unignore, "unignore", "unignore <nick>  -- "+
 		"make the bot unignore <nick> again.")
+
+	// Mongo -> Bolt migration
+	Handle(migrate, client.NOTICE)
 }
 
 func Connect() chan bool {

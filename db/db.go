@@ -102,3 +102,8 @@ func (k K) String() string {
 	}
 	return "K<" + strings.Join(s, ", ") + ">"
 }
+
+type Migrator interface {
+	Migrate() error
+	Migrated() bool
+}
