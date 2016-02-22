@@ -8,7 +8,10 @@ import (
 	"gopkg.in/mgo.v2"
 )
 
-const COLLECTION string = "conf"
+const (
+	COLLECTION = "conf"
+	MigrateNs  = "migrate"
+)
 
 var mongo db.C
 
@@ -34,6 +37,7 @@ func Bolt(ns string) *namespace {
 var Migrator migrator
 
 func Ns(ns string) *both {
+	Migrator.check()
 	return &both{bolt: Bolt(ns), mongo: Mongo(ns), migrator: &Migrator}
 }
 
