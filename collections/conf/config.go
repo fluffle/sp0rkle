@@ -19,16 +19,6 @@ func mongoIndexes(c db.Collection) {
 	}
 }
 
-func Migrate() {
-	var all []Entry
-	mongo.Init(db.Mongo, COLLECTION, mongoIndexes)
-	mongo.All(db.K{}, &all)
-	for _, e := range all {
-		logging.Debug("Migrating entry %s.", e)
-		Bolt(e.Ns).Value(e.Key, e.Value)
-	}
-}
-
 func Mongo(ns string) *namespace {
 	mongo.Init(db.Mongo, COLLECTION, mongoIndexes)
 	return &namespace{ns: ns, Collection: &mongo}
@@ -41,8 +31,10 @@ func Bolt(ns string) *namespace {
 	return &namespace{ns: ns, Collection: &bolt}
 }
 
+var Migrator migrator
+
 func Ns(ns string) *both {
-	return &both{bolt: Bolt(ns), mongo: Mongo(ns)}
+	return &both{bolt: Bolt(ns), mongo: Mongo(ns), migrator: &Migrator}
 }
 
 type Entry struct {
