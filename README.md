@@ -5,7 +5,7 @@ Getting started, from scratch:
 1.  Install some dependencies.
 
 	```bash
-	sudo apt-get install build-essential bison mongodb libsqlite3-dev
+	sudo apt-get install build-essential bison mongodb
 	sudo apt-get install git bzr
 
 	Ensure you have mongodb 2.x or higher
@@ -34,9 +34,10 @@ Getting started, from scratch:
 3.  Use the `go` tool to get dependencies.
 
 	```bash
+	# This first one installs the bolt cmdline tool too.
+	go get github.com/boltdb/bolt/...
 	go get github.com/fluffle/goirc/client
 	go get github.com/fluffle/golog/logging
-	go get github.com/kuroneko/gosqlite3
 	go get github.com/google/go-github/github
 	go get golang.org/x/oauth2
 	go get gopkg.in/mgo.v2
