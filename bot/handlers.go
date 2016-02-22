@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/fluffle/golog/logging"
+	"github.com/fluffle/sp0rkle/collections/conf"
 )
 
 var (
@@ -68,9 +69,19 @@ func shutdown(ctx *Context) {
 	}
 }
 
+func migrate(ctx *Context) {
+	if !check_rebuilder("migrate", ctx) {
+		return
+	}
+	if err := conf.Migrator.Migrate(); err != nil {
+		ctx.ReplyN("migrate failed: %v", err)
+		return
+	}
+	ctx.ReplyN("Migrated!")
+}
+
 func check_rebuilder(cmd string, ctx *Context) bool {
 	s := strings.Split(GetSecret(*rebuilder), ":")
-	logging.Debug("Rebuild secret: %#v", s)
 	if s[0] == "" || s[0] != ctx.Nick || !strings.HasPrefix(ctx.Text(), cmd) {
 		return false
 	}

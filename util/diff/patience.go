@@ -4,6 +4,10 @@
 // should be considered © Bram Cohen / Canonical Ltd.
 package diff
 
+import "errors"
+
+var ErrDiff = errors.New("there are diffs")
+
 type commonLine struct {
 	a, b int
 }
