@@ -64,7 +64,7 @@ factimporter --db=/path/to/db
 go install github.com/fluffle/sp0rkle/util/importers/quoteimporter
 quoteimporter --db=/path/to/db
 ```
-# If you don't know where to get the dbs, you shouldn't be submitting patches :-)
+If you don't know where to get the DBs, you shouldn't be submitting patches :-)
 
 6) Code, build, commit, push :)
  ```bash
@@ -77,7 +77,7 @@ while coding in $GOPATH/src/github.com/fluffle/sp0rkle/sp0rkle:
 
 git add <stuff>
 git commit -m "Some useful message about the edit to <stuff>."
-```
+
 # If you cloned from your own repo:
 git push  # pushes changes in your branches up to github
 # ... then send me a pull request on github :-)
@@ -85,3 +85,4 @@ git push  # pushes changes in your branches up to github
 # Otherwise, I guess you'll have to mail me a patch, or something:
 # This might work, untested, you should read man git-format-patch(1).
 git format-patch --attach --stdout --to=abramley@gmail.com | mail
+```
