@@ -2,7 +2,7 @@
 
 Getting started, from scratch:
 
-1.  Install some dependencies and MANY version control systems.
+1.  Install some dependencies.
 
 	```bash
 	sudo apt-get install build-essential bison mongodb libsqlite3-dev
@@ -16,7 +16,7 @@ Getting started, from scratch:
 	If not the following page may help
 	https://docs.mongodb.org/manual/administration/install-on-linux/
 
-2.  Build go.
+2.  Install Go.
 
 	Install go https://golang.org/doc/install
 
