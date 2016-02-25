@@ -14,7 +14,7 @@ import (
 const DATABASE string = "sp0rkle"
 
 var database *string = flag.String("database", "localhost",
-	"Address of MongoDB server to connect to, defaults to localhost.")
+	"Address of MongoDB server to connect to.")
 
 var lock sync.Mutex
 var sessions []*mgo.Session
