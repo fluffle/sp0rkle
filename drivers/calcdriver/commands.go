@@ -13,10 +13,18 @@ import (
 	"github.com/fluffle/sp0rkle/util/datetime"
 )
 
+var results = map[string]float64{}
+
 func calculate(ctx *bot.Context) {
+	nick := strings.ToLower(ctx.Nick)
 	maths := ctx.Text()
-	if num, err := calc.Calc(maths); err == nil {
+	tm := calc.TokenMap{}
+	if res, ok := results[nick]; ok {
+		tm["result"] = res
+	}
+	if num, err := calc.Calc(maths, tm); err == nil {
 		ctx.ReplyN("%s = %g", maths, num)
+		tm[nick] = num
 	} else {
 		ctx.ReplyN("%s error while parsing %s", err, maths)
 	}

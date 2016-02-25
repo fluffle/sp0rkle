@@ -12,9 +12,13 @@ import (
 //------------------------------------------------------------------------------
 // Constants, Operators, and Functions for Expressions.
 
-// ConstMap defines constants that can be used in expressions
-// passed to Calc(). It's exposed so others can be added dynamically.
-var ConstMap = map[string]float64{
+// A TokenMap allows the calc parser to recognise arbitrary
+// strings in the input and do maths on them.
+type TokenMap map[string]float64
+
+// constMap defines constants that can be used in expressions
+// passed to Calc(). These are statically compiled in.
+var constMap = TokenMap{
 	"e":      math.E,
 	"pi":     math.Pi,
 	"phi":    math.Phi,
@@ -177,10 +181,11 @@ type lexer struct {
 	// we extend the basic lexer util to produce tokens here.
 	*util.Lexer
 	binaryMinus bool
+	toks        TokenMap
 }
 
 func calcLexer(i string) *lexer {
-	return &lexer{Lexer: &util.Lexer{Input: i}}
+	return &lexer{Lexer: &util.Lexer{Input: i}, toks: constMap}
 }
 
 // token() produces tokens from the input string for use by the parser.
@@ -209,7 +214,7 @@ func (l *lexer) token() (tok *token) {
 			// With many apologies, this seemed to be the best place
 			// to hack in support for negative constants like "-pi"...
 			str := l.Scan(unicode.IsLetter)
-			if num, ok := ConstMap[str]; ok {
+			if num, ok := l.toks[str]; ok {
 				tok = &token{T_NUM, "", -num}
 			} else {
 				tok = &token{T_NFI, "-" + str, 0}
@@ -243,7 +248,7 @@ func (l *lexer) token() (tok *token) {
 				l.Rewind()
 			}
 			tok = &token{T_FUNC, str, 0}
-		} else if num, ok := ConstMap[str]; ok {
+		} else if num, ok := l.toks[str]; ok {
 			// since we know our defined constants, ...
 			tok = &token{T_NUM, "", num}
 		} else {
@@ -458,8 +463,14 @@ func calc(ops *tokenStack) (float64, error) {
 // The Interface
 
 // Calc("some arbitrary maths string") -> (answer or zero, nil or error)
-func Calc(input string) (float64, error) {
+func Calc(input string, tokens TokenMap) (float64, error) {
 	l := calcLexer(input)
+	if tokens != nil {
+		for k, v := range constMap {
+			tokens[k] = v
+		}
+		l.toks = tokens
+	}
 	// Dijkstra's shunting-yard algorithm to RPN input
 	ops, err := shunt(l.tokens())
 	if err != nil {

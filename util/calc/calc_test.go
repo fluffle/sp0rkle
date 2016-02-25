@@ -18,9 +18,10 @@ func TestCalc(t *testing.T) {
 		{"answer", 42, false},
 		{"pi*e", math.Pi * math.E, false},
 		{"2+", 0, true},
+		{"foo + bar", 6, false},
 	}
 	for i, tc := range tests {
-		r, err := Calc(tc.i)
+		r, err := Calc(tc.i, TokenMap{"foo": 2, "bar": 4})
 		if (err == nil) == tc.e {
 			t.Errorf("Bad Calc error state for %d (err=%v)", i, err)
 		}
@@ -131,7 +132,7 @@ func TestToken(t *testing.T) {
 		tests = append(tests, tt{fun, T_FUNC, fun, 0})
 	}
 	// Test all the constants are correctly recognised
-	for con, val := range ConstMap {
+	for con, val := range constMap {
 		tests = append(tests, tt{con, T_NUM, "", val})
 		tests = append(tests, tt{"-" + con, T_NUM, "", -val})
 	}
