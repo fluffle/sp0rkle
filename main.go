@@ -36,6 +36,8 @@ var (
 	boltDB   = flag.String("boltdb", "sp0rkle.boltdb", "Path to boltdb file.")
 	mongoDB  = flag.String("mongodb", "localhost",
 		"Address of MongoDB server to connect to, defaults to localhost.")
+	backupDir   = flag.String("backup_dir", "backup", "Where to write BoltDB backups to.")
+	backupEvery = flag.Duration("backup_every", 24*time.Hour, "How often to write backups.")
 )
 
 func main() {
@@ -55,7 +57,7 @@ func main() {
 		logging.Fatal("Unable to connect to MongoDB at %q: %v", *mongoDB, err)
 	}
 	defer db.Mongo.Close()
-	if err := db.Bolt.Init(*boltDB); err != nil {
+	if err := db.Bolt.Init(*boltDB, *backupDir, *backupEvery); err != nil {
 		logging.Fatal("Unable to open BoltDB file %q: %v", *boltDB, err)
 	}
 	defer db.Bolt.Close()

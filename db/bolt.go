@@ -2,7 +2,11 @@ package db
 
 import (
 	"bytes"
+	"compress/gzip"
 	"errors"
+	"fmt"
+	"os"
+	"path"
 	"reflect"
 	"sync"
 	"time"
@@ -15,12 +19,15 @@ import (
 
 type boltDatabase struct {
 	sync.Mutex
-	db *bolt.DB
+	db    *bolt.DB
+	dir   string
+	every time.Duration
+	quit  chan struct{}
 }
 
-var Bolt Database = &boltDatabase{}
+var Bolt = &boltDatabase{}
 
-func (b *boltDatabase) Init(path string) error {
+func (b *boltDatabase) Init(path, backupDir string, backupEvery time.Duration) error {
 	b.Lock()
 	defer b.Unlock()
 	if b.db != nil {
@@ -30,7 +37,8 @@ func (b *boltDatabase) Init(path string) error {
 	if err != nil {
 		return err
 	}
-	b.db = db
+	b.db, b.dir, b.every, b.quit = db, backupDir, backupEvery, make(chan struct{})
+	go b.backupLoop()
 	return nil
 }
 
@@ -44,6 +52,8 @@ func (b *boltDatabase) Close() {
 	if err := b.db.Close(); err != nil {
 		logging.Error("Unable to close BoltDB: %v", err)
 	}
+	b.db = nil
+	close(b.quit)
 }
 
 func (b *boltDatabase) C(name string) Collection {
@@ -64,6 +74,45 @@ func (b *boltDatabase) C(name string) Collection {
 		logging.Fatal("Creating BoltDB bucket failed: %v")
 	}
 	return &boltBucket{name: []byte(name), db: b.db}
+}
+
+func (b *boltDatabase) backupLoop() {
+	if err := os.MkdirAll(b.dir, 0700); err != nil {
+		logging.Fatal("Could not create backup dir %q: %v", b.dir, err)
+	}
+	// Do a backup on startup, too.
+	b.doBackup()
+	tick := time.NewTicker(b.every)
+	for {
+		select {
+		case <-tick.C:
+			b.doBackup()
+		case <-b.quit:
+			tick.Stop()
+			return
+		}
+	}
+}
+
+func (b *boltDatabase) doBackup() {
+	fn := path.Join(b.dir, fmt.Sprintf("sp0rkle.boltdb.%s.gz",
+		time.Now().Format("2006-01-02.15:04")))
+	fh, err := os.OpenFile(fn, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0600)
+	if err != nil {
+		logging.Error("Could not create backup file %q: %v", fn, err)
+		return
+	}
+	fz := gzip.NewWriter(fh)
+	defer fz.Close()
+	err = b.db.View(func(tx *bolt.Tx) error {
+		return tx.Copy(fz)
+	})
+	if err != nil {
+		logging.Error("Could not write backup file %q: %v", fn, err)
+		os.Remove(fn)
+		return
+	}
+	logging.Info("Wrote backup to %q.", fn)
 }
 
 type boltBucket struct {
