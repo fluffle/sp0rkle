@@ -18,7 +18,7 @@ type mongoDatabase struct {
 	sessions []*mgo.Session
 }
 
-var Mongo Database = &mongoDatabase{}
+var Mongo = &mongoDatabase{}
 
 func (m *mongoDatabase) Init(db string) error {
 	m.Lock()
