@@ -14,6 +14,9 @@ go:
 
 sudo : false
 
+notifications:
+      irc: "irc.pl0rt.org#sp0rklf"
+
 # NOTE: Any extra dependencies added here must be reflected in README.md
 install:
   - go get github.com/fluffle/goirc/client
@@ -28,12 +31,10 @@ install:
     #sudo apt-get install mercurial git bzr
 
 script:
-# HORRIBLE HACK
 #    main.go:10:2: cannot find package "github.com/fluffle/sp0rkle/bot" in any of:
 #    Work around by symlinking in
-#    FIXME: This is only needed on !fluffle, maybe detect repo, or just ignore this once it's in upstream?
-  - ln -s $HOME/gopath/src/github.com/bob-smith/sp0rkle /home/travis/gopath/src/github.com/fluffle/sp0rkle
+  - if [ "$TRAVIS_REPO_SLUG" != "fluffle/sp0rkle" ] ; then ln -s "$HOME/gopath/src/github.com/$TRAVIS_REPO_SLUG" /home/travis/gopath/src/github.com/fluffle/sp0rkle ; fi
   - ls -la /home/travis/gopath/src/github.com/fluffle/
   - find /home/travis/gopath/src/github.com/fluffle
-  - go build
+  - go test -v ./...
 
