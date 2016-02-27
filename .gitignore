@@ -1,7 +1,9 @@
 bin/
 _obj/
 _test/
+*.db
 *.[568]
 *.swp
 
 sp0rkle
+importers/*/*importer
