@@ -11,7 +11,7 @@ import (
 
 var (
 	channels *string = flag.String("channels", "#sp0rklf",
-		"Comma-separated list of channels to join, defaults to '#sp0rklf'")
+		"Comma-separated list of channels to join.")
 	rebuilder *string = flag.String("rebuilder", "",
 		"Nick[:password] to accept rebuild command from.")
 	oper *string = flag.String("oper", "",
