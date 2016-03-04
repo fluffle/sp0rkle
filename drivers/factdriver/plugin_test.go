@@ -1,6 +1,7 @@
 package factdriver
 
 import (
+	"flag"
 	"testing"
 	"time"
 
@@ -17,6 +18,7 @@ func TestIdentifiers(t *testing.T) {
 		"$nick $chan $username $user $host $time $date",
 	}
 	// Static timestamp for great testing justice, no "local" time here kthx.
+	flag.Set("timezone", "UTC")
 	ts := time.Unix(1234567890, 0).UTC()
 	ctx := &bot.Context{
 		Line: &client.Line{
@@ -31,7 +33,7 @@ func TestIdentifiers(t *testing.T) {
 		"nothing to see here",
 		"just a tester",
 		"lots of tester tester tester",
-		"tester #test tests tests goirc.github.com 23:31:30 Fri Feb 13 23:31:30 2009",
+		"tester #test tests tests goirc.github.com 23:31:30 23:31:30, Friday 13 February 2009 UTC",
 	}
 	for i, s := range tests {
 		ret := id_replacer(s, ctx, ts)
