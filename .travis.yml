@@ -2,12 +2,6 @@
 language: go
 
 go:
-  - 1.3
-  - 1.3.3
-  - 1.4
-  - 1.4.1
-  - 1.4.2
-  - 1.4.3
   - 1.5
   - 1.5.3
   - 1.6
@@ -15,7 +9,10 @@ go:
 sudo : false
 
 notifications:
-      irc: "irc.pl0rt.org#sp0rklf"
+  irc:
+    channels:
+      - "irc.pl0rt.org#sp0rklf"
+    skip_join: true
 
 # NOTE: Any extra dependencies added here must be reflected in README.md
 install:
