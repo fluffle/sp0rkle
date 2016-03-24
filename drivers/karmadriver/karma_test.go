@@ -14,13 +14,19 @@ func TestKarmaThings(t *testing.T) {
 		{"karma++", []kt{{"karma", true}}},
 		{"karma--", []kt{{"karma", false}}},
 		{"some funky karma-- text", []kt{{"karma", false}}},
-		{"a++ b-- c++", []kt{{"a", true}, {"b", false}, {"c", true}}},
-		{" (a b c)-- d++ ", []kt{{"a b c", false}, {"d", true}}},
+		{"a++ b-- c++", []kt{{"c", true}, {"b", false}, {"a", true}}},
+		{" (a b c)-- d++ ", []kt{{"d", true}, {"a b c", false}}},
 		{"(a b c)++", []kt{{"a b c", true}}},
 		{"a b c)++", []kt{}},
 		{"++", []kt{}},
 		{"foo -- bar", []kt{}},
 		{"foo ()-- bar", []kt{}},
+		{"++.++++++", []kt{}},
+		{"http://foo.bar/some-url--with-hyphens", []kt{}},
+		// Brainfuck has poor karma :-)
+		{"++++++++[>++++[>++>+++>+++>+<<<<-]>+>+>->>+[<]<-]>>.>---.+++++++..+++.>>.<-.<.+++.----", []kt{}},
+		// ... as does Awk.
+		{"BEGIN{n=0}{if(t[$2,$3]){o[n]=$0;n++};", []kt{}},
 	}
 	for i, test := range tests {
 		o := karmaThings(test.in)
