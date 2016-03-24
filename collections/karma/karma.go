@@ -10,7 +10,6 @@ import (
 	"github.com/fluffle/sp0rkle/db"
 	"github.com/fluffle/sp0rkle/util/datetime"
 	"gopkg.in/mgo.v2"
-	"gopkg.in/mgo.v2/bson"
 )
 
 const COLLECTION = "karma"
@@ -59,34 +58,84 @@ func (k *Karma) String() string {
 	return s
 }
 
-func (k *Karma) Id() bson.M {
-	return bson.M{"key": k.Key}
+func (k *Karma) K() db.K {
+	return db.K{{"key", k.Key}}
+}
+
+type Karmas []*Karma
+
+func (ks Karmas) Strings() []string {
+	s := make([]string, len(ks))
+	for i, k := range ks {
+		s[i] = fmt.Sprintf("%#v", k)
+	}
+	return s
+}
+
+type migrator struct {
+	mongo, bolt db.Collection
+}
+
+func (m *migrator) Migrate() error {
+	var all []*Karma
+	if err := m.mongo.All(db.K{}, &all); err != nil {
+		return err
+	}
+	var fail error
+	for _, k := range all {
+		logging.Debug("Migrating karma entry for %s.", k.Subject)
+		if err := m.bolt.Put(k.K(), k); err != nil {
+			logging.Error("Inserting karma entry failed: %v", err)
+			fail = err
+		}
+	}
+	return fail
+}
+
+func (m *migrator) Diff() ([]string, []string, error) {
+	var mAll, bAll Karmas
+	if err := m.mongo.All(db.K{}, &mAll); err != nil {
+		return nil, nil, err
+	}
+	if err := m.bolt.All(db.K{}, &bAll); err != nil {
+		return nil, nil, err
+	}
+	return mAll.Strings(), bAll.Strings(), nil
 }
 
 type Collection struct {
-	*mgo.Collection
+	db.Both
 }
 
 func Init() *Collection {
-	kc := &Collection{db.Mongo.C(COLLECTION).Mongo()}
-	if err := kc.EnsureIndex(mgo.Index{
+	kc := &Collection{db.Both{}}
+	kc.Both.MongoC.Init(db.Mongo, COLLECTION, mongoIndexes)
+	kc.Both.BoltC.Init(db.Bolt, COLLECTION, nil)
+	m := &migrator{
+		mongo: kc.Both.MongoC,
+		bolt:  kc.Both.BoltC,
+	}
+	kc.Both.Checker.Init(m, COLLECTION)
+	return kc
+}
+
+func mongoIndexes(c db.Collection) {
+	if err := c.Mongo().EnsureIndex(mgo.Index{
 		Key:    []string{"key"},
 		Unique: true,
 	}); err != nil {
 		logging.Error("Couldn't create index on karma.key: %s", err)
 	}
 	for _, key := range []string{"score", "votes"} {
-		if err := kc.EnsureIndexKey(key); err != nil {
+		if err := c.Mongo().EnsureIndexKey(key); err != nil {
 			logging.Error("Couldn't create index on karma.%s: %s", key, err)
 		}
 	}
-	return kc
 }
 
 func (kc *Collection) KarmaFor(sub string) *Karma {
 	var res Karma
-	q := kc.Find(bson.M{"key": strings.ToLower(sub)})
-	if err := q.One(&res); err == nil {
+	if err := kc.Get(db.K{{"key", strings.ToLower(sub)}}, &res); err == nil {
 		return &res
 	}
 	return nil

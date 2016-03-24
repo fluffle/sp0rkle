@@ -19,7 +19,7 @@ func recordKarma(ctx *bot.Context) {
 		} else {
 			k.Minus(nick)
 		}
-		if _, err := kc.Upsert(k.Id(), k); err != nil {
+		if err := kc.Put(k.K(), k); err != nil {
 			ctx.Reply("Failed to insert Karma: %s", err)
 		}
 	}
