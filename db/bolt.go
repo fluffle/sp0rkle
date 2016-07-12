@@ -38,6 +38,13 @@ func (b *boltDatabase) Init(path, backupDir string, backupEvery time.Duration) e
 		return err
 	}
 	b.db, b.dir, b.every, b.quit = db, backupDir, backupEvery, make(chan struct{})
+	// Do a backup on startup and error if it is not successful.
+	if err := os.MkdirAll(b.dir, 0700); err != nil {
+		return fmt.Errorf("could not create backup dir %q: %v", b.dir, err)
+	}
+	if err := b.doBackup(); err != nil {
+		return fmt.Errorf("could not perform initial backup: %v", err)
+	}
 	go b.backupLoop()
 	return nil
 }
@@ -77,16 +84,13 @@ func (b *boltDatabase) C(name string) Collection {
 }
 
 func (b *boltDatabase) backupLoop() {
-	if err := os.MkdirAll(b.dir, 0700); err != nil {
-		logging.Fatal("Could not create backup dir %q: %v", b.dir, err)
-	}
-	// Do a backup on startup, too.
-	b.doBackup()
 	tick := time.NewTicker(b.every)
 	for {
 		select {
 		case <-tick.C:
-			b.doBackup()
+			if err := b.doBackup(); err != nil {
+				logging.Error("Backup error: %v", err)
+			}
 		case <-b.quit:
 			tick.Stop()
 			return
@@ -94,13 +98,12 @@ func (b *boltDatabase) backupLoop() {
 	}
 }
 
-func (b *boltDatabase) doBackup() {
+func (b *boltDatabase) doBackup() error {
 	fn := path.Join(b.dir, fmt.Sprintf("sp0rkle.boltdb.%s.gz",
 		time.Now().Format("2006-01-02.15:04")))
 	fh, err := os.OpenFile(fn, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0600)
 	if err != nil {
-		logging.Error("Could not create backup file %q: %v", fn, err)
-		return
+		return fmt.Errorf("could not create %q: %v", fn, err)
 	}
 	fz := gzip.NewWriter(fh)
 	defer fz.Close()
@@ -108,11 +111,11 @@ func (b *boltDatabase) doBackup() {
 		return tx.Copy(fz)
 	})
 	if err != nil {
-		logging.Error("Could not write backup file %q: %v", fn, err)
 		os.Remove(fn)
-		return
+		return fmt.Errorf("could not copy db to %q: %v", fn, err)
 	}
 	logging.Info("Wrote backup to %q.", fn)
+	return nil
 }
 
 type boltBucket struct {
