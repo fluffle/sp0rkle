@@ -100,9 +100,9 @@ func (b *Both) All(key Key, value interface{}) error {
 	return mErr
 }
 
-func (b *Both) Put(key Key, value interface{}) error {
-	mErr := b.MongoC.Put(key, value)
-	bErr := b.BoltC.Put(key, value)
+func (b *Both) Put(value interface{}) error {
+	mErr := b.MongoC.Put(value)
+	bErr := b.BoltC.Put(value)
 	if mErr != bErr {
 		logging.Warn("Put() errors differ: %v != %v", mErr, bErr)
 	}
@@ -112,9 +112,9 @@ func (b *Both) Put(key Key, value interface{}) error {
 	return mErr
 }
 
-func (b *Both) Del(key Key) error {
-	mErr := b.MongoC.Del(key)
-	bErr := b.BoltC.Del(key)
+func (b *Both) Del(value interface{}) error {
+	mErr := b.MongoC.Del(value)
+	bErr := b.BoltC.Del(value)
 	if mErr != bErr {
 		logging.Warn("Del() errors differ: %v != %v", mErr, bErr)
 	}

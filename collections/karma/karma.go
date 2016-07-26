@@ -58,9 +58,11 @@ func (k *Karma) String() string {
 	return s
 }
 
-func (k *Karma) K() db.K {
+func (k *Karma) K() db.Key {
 	return db.K{{"key", k.Key}}
 }
+
+var _ db.Keyer = (*Karma)(nil)
 
 type Karmas []*Karma
 
@@ -84,7 +86,7 @@ func (m *migrator) Migrate() error {
 	var fail error
 	for _, k := range all {
 		logging.Debug("Migrating karma entry for %s.", k.Subject)
-		if err := m.bolt.Put(k.K(), k); err != nil {
+		if err := m.bolt.Put(k); err != nil {
 			logging.Error("Inserting karma entry failed: %v", err)
 			fail = err
 		}
@@ -134,9 +136,9 @@ func mongoIndexes(c db.Collection) {
 }
 
 func (kc *Collection) KarmaFor(sub string) *Karma {
-	var res Karma
-	if err := kc.Get(db.K{{"key", strings.ToLower(sub)}}, &res); err == nil {
-		return &res
+	res := &Karma{Key: strings.ToLower(sub)}
+	if err := kc.Get(res.K(), res); err == nil {
+		return res
 	}
 	return nil
 }

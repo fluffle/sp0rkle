@@ -21,23 +21,22 @@ type namespace struct {
 	ns string
 }
 
-func (ns *namespace) K(key ...string) db.K {
-	if len(key) > 0 {
-		return db.K{{"ns", ns.ns}, {"key", key[0]}}
-	}
+func (ns *namespace) K() db.Key {
 	return db.K{{"ns", ns.ns}}
 }
 
+var _ db.Keyer = (*namespace)(nil)
+
 func (ns *namespace) set(key string, value interface{}) {
-	e := Entry{Ns: ns.ns, Key: key, Value: value}
-	if err := ns.Put(ns.K(key), &e); err != nil {
+	e := &Entry{Ns: ns.ns, Key: key, Value: value}
+	if err := ns.Put(e); err != nil {
 		logging.Error("Couldn't set config entry %q: %v", e, err)
 	}
 }
 
 func (ns *namespace) get(key string) interface{} {
-	var e Entry
-	if err := ns.Get(ns.K(key), &e); err != nil && err != mgo.ErrNotFound && err != boltdb.ErrTxNotWritable {
+	e := &Entry{Ns: ns.ns, Key: key}
+	if err := ns.Get(e.K(), e); err != nil && err != mgo.ErrNotFound && err != boltdb.ErrTxNotWritable {
 		logging.Error("Couldn't get config entry for ns=%q key=%q: %v", ns.ns, key, err)
 		return nil
 	}
@@ -94,5 +93,5 @@ func (ns *namespace) Value(key string, value ...interface{}) interface{} {
 }
 
 func (ns *namespace) Delete(key string) {
-	ns.Del(ns.K(key))
+	ns.Del(&Entry{Ns: ns.ns, Key: key})
 }

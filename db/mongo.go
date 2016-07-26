@@ -5,6 +5,7 @@ package db
 
 import (
 	"errors"
+	"fmt"
 	"sync"
 
 	"github.com/fluffle/golog/logging"
@@ -76,13 +77,26 @@ func (m *mongoCollection) All(key Key, value interface{}) error {
 	return m.Collection.Find(key.M()).All(value)
 }
 
-func (m *mongoCollection) Put(key Key, value interface{}) error {
-	_, err := m.Collection.Upsert(key.M(), value)
+func (m *mongoCollection) Put(value interface{}) (err error) {
+	switch value := value.(type) {
+	case Keyer:
+		_, err = m.Collection.Upsert(value.K().M(), value)
+	case Indexer:
+		_, err = m.Collection.UpsertId(value.Id(), value)
+	default:
+		return fmt.Errorf("put: don't know how to put value %#v", value)
+	}
 	return err
 }
 
-func (m *mongoCollection) Del(key Key) error {
-	return m.Collection.Remove(key.M())
+func (m *mongoCollection) Del(value interface{}) error {
+	switch value := value.(type) {
+	case Keyer:
+		return m.Collection.Remove(value.K().M())
+	case Indexer:
+		return m.Collection.RemoveId(string(value.Id()))
+	}
+	return fmt.Errorf("del: don't know how to delete value %#v", value)
 }
 
 func (m *mongoCollection) Mongo() *mgo.Collection {

@@ -18,7 +18,7 @@ func recordStats(ctx *bot.Context) {
 			ctx.Nick, ns.Lines)
 
 	}
-	if err := sc.Put(ns.K(), ns); err != nil {
+	if err := sc.Put(ns); err != nil {
 		ctx.Reply("Failed to store stats data: %v", err)
 	}
 }

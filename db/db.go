@@ -24,8 +24,8 @@ type Database interface {
 type Collection interface {
 	Get(Key, interface{}) error
 	All(Key, interface{}) error
-	Put(Key, interface{}) error
-	Del(Key) error
+	Put(interface{}) error
+	Del(interface{}) error
 	// Turn on debugging for this collection.
 	Debug(bool)
 	// So we don't have to do everything at once.
@@ -46,6 +46,23 @@ func (c *C) Init(db Database, name string, f func(Collection)) {
 	})
 }
 
+// A value that is stored directly at Key in BoltDB.
+// The method is not called Key because conf.Entry has
+// a field named Key which references data in mongo
+// but still needs to implement this interface.
+// Naming is hard, but this is probably fine because
+// they will most likely be returning a db.K anyway.
+type Keyer interface {
+	K() Key
+}
+
+// A value that is stored directly at K{{"_id", ObjectId}}
+// with pointers for each Key in Indexes in BoltDB.
+type Indexer interface {
+	Id() bson.ObjectId
+	Indexes() []Key
+}
+
 type Key interface {
 	String() string
 	// MongoDB repr
@@ -63,6 +80,14 @@ type K []Elem
 
 func (e *Elem) Len() int {
 	return len(e.Name) + len(e.Value)
+}
+
+func (e *Elem) Bytes() []byte {
+	b := bytes.NewBuffer(make([]byte, 0, e.Len()+1))
+	b.WriteString(e.Name)
+	b.WriteByte(USEP)
+	b.WriteString(e.Value)
+	return b.Bytes()
 }
 
 // This is one-way, loses ordering.
@@ -92,11 +117,7 @@ func (k K) B() ([][]byte, []byte) {
 	}
 	items := make([][]byte, 0, len(k))
 	for _, e := range k {
-		b := bytes.NewBuffer(make([]byte, 0, e.Len()+1))
-		b.WriteString(e.Name)
-		b.WriteByte(USEP)
-		b.WriteString(e.Value)
-		items = append(items, b.Bytes())
+		items = append(items, e.Bytes())
 	}
 	return items[:len(items)-1], items[len(items)-1]
 }

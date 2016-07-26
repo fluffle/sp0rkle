@@ -2,6 +2,7 @@ package stats
 
 import (
 	"fmt"
+	"reflect"
 	"strings"
 	"time"
 
@@ -22,7 +23,10 @@ type NickStat struct {
 	Words  int
 	Chars  int
 	Active [7][24]int
+	Id_    bson.ObjectId `bson:"_id,omitempty"`
 }
+
+var _ db.Indexer = (*NickStat)(nil)
 
 func NewStat(n bot.Nick, c bot.Chan) *NickStat {
 	return &NickStat{
@@ -30,6 +34,7 @@ func NewStat(n bot.Nick, c bot.Chan) *NickStat {
 		Key:    strings.ToLower(string(n)),
 		Chan:   c,
 		Active: [7][24]int{},
+		Id_:    bson.NewObjectId(),
 	}
 }
 
@@ -66,7 +71,18 @@ func (ns *NickStat) String() string {
 		wordc, charc, day, hour, count)
 }
 
-func (ns *NickStat) K() db.K {
+func (ns *NickStat) Indexes() []db.Key {
+	return []db.Key{
+		db.K{{"chan", string(ns.Chan)}, {"key", ns.Key}},
+		db.K{{"lines", string(ns.Chan)}, {"lines", fmt.Sprintf("%09d", ns.Lines)}},
+	}
+}
+
+func (ns *NickStat) Id() bson.ObjectId {
+	return ns.Id_
+}
+
+func (ns *NickStat) byKey() db.Key {
 	return db.K{{"chan", string(ns.Chan)}, {"key", ns.Key}}
 }
 
@@ -94,7 +110,7 @@ func (m *migrator) Migrate() error {
 	var fail error
 	for _, ns := range all {
 		logging.Debug("Migrating stats entry for %s in %s.", ns.Nick, ns.Chan)
-		if err := m.bolt.Put(ns.K(), ns); err != nil {
+		if err := m.bolt.Put(ns); err != nil {
 			// Try to migrate as much as possible.
 			logging.Error("Inserting stats entry failed: %v", err)
 			fail = err
@@ -146,19 +162,40 @@ func mongoIndexes(c db.Collection) {
 
 func (sc *Collection) StatsFor(nick, ch string) *NickStat {
 	res := NewStat(bot.Nick(nick), bot.Chan(ch))
-	if err := sc.Get(res.K(), res); err == nil {
+	if err := sc.Get(res.byKey(), res); err == nil {
 		return res
 	}
 	return nil
 }
 
-// TODO(fluffle): Index buckets in bolt for sorted results.
-// NOT MIGRATED YET
 func (sc *Collection) TopTen(ch string) []*NickStat {
-	var res []*NickStat
+	var mRes, bRes []*NickStat
 	q := sc.Mongo().Find(bson.M{"chan": ch}).Sort("-lines").Limit(10)
-	if err := q.All(&res); err != nil {
-		logging.Error("TopTen Find error for channel %s: %v", ch, err)
+	if err := q.All(&mRes); err != nil {
+		logging.Error("Mongo TopTen Find error for channel %s: %v", ch, err)
 	}
-	return res
+	if err := sc.Both.BoltC.All(db.K{{"lines", ch}}, &bRes); err != nil {
+		logging.Error("Bolt TopTen All error for channel %s: %v", ch, err)
+	}
+	// TODO(fluffle): Results from Bolt are in ascending order, meh.
+	// TODO(fluffle): Consider supporting asc/desc/limit in db.C interface.
+	for i, j := 0, len(bRes)-1; i < j; i, j = i+1, j-1 {
+		bRes[i], bRes[j] = bRes[j], bRes[i]
+	}
+	if len(bRes) > 10 {
+		bRes = bRes[:10]
+	}
+	if !reflect.DeepEqual(mRes, bRes) {
+		logging.Warn("TopTen mismatch for channel %s.", ch)
+		for i, v := range mRes {
+			logging.Debug("Mongo %d: %#v", i, v)
+		}
+		for i, v := range bRes {
+			logging.Debug("Bolt %d: %#v", i, v)
+		}
+	}
+	if sc.Migrated() {
+		return bRes
+	}
+	return mRes
 }

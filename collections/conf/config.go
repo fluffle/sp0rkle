@@ -57,6 +57,12 @@ type Entry struct {
 	Value   interface{}
 }
 
+func (e Entry) K() db.Key {
+	return db.K{{"ns", e.Ns}, {"key", e.Key}}
+}
+
+var _ db.Keyer = (*Entry)(nil)
+
 func (e Entry) String() string {
 	return fmt.Sprintf("%s<%s: %v>", e.Ns, e.Key, e.Value)
 }

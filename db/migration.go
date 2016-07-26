@@ -42,13 +42,18 @@ func (m *M) Init(mig Migrator, coll string) {
 }
 
 type done struct {
+	collection string
 	// Public for serialization purposes.
 	Migrated bool
 }
 
+func (d *done) K() Key {
+	return K{{"collection", d.collection}}
+}
+
 func migrated(coll string) bool {
-	var d done
-	if err := ms.db.Get(K{{"collection", coll}}, &d); err != nil {
+	d := &done{collection: coll}
+	if err := ms.db.Get(d.K(), d); err != nil {
 		logging.Warn("Checking migrated status for %q: %v", coll, err)
 	}
 	return d.Migrated
@@ -128,7 +133,7 @@ func Migrate() error {
 		}
 		// This is probably a little more locking than strictly necessary.
 		ms.Lock()
-		if err := ms.db.Put(K{{"collection", coll}}, &done{true}); err != nil {
+		if err := ms.db.Put(&done{collection: coll, Migrated: true}); err != nil {
 			logging.Warn("Setting migrated status for %q: %v", coll, err)
 		}
 		m.migrated = true
