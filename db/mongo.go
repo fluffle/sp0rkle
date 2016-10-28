@@ -6,10 +6,12 @@ package db
 import (
 	"errors"
 	"fmt"
+	"strings"
 	"sync"
 
 	"github.com/fluffle/golog/logging"
 	"gopkg.in/mgo.v2"
+	"gopkg.in/mgo.v2/bson"
 )
 
 const DATABASE string = "sp0rkle"
@@ -73,6 +75,13 @@ func (m *mongoCollection) Get(key Key, value interface{}) error {
 	return m.Collection.Find(key.M()).One(value)
 }
 
+func (m *mongoCollection) Match(key, regex string, value interface{}) error {
+	// Returning distinct keys is useful and matches BoltDB behaviour.
+	return m.Collection.Find(bson.M{
+		strings.ToLower(key): bson.M{"$regex": regex},
+	}).Distinct(key, value)
+}
+
 func (m *mongoCollection) All(key Key, value interface{}) error {
 	return m.Collection.Find(key.M()).All(value)
 }
@@ -97,6 +106,10 @@ func (m *mongoCollection) Del(value interface{}) error {
 		return m.Collection.RemoveId(string(value.Id()))
 	}
 	return fmt.Errorf("del: don't know how to delete value %#v", value)
+}
+
+func (m *mongoCollection) Next(k Key, set ...uint64) (int, error) {
+	panic("no autoincrements for you")
 }
 
 func (m *mongoCollection) Mongo() *mgo.Collection {

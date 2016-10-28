@@ -124,6 +124,10 @@ func (b *Both) Del(value interface{}) error {
 	return mErr
 }
 
+func (b *Both) Next(k Key) (int, error) {
+	return b.BoltC.Next(k)
+}
+
 func (b *Both) Mongo() *mgo.Collection {
 	return b.MongoC.Mongo()
 }

@@ -8,6 +8,7 @@ import (
 	"os"
 	"path"
 	"reflect"
+	"regexp"
 	"sync"
 	"time"
 
@@ -235,6 +236,75 @@ func (bucket *boltBucket) Get(key Key, value interface{}) error {
 			return err
 		}
 		return bson.Unmarshal(data, value)
+	})
+}
+
+// TODO(fluffle): Too tired to figure out why this may be awful.
+// TODO(fluffle): Dedupe with All / Prefix when less tired.
+func (bucket *boltBucket) Match(key, re string, value interface{}) error {
+	if re == "" {
+		return errors.New("zero-length regex match")
+	}
+	rx, err := regexp.Compile(re)
+	if err != nil {
+		return err
+	}
+	// This entirely stolen from mgo's Iter.All() \o/
+	// vv == value Value
+	vv := reflect.ValueOf(value)
+	if vv.Kind() != reflect.Ptr || vv.Elem().Kind() != reflect.Slice {
+		panic("Match() requires a pointer-to-slice.")
+	}
+	// sv == slice Value
+	sv := vv.Elem()
+	// Resize slice to capacity.
+	sv = sv.Slice(0, sv.Cap())
+	// et == (slice) element Type
+	et := sv.Type().Elem()
+	// etv == Value of element Type
+	etv := reflect.New(et).Elem()
+	if etv.Kind() != reflect.Struct || etv.FieldByName(key).Kind() != reflect.String {
+		panic("Match() requires key to be a string field in slice element struct type.")
+	}
+
+	return bucket.db.View(func(tx *bolt.Tx) error {
+		root := tx.Bucket(bucket.name)
+		i := 0
+		c := root.Cursor()
+		for k, v := c.First(); k != nil && v != nil; k, v = c.Next() {
+			switch {
+			case v == nil || isPointer(v):
+				// Match ignores nested buckets and pointers.
+				continue
+			case isBson(v):
+				v = suffix(v)
+			default:
+				// Reasonably sure we shouldn't hit this condition.
+				logging.Warn("match: unexpected data k=%q v=%q", k, v)
+				continue
+			}
+
+			ev := reflect.New(et)
+			if err := bson.Unmarshal(v, ev.Interface()); err != nil {
+				return err
+			}
+			if !rx.MatchString(ev.Elem().FieldByName(key).String()) {
+				continue
+			}
+			if sv.Len() == i {
+				// Extend sv to hold more elements.
+				sv = reflect.Append(sv, ev.Elem())
+				sv = sv.Slice(0, sv.Cap())
+			} else {
+				sv.Index(i).Set(ev.Elem())
+			}
+			i++
+		}
+		if bucket.debug {
+			logging.Debug("Match(%s): %s =~ /%s/ found %d items.", bucket.name, key, re, i)
+		}
+		vv.Elem().Set(sv.Slice(0, i))
+		return nil
 	})
 }
 
@@ -507,6 +577,29 @@ func (bucket *boltBucket) Del(value interface{}) error {
 		})
 	}
 	return fmt.Errorf("del: don't know how to delete value %#v", value)
+}
+
+func (bucket *boltBucket) Next(k Key, set ...uint64) (int, error) {
+	var i uint64
+	err := bucket.db.Update(func(tx *bolt.Tx) error {
+		b, last, err := bucketFor(k, tx.Bucket(bucket.name))
+		if err != nil {
+			return err
+		}
+		// Next() requires that k points to a bucket, not a key.
+		if len(last) > 0 {
+			if b = b.Bucket(last); b == nil {
+				return bolt.ErrBucketNotFound
+			}
+		}
+		if len(set) > 0 {
+			i, err = set[0], b.SetSequence(set[0])
+		} else {
+			i, err = b.NextSequence()
+		}
+		return err
+	})
+	return int(i), err
 }
 
 func (bucket *boltBucket) Mongo() *mgo.Collection {

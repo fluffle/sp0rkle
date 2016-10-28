@@ -23,9 +23,12 @@ type Database interface {
 
 type Collection interface {
 	Get(Key, interface{}) error
+	// GetPR(Key, interface{}) error ?
+	Match(string, string, interface{}) error
 	All(Key, interface{}) error
 	Put(interface{}) error
 	Del(interface{}) error
+	Next(Key, ...uint64) (int, error)
 	// Turn on debugging for this collection.
 	Debug(bool)
 	// So we don't have to do everything at once.
