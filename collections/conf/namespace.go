@@ -22,7 +22,7 @@ type namespace struct {
 }
 
 func (ns *namespace) K() db.Key {
-	return db.K{{"ns", ns.ns}}
+	return db.K{db.S{"ns", ns.ns}}
 }
 
 var _ db.Keyer = (*namespace)(nil)

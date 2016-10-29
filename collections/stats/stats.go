@@ -73,8 +73,8 @@ func (ns *NickStat) String() string {
 
 func (ns *NickStat) Indexes() []db.Key {
 	return []db.Key{
-		db.K{{"chan", string(ns.Chan)}, {"key", ns.Key}},
-		db.K{{"lines", string(ns.Chan)}, {"lines", fmt.Sprintf("%09d", ns.Lines)}},
+		db.K{db.S{"chan", string(ns.Chan)}, db.S{"key", ns.Key}},
+		db.K{db.S{"lines", string(ns.Chan)}, db.I{"lines", ns.Lines}},
 	}
 }
 
@@ -83,7 +83,7 @@ func (ns *NickStat) Id() bson.ObjectId {
 }
 
 func (ns *NickStat) byKey() db.Key {
-	return db.K{{"chan", string(ns.Chan)}, {"key", ns.Key}}
+	return db.K{db.S{"chan", string(ns.Chan)}, db.S{"key", ns.Key}}
 }
 
 type NickStats []*NickStat
@@ -174,7 +174,7 @@ func (sc *Collection) TopTen(ch string) []*NickStat {
 	if err := q.All(&mRes); err != nil {
 		logging.Error("Mongo TopTen Find error for channel %s: %v", ch, err)
 	}
-	if err := sc.Both.BoltC.All(db.K{{"lines", ch}}, &bRes); err != nil {
+	if err := sc.Both.BoltC.All(db.K{db.S{"lines", ch}}, &bRes); err != nil {
 		logging.Error("Bolt TopTen All error for channel %s: %v", ch, err)
 	}
 	// TODO(fluffle): Results from Bolt are in ascending order, meh.

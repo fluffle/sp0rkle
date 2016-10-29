@@ -58,7 +58,7 @@ type Entry struct {
 }
 
 func (e Entry) K() db.Key {
-	return db.K{{"ns", e.Ns}, {"key", e.Key}}
+	return db.K{db.S{"ns", e.Ns}, db.S{"key", e.Key}}
 }
 
 var _ db.Keyer = (*Entry)(nil)

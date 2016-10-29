@@ -59,7 +59,7 @@ func (k *Karma) String() string {
 }
 
 func (k *Karma) K() db.Key {
-	return db.K{{"key", k.Key}}
+	return db.K{db.S{"key", k.Key}}
 }
 
 var _ db.Keyer = (*Karma)(nil)
