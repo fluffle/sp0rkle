@@ -76,10 +76,8 @@ func (m *mongoCollection) Get(key Key, value interface{}) error {
 }
 
 func (m *mongoCollection) Match(key, regex string, value interface{}) error {
-	// Returning distinct keys is useful and matches BoltDB behaviour.
-	return m.Collection.Find(bson.M{
-		strings.ToLower(key): bson.M{"$regex": regex},
-	}).Distinct(key, value)
+	q := bson.M{strings.ToLower(key): bson.M{"$regex": regex, "$options": "i"}}
+	return m.Collection.Find(q).All(value)
 }
 
 func (m *mongoCollection) All(key Key, value interface{}) error {

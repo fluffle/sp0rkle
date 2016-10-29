@@ -245,7 +245,7 @@ func (bucket *boltBucket) Match(key, re string, value interface{}) error {
 	if re == "" {
 		return errors.New("zero-length regex match")
 	}
-	rx, err := regexp.Compile(re)
+	rx, err := regexp.Compile("(?i)" + re)
 	if err != nil {
 		return err
 	}
@@ -261,8 +261,15 @@ func (bucket *boltBucket) Match(key, re string, value interface{}) error {
 	sv = sv.Slice(0, sv.Cap())
 	// et == (slice) element Type
 	et := sv.Type().Elem()
-	// etv == Value of element Type
+	// etv == Value of element Type; if the slice contains pointers
+	// we need to find the Type they point to.
+	// TODO(fluffle): This only allows one level of indirection, is that OK?
 	etv := reflect.New(et).Elem()
+	ptr := false
+	if et.Kind() == reflect.Ptr {
+		ptr = true
+		etv = reflect.New(et.Elem()).Elem()
+	}
 	if etv.Kind() != reflect.Struct || etv.FieldByName(key).Kind() != reflect.String {
 		panic("Match() requires key to be a string field in slice element struct type.")
 	}
@@ -288,7 +295,13 @@ func (bucket *boltBucket) Match(key, re string, value interface{}) error {
 			if err := bson.Unmarshal(v, ev.Interface()); err != nil {
 				return err
 			}
-			if !rx.MatchString(ev.Elem().FieldByName(key).String()) {
+			etv = ev.Elem()
+			if ptr {
+				// TODO(fluffle): This also allows only one level of
+				// indirection and feels like a massive hack. Ugh.
+				etv = ev.Elem().Elem()
+			}
+			if !rx.MatchString(etv.FieldByName(key).String()) {
 				continue
 			}
 			if sv.Len() == i {
