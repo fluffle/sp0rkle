@@ -55,12 +55,12 @@ func isPointer(data []byte) bool {
 }
 
 func toPointer(value Indexer) []byte {
-	e := &Elem{string(idPrefix), string(value.Id())}
+	e := S{string(idPrefix), string(value.Id())}
 	return e.Bytes()
 }
 
 func fromPointer(data []byte) K {
-	return K{{"_id", string(data[prefixLen:])}}
+	return K{S{"_id", string(data[prefixLen:])}}
 }
 
 func suffix(data []byte) []byte {

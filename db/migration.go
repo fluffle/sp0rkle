@@ -48,7 +48,7 @@ type done struct {
 }
 
 func (d *done) K() Key {
-	return K{{"collection", d.collection}}
+	return K{S{"collection", d.collection}}
 }
 
 func migrated(coll string) bool {

@@ -2,8 +2,11 @@ package db
 
 import (
 	"bytes"
+	"fmt"
 	"strings"
 	"sync"
+
+	"github.com/fluffle/sp0rkle/util"
 
 	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
@@ -66,50 +69,74 @@ type Indexer interface {
 	Indexes() []Key
 }
 
-type Key interface {
+type Elem interface {
+	Pair() (string, interface{})
+	Bytes() []byte
 	String() string
-	// MongoDB repr
-	D() bson.D
-	M() bson.M
-	// BoltDB repr
-	B() ([][]byte, []byte)
 }
 
-// Basically bson.D but only string->string.
-type Elem struct {
+// String key element.
+type S struct {
 	Name, Value string
 }
-type K []Elem
 
-func (e *Elem) Len() int {
-	return len(e.Name) + len(e.Value)
+func (e S) Pair() (string, interface{}) {
+	return e.Name, e.Value
 }
 
-func (e *Elem) Bytes() []byte {
-	b := bytes.NewBuffer(make([]byte, 0, e.Len()+1))
+func (e S) Bytes() []byte {
+	b := bytes.NewBuffer(make([]byte, 0, len(e.Name)+len(e.Value)+1))
 	b.WriteString(e.Name)
 	b.WriteByte(USEP)
 	b.WriteString(e.Value)
 	return b.Bytes()
 }
 
+func (e S) String() string {
+	return e.Name + ": " + e.Value
+}
+
+// Integer key element.
+type I struct {
+	Name  string
+	Value int
+}
+
+func (e I) Pair() (string, interface{}) {
+	return e.Name, e.Value
+}
+
+func (e I) Bytes() []byte {
+	v := util.EncodeVarint(uint64(e.Value))
+	b := bytes.NewBuffer(make([]byte, 0, len(e.Name)+len(v)+1))
+	b.WriteString(e.Name)
+	b.WriteByte(USEP)
+	b.Write(v)
+	return b.Bytes()
+}
+
+func (e I) String() string {
+	return fmt.Sprintf("%s: %d", e.Name, e.Value)
+}
+
+type Key interface {
+	String() string
+	// MongoDB repr
+	M() bson.M
+	// BoltDB repr
+	B() ([][]byte, []byte)
+}
+
+type K []Elem
+
 // This is one-way, loses ordering.
 func (k K) M() bson.M {
 	m := bson.M{}
 	for _, e := range k {
-		m[e.Name] = e.Value
+		n, v := e.Pair()
+		m[n] = v
 	}
 	return m
-}
-
-// Ordered version of the above, reversible.
-// TODO(fluffle): needed?
-func (k K) D() bson.D {
-	d := make(bson.D, 0, len(k))
-	for _, e := range k {
-		d = append(d, bson.DocElem{e.Name, e.Value})
-	}
-	return d
 }
 
 // Successive key elements create nested BoltDB buckets.
@@ -128,7 +155,7 @@ func (k K) B() ([][]byte, []byte) {
 func (k K) String() string {
 	s := make([]string, 0, len(k))
 	for _, e := range k {
-		s = append(s, e.Name+": "+e.Value)
+		s = append(s, e.String())
 	}
 	return "K<" + strings.Join(s, ", ") + ">"
 }
