@@ -2,6 +2,9 @@ package datetime
 
 import (
 	"flag"
+	"os"
+	"path"
+	"runtime"
 	"testing"
 	"time"
 )
@@ -70,8 +73,8 @@ func TestParseTime(t *testing.T) {
 		{"1140pm", mkt(23, 40, 0)},
 		{"3 am PDT", mkt(3, 0, 0, "US/Pacific")},
 		{"3 pm PDT", mkt(15, 0, 0, "US/Pacific")},
-		{"5AM -4:30", mkt(5, 0, 0, "America/Caracas")},
-		{"5PM -4:30", mkt(17, 0, 0, "America/Caracas")},
+		{"5AM -4:00", mkt(5, 0, 0, "America/Caracas")},
+		{"5PM -4:00", mkt(17, 0, 0, "America/Caracas")},
 		{"7 a.m. +0800", mkt(7, 0, 0, "Etc/GMT-8")},
 		{"7 p.m. +0800", mkt(19, 0, 0, "Etc/GMT-8")},
 		{"9A.M. Africa/Nairobi", mkt(9, 0, 0, "Africa/Nairobi")},
@@ -118,6 +121,83 @@ func TestParseTime(t *testing.T) {
 		{"27:73:83", mkt(3, 13, 23)},
 		{"midday", mkt(12, 0, 0)},
 		{"midnight", mkt(0, 0, 0)},
+	}
+	tests.run(t, now)
+}
+
+// Stolen from pkg/time/zoneinfo_read.go
+// get4 returns the little-endian 32-bit value in b.
+func get4(b []byte) int {
+	if len(b) < 4 {
+		return 0
+	}
+	return int(b[0]) | int(b[1])<<8 | int(b[2])<<16 | int(b[3])<<24
+}
+
+// get2 returns the little-endian 16-bit value in b.
+func get2(b []byte) int {
+	if len(b) < 2 {
+		return 0
+	}
+	return int(b[0]) | int(b[1])<<8
+}
+
+func TestParseAllTimezonesInZoneinfo(t *testing.T) {
+	// Ugh, half-parsing zip files, that's what the stdlib does.
+	zip := path.Join(runtime.GOROOT(), "lib", "time", "zoneinfo.zip")
+	fh, err := os.Open(zip)
+	if err != nil {
+		t.Fatalf("Failed to open zoneinfo.zip: %v", err)
+		return
+	}
+	// Zip tail is 22 bytes at end of file.
+	zTailSize := 22
+	if _, err := fh.Seek(int64(-zTailSize), 2); err != nil {
+		t.Fatalf("Seeking to tail of zoneinfo.zip: %v", err)
+		return
+	}
+	buf := make([]byte, zTailSize)
+	if n, err := fh.Read(buf); err != nil || n != zTailSize || get4(buf) != 0x06054b50 {
+		t.Fatalf("Reading zoneinfo.zip tail: %v (%d of %d bytes)", err, n, zTailSize)
+		return
+	}
+	n, size, offset := get2(buf[10:]), get4(buf[12:]), get4(buf[16:])
+	buf = make([]byte, size)
+	if _, err := fh.Seek(int64(offset), 0); err != nil {
+		t.Fatalf("Seeking to data offset in zoneinfo.zip: %v", err)
+		return
+	}
+	if n, err := fh.Read(buf); err != nil || n != size {
+		t.Fatalf("Reading zoneinfo.zip data: %v (%d of %d bytes)", err, n, size)
+		return
+	}
+
+	now := time.Now()
+	mkt := func(h, m, s int, l ...string) time.Time {
+		loc := time.Local
+		if len(l) > 0 {
+			loc = zone(l[0])
+		}
+		return time.Date(now.Year(), now.Month(), now.Day(), h, m, s, 0, loc)
+	}
+	tests := make(timeTests, 0, n)
+
+	for i := 0; i < n; i++ {
+		if get4(buf) != 0x02014b50 {
+			break
+		}
+		ucsize := get4(buf[24:])
+		namelen := get2(buf[28:])
+		xlen := get2(buf[30:])
+		fclen := get2(buf[32:])
+		name := string(buf[46 : 46+namelen])
+		buf = buf[46+namelen+xlen+fclen:]
+		if ucsize == 0 || zone(name) == nil {
+			// The zip header contains dirs and other things that
+			// aren't real zones, skip them to avoid test fail.
+			continue
+		}
+		tests = append(tests, timeTest{"6am " + name, mkt(6, 0, 0, name)})
 	}
 	tests.run(t, now)
 }

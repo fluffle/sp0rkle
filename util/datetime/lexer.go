@@ -170,13 +170,11 @@ func (l *dateLexer) Lex(lval *yySymType) int {
 		if tok, ok := tokenMaps.Lookup(strings.ToUpper(input), lval); ok {
 			return tok
 		}
-		// No token recognised, but it could be a zone in $TZ format!
-		if l.Peek() == '/' {
-			loc := input + l.Next() + l.Scan(unicode.IsLetter)
-			if z := zone(loc); z != nil {
-				lval.zoneval = z
-				return T_ZONE
-			}
+		// No token recognised, but it could be a zone in IANA format!
+		zstr := input + l.Not(unicode.IsSpace)
+		if z := zone(zstr); z != nil {
+			lval.zoneval = z
+			return T_ZONE
 		}
 		l.Pos(pos)
 		// No token recognised, rewind and try the current character instead

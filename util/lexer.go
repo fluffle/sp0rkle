@@ -45,12 +45,26 @@ func (l *Lexer) Next() string {
 	return string(r)
 }
 
-// scan() returns the sequence of runes in the input string anchored
+// Scan returns the sequence of runes in the input string anchored
 // at lexer.pos that the supplied function returns true for. Usefully,
 // unicode.IsDigit et al. fit the required function signature ;-)
 func (l *Lexer) Scan(f func(rune) bool) string {
 	l.start = l.pos
 	for f(l.Peek()) {
+		if l.width == 0 {
+			break
+		}
+		l.pos += l.width
+	}
+	return l.Input[l.start:l.pos]
+}
+
+// Not returns the sequence of runes in the input string anchored
+// at lexer.pos that the supplied function returns false for. Usefully,
+// unicode.IsDigit et al. fit the required function signature ;-)
+func (l *Lexer) Not(f func(rune) bool) string {
+	l.start = l.pos
+	for !f(l.Peek()) {
 		if l.width == 0 {
 			break
 		}
