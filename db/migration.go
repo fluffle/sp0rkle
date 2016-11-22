@@ -20,6 +20,10 @@ type Differ interface {
 	Diff() (before, after []string, err error)
 }
 
+type Diffable interface {
+	Strings() []string
+}
+
 type Checker interface {
 	Migrated() bool
 }

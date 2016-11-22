@@ -5,14 +5,17 @@ import (
 
 	"github.com/fluffle/sp0rkle/bot"
 	"github.com/fluffle/sp0rkle/collections/quotes"
-	"gopkg.in/mgo.v2/bson"
 )
 
 func add(ctx *bot.Context) {
 	n, c := ctx.Storable()
 	quote := quotes.NewQuote(ctx.Text(), n, c)
-	quote.QID = qc.NewQID()
-	if err := qc.Insert(quote); err == nil {
+	var err error
+	if quote.QID, err = qc.NewQID(); err != nil {
+		ctx.ReplyN("Retrieving new quote ID failed: %v", err)
+		return
+	}
+	if err = qc.Put(quote); err == nil {
 		ctx.ReplyN("Quote added succesfully, id #%d.", quote.QID)
 	} else {
 		ctx.ReplyN("Error adding quote: %s.", err)
@@ -31,7 +34,7 @@ func del(ctx *bot.Context) {
 		return
 	}
 	if quote := qc.GetByQID(qid); quote != nil {
-		if err := qc.RemoveId(quote.Id); err == nil {
+		if err := qc.Del(quote); err == nil {
 			ctx.ReplyN("I forgot quote #%d: %s", qid, quote.Quote)
 		} else {
 			ctx.ReplyN("I failed to forget quote #%d: %s", qid, err)
@@ -70,7 +73,7 @@ func lookup(ctx *bot.Context) {
 
 	// TODO(fluffle): qd should take care of updating Accessed internally
 	quote.Accessed++
-	if err := qc.Update(bson.M{"_id": quote.Id}, quote); err != nil {
+	if err := qc.Put(quote); err != nil {
 		ctx.ReplyN("I failed to update quote #%d: %s", quote.QID, err)
 	}
 	ctx.Reply("#%d: %s", quote.QID, quote.Quote)
