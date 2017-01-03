@@ -25,14 +25,14 @@ type textint struct {
 	zoneval *time.Location
 }
 
-%token           T_OF T_THE T_IGNORE T_DAYQUAL
+%token           T_OF T_THE T_IGNORE T_DAYQUAL T_SECOND
 %token <tval>    T_INTEGER
 %token <intval>  T_PLUS T_MINUS T_MIDTIME
 %token <intval>  T_MONTHNAME T_DAYNAME T_DAYS T_DAYSHIFT
 %token <intval>  T_OFFSET T_ISOYD T_ISOHS T_RELATIVE T_AGO
 %token <zoneval> T_ZONE
 
-%type <intval>   sign ampm
+%type <intval>   sign ampm offset relative
 %type <tval>     o_sign_integer o_integer
 %type <zoneval>  zone o_zone
 
@@ -52,6 +52,14 @@ o_the: /* empty */ | T_THE;
 o_dayqual: /* empty */ | T_DAYQUAL;
 
 o_integer: /* empty */ { $$ = textint{} } | T_INTEGER;
+
+/* Handle ambiguity of "second" (1/2) */
+offset: T_OFFSET | T_SECOND { $$ = int(O_SEC) };
+
+/* Handle ambiguity of "second" (2/2) and
+ * "the" as a synonym for "this" in "first day of the month"
+ */
+relative: T_RELATIVE | T_THE { $$ = 0 } | T_SECOND { $$ = 2 };
 
 ampm:
 	'A' 'M' {
@@ -121,7 +129,7 @@ item:
 	| iso_8601_date
 	| iso_8601_date_time
 	| day_or_month
-	| relative
+	| relative_offset
 	| iso_8601_duration
 	| integer
 	| T_IGNORE;
@@ -341,11 +349,11 @@ day_or_month:
 		// March
 		yylex.(*dateLexer).setMonths($1, 0)
 	}
-	| T_RELATIVE T_DAYNAME {
+	| relative T_DAYNAME {
 		// Next tuesday
 		yylex.(*dateLexer).setDays($2, $1)
 	}
-	| T_RELATIVE T_MONTHNAME {
+	| relative T_MONTHNAME {
 		// Next march
 		yylex.(*dateLexer).setMonths($2, $1)
 	}
@@ -375,14 +383,14 @@ day_or_month:
 		l.setDays($3, $1.i)
 		l.setMonths($5, 0, $6.i)
 	}
-	| T_INTEGER T_DAYQUAL T_DAYNAME T_OF T_RELATIVE T_MONTHNAME {
+	| T_INTEGER T_DAYQUAL T_DAYNAME T_OF relative T_MONTHNAME {
 		// 3rd Tuesday of next March
 		l := yylex.(*dateLexer)
 		l.setDays($3, $1.i)
 		l.setMonths($6, $5)
 	};
 
-relative:
+relative_offset:
 	relunits 
 	| relunits T_AGO {
 		yylex.(*dateLexer).setAgo()
@@ -393,20 +401,20 @@ relunits:
 	| relunit relunits;
 
 relunit:
-	o_sign_integer T_OFFSET {
+	o_sign_integer offset {
 		yylex.(*dateLexer).addOffset(offset($2), $1.i)
 	}
-	| T_RELATIVE T_OFFSET {
+	| relative offset {
 		yylex.(*dateLexer).addOffset(offset($2), $1)
 	} 
-	| 'A' T_OFFSET {
+	| 'A' offset {
 		yylex.(*dateLexer).addOffset(offset($2), 1)
 	} 
 	| o_sign_integer T_DAYS {
 		// Special-case to handle "week" and "fortnight"
 		yylex.(*dateLexer).addOffset(O_DAY, $1.i * $2)
 	}
-	| T_RELATIVE T_DAYS {
+	| relative T_DAYS {
 		yylex.(*dateLexer).addOffset(O_DAY, $1 * $2)
 	}
 	| 'A' T_DAYS {

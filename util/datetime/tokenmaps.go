@@ -23,6 +23,8 @@ var wordTokenMap = wordMap{
 	"IN":  T_IGNORE,
 	"AT":  T_IGNORE,
 	"ON":  T_IGNORE,
+	// Ambiguity problems: 2nd vs. the time unit
+	"SECOND": T_SECOND,
 }
 
 func (wtm wordMap) Lookup(input string, lval *yySymType) (int, bool) {
@@ -56,7 +58,8 @@ var numTokenMap = numMap{
 	"MINUTE": {T_OFFSET, int(O_MIN)},
 	"MIN":    {T_OFFSET, int(O_MIN)},
 	//	"M":         {T_ISO, int(O_MIN)},
-	"SECOND":    {T_OFFSET, int(O_SEC)},
+	// Ambiguity problems.
+	//  "SECOND":    {T_OFFSET, int(O_SEC)},
 	"SEC":       {T_OFFSET, int(O_SEC)},
 	"S":         {T_ISOHS, int(O_SEC)},
 	"TOMORROW":  {T_DAYSHIFT, 1},
