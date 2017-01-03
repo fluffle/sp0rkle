@@ -18,7 +18,9 @@ type timeTests []timeTest
 
 func (tt timeTests) run(t *testing.T, start time.Time) {
 	for i, test := range tt {
+		DPrintf("\nStarting parse of %q\n\n", test.in)
 		ret, ok := parse(test.in, start)
+		DPrintf("\nEnding parse of %q\n", test.in)
 		if !ok || !ret.Equal(test.t) {
 			t.Errorf("Unable to parse test %d\nin: %s\nexp: %s\ngot: %s",
 				i+1, test.in, test.t, ret)
@@ -351,18 +353,25 @@ func TestParseRelativeDays(t *testing.T) {
 		{"this wednesday", mkt(0)},
 		{"next wednesday", mkt(7)},
 		{"last wednesday", mkt(-7)},
+		{"this day", mkt(0)},
+		{"first wednesday", mkt(7)},
+		{"second wednesday", mkt(14)},
 		{"thursday", mkt(1)},
 		{"this thursday", mkt(1)},
 		{"next thursday", mkt(1)},
 		{"last thursday", mkt(-6)},
+		{"next day", mkt(1)},
+		{"first day", mkt(1)},
 		{"friday", mkt(2)},
 		{"this friday", mkt(2)},
 		{"next friday", mkt(2)},
 		{"last friday", mkt(-5)},
+		{"second day", mkt(2)},
 		{"saturday", mkt(3)},
 		{"this saturday", mkt(3)},
 		{"next saturday", mkt(3)},
 		{"last saturday", mkt(-4)},
+		{"third day", mkt(3)},
 		{"sunday", mkt(4)},
 		{"this sunday", mkt(4)},
 		{"next sunday", mkt(4)},
@@ -397,14 +406,19 @@ func TestParseRelativeMonths(t *testing.T) {
 		{"this june", mkt(0)},
 		{"next june", mkt(12)},
 		{"last june", mkt(-12)},
+		{"this month", mkt(0)},
+		{"second june", mkt(24)},
 		{"july", mkt(1)},
 		{"this july", mkt(1)},
 		{"next july", mkt(1)},
 		{"last july", mkt(-11)},
+		{"next month", mkt(1)},
+		{"first month", mkt(1)},
 		{"august", mkt(2)},
 		{"this august", mkt(2)},
 		{"next august", mkt(2)},
 		{"last august", mkt(-10)},
+		{"second month", mkt(2)},
 		{"september", mkt(3)},
 		{"this september", mkt(3)},
 		{"next september", mkt(3)},
@@ -485,6 +499,35 @@ func TestAbsDayMonth(t *testing.T) {
 	}
 	tests.run(t, rel)
 }
+
+/* I'm not smart enough for this :-(
+func TestRelDayMonth(t *testing.T) {
+	mkt := func(day, month int) time.Time {
+		// Absolute day of month relative to June 2014
+		return time.Date(2014, time.Month(6+month), day, 0, 0, 0, 0, time.UTC)
+	}
+	// Our base date is 22nd June 2014
+	rel := mkt(22, 0)
+	tests := timeTests{
+		{"this day of the month", mkt(22, 0)},
+		{"first day of this month", mkt(1, 0)},
+		{"first sunday of this month", mkt(1, 0)},
+		{"first tuesday of this month", mkt(3, 0)},
+		{"first saturday of this month", mkt(7, 0)},
+		{"first day of next month", mkt(1, 1)},
+		{"first tuesday of next month", mkt(1, 1)},
+		{"first thursday of next month", mkt(3, 1)},
+		{"first monday of next month", mkt(7, 1)},
+		{"third tuesday of next month", mkt(15, 1)},
+		{"second day of last month", mkt(2, -1)},
+		{"second wednesday of last month", mkt(14, -1)},
+		// Testing the behaviour of the time package too.
+		{"last day of this month", mkt(30, 0)},
+		{"last day of this month", mkt(0, 1)},
+	}
+	tests.run(t, rel)
+}
+*/
 
 func TestUnixTime(t *testing.T) {
 	rel := time.Now()
