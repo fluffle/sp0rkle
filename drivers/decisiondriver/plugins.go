@@ -19,7 +19,7 @@ func randPlugin(val string, ctx *bot.Context) string {
 
 func decidePlugin(val string, ctx *bot.Context) string {
 	f := func(s string) string {
-		if options := splitDelimitedString(s); len(options) > 0 {
+		if options, err := splitDelimitedString(s); len(options) > 0 && err == nil {
 			return strings.TrimSpace(options[rand.Intn(len(options))])
 		}
 		return "<plugin error>"

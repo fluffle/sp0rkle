@@ -6,38 +6,34 @@ import (
 )
 
 func TestSplitDelimitedString(t *testing.T) {
-	tests := []string{
-		"singlevalue",
-		"AAA BBB CCC",
-		"DDD | EEE",
-		"FFF | GGG | HHH",
-		"spam | spam and sausage | eggs | ham | spam eggs and spam",
-		`"spam" "spam and sausage" "eggs" "ham" "spam spam spam spam eggs and spam"`,
-		`mixed "quoting styles" 'just to' cause problems`,
-		`"cheese" "ham`,
-		`'cheese' 'carrots' 'sausage'`,
-		`"foo bar" "foo's bar" "something with spaces in it"`,
-		`"foobar" "bar" "cheese"`,
+	tests := []struct {
+		in   string
+		want []string
+		err  error
+	}{
+		{"singlevalue", []string{"singlevalue"}, nil},
+		{"AAA BBB CCC", []string{"AAA", "BBB", "CCC"}, nil},
+		{"DDD | EEE", []string{"DDD ", " EEE"}, nil},
+		{"FFF | GGG | HHH", []string{"FFF ", " GGG ", " HHH"}, nil},
+		{"spam | spam and sausage | eggs | ham | spam eggs and spam",
+			[]string{"spam ", " spam and sausage ", " eggs ", " ham ", " spam eggs and spam"}, nil},
+		{`"spam" "spam and sausage" "eggs" "ham" "spam spam spam spam eggs and spam"`,
+			[]string{"spam", "spam and sausage", "eggs", "ham", "spam spam spam spam eggs and spam"}, nil},
+		{`mixed "quoting styles" 'just to' cause problems`,
+			[]string{"mixed", "quoting styles", "just to", "cause", "problems"}, nil},
+		{`'cheese' 'carrots' 'sausage'`, []string{"cheese", "carrots", "sausage"}, nil},
+		{`"foo bar" "foo's bar" "something with spaces in it"`,
+			[]string{"foo bar", "foo's bar", "something with spaces in it"}, nil},
+		{`"foobar" "bar" "cheese"`, []string{"foobar", "bar", "cheese"}, nil},
+		// Error condition.
+		{`"cheese" "ham`, nil, ErrUnbalanced},
 	}
-	expected := [][]string{
-		[]string{"singlevalue"},
-		[]string{"AAA", "BBB", "CCC"},
-		[]string{"DDD ", " EEE"},
-		[]string{"FFF ", " GGG ", " HHH"},
-		[]string{"spam ", " spam and sausage ", " eggs ", " ham ", " spam eggs and spam"},
-		[]string{"spam", "spam and sausage", "eggs", "ham", "spam spam spam spam eggs and spam"},
-		[]string{"mixed", "quoting styles", "just to", "cause", "problems"},
-		[]string{},
-		[]string{"cheese", "carrots", "sausage"},
-		[]string{"foo bar", "foo's bar", "something with spaces in it"},
-		[]string{"foobar", "bar", "cheese"},
-	}
-	for i, s := range tests {
-		ret := splitDelimitedString(s)
+	for _, s := range tests {
+		got, err := splitDelimitedString(s.in)
 		// We don't trim space from the possible choices *in* choices()
 		// as it's only really necessary to do so for the one chosen.
-		if !reflect.DeepEqual(expected[i], ret) {
-			t.Errorf("Test: %s\nExpected: %#v\nGot: %#v\n\n", s, expected[i], ret)
+		if err != s.err || !reflect.DeepEqual(s.want, got) {
+			t.Errorf("splitDelimitedString(%s) = (%v, %v), want (%v, %v)\n", s.in, got, err, s.want, s.err)
 		}
 	}
 }

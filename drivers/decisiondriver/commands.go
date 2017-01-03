@@ -8,7 +8,11 @@ import (
 )
 
 func decideCmd(ctx *bot.Context) {
-	opts := splitDelimitedString(ctx.Text())
+	opts, err := splitDelimitedString(ctx.Text())
+	if len(opts) == 0 || err != nil {
+		ctx.ReplyN("I can't decide: %v", err)
+		return
+	}
 	chosen := strings.TrimSpace(opts[rand.Intn(len(opts))])
 	ctx.ReplyN("%s", chosen)
 }

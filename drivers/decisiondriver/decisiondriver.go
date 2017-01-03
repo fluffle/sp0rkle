@@ -3,6 +3,7 @@ package decisiondriver
 // A simple driver to implement decisions based on random numbers. No, not 4.
 
 import (
+	"errors"
 	"fmt"
 	"math/rand"
 	"strconv"
@@ -13,6 +14,8 @@ import (
 	"github.com/fluffle/sp0rkle/bot"
 	"github.com/fluffle/sp0rkle/util"
 )
+
+var ErrUnbalanced = errors.New("unbalanced quotes")
 
 func Init() {
 	bot.Rewrite(randPlugin)
@@ -55,7 +58,7 @@ func randomFloatAsString(val string) string {
 	return fmt.Sprintf(format, rnd)
 }
 
-func splitDelimitedString(val string) []string {
+func splitDelimitedString(val string) ([]string, error) {
 	// We accept three different delimiter types in the input string, and we use
 	// the following heuristics to determine what type of parsing style to use.
 
@@ -94,18 +97,18 @@ func splitDelimitedString(val string) []string {
 	return simpleSplit(val)
 }
 
-func simpleSplit(val string) []string {
+func simpleSplit(val string) ([]string, error) {
 	if strings.Index(val, "|") != -1 {
 		// | is a simple delimiter
 		// NOTE: spaces either side of the | are taken care of by the caller
-		return strings.Split(val, "|")
+		return strings.Split(val, "|"), nil
 	}
 	// String doesn't contain any separator chars,
 	// so is just a list of options to choose from
-	return strings.Split(val, " ")
+	return strings.Split(val, " "), nil
 }
 
-func quoteSplit(val string) []string {
+func quoteSplit(val string) ([]string, error) {
 	ret := make([]string, 0, 10)
 	l := &util.Lexer{Input: val}
 	for {
@@ -120,17 +123,15 @@ func quoteSplit(val string) []string {
 			// Advance over closing quote and test for mismatched quotes
 			if l.Next() != sep {
 				// If we don't find the closing quote, something is broken
-				return []string{}
+				return nil, ErrUnbalanced
 			}
 		case 0:
-			return ret
+			return ret, nil
 		default:
 			// It's not a quote or a space, so scan until the next space char.
-			// Hopefully on IRC the mismatch between unicode.IsSpace and ' '
-			// won't be *too* apparent...
-			ret = append(ret, l.Find(' '))
+			ret = append(ret, l.Not(unicode.IsSpace))
 		}
 	}
 	// Shouldn't ever be reached, but required for the go compiler
-	return ret
+	return ret, nil
 }
