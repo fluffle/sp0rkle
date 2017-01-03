@@ -13,6 +13,12 @@ import (
 
 var DEBUG = false
 
+func DPrintf(f string, args ...interface{}) {
+	if DEBUG {
+		fmt.Printf(f, args...)
+	}
+}
+
 // Indexes for relTime
 type offset int
 
@@ -198,9 +204,7 @@ func (l *dateLexer) Error(e string) {
 }
 
 func (l *dateLexer) setUnix(epoch int64) {
-	if DEBUG {
-		fmt.Printf("Setting unix timestamp to %d.\n", epoch)
-	}
+	DPrintf("Setting unix timestamp to %d.\n", epoch)
 	if l.state(HAVE_DATETIME, true) {
 		l.Error("unix timestamp plus other time/date specifier")
 		return
@@ -217,9 +221,7 @@ func (l *dateLexer) setTime(h, m, s int, loc *time.Location) {
 		loc = Zone(*timezone)
 	}
 	h, m, s = h%24, m%60, s%60
-	if DEBUG {
-		fmt.Printf("Setting time to %d:%d:%d (%s)\n", h, m, s, loc)
-	}
+	DPrintf("Setting time to %d:%d:%d (%s)\n", h, m, s, loc)
 	if l.state(HAVE_TIME, true) {
 		l.Error("Parsed two times")
 		return
@@ -243,9 +245,7 @@ func (l *dateLexer) setHMS(hms int, ln int, loc *time.Location) {
 }
 
 func (l *dateLexer) setDate(y, m, d int) {
-	if DEBUG {
-		fmt.Printf("Setting date to %d-%d-%d\n", y, m, d)
-	}
+	DPrintf("Setting date to %d-%d-%d\n", y, m, d)
 	if l.state(HAVE_DATE, true) {
 		l.Error("Parsed two dates")
 		return
@@ -254,9 +254,7 @@ func (l *dateLexer) setDate(y, m, d int) {
 }
 
 func (l *dateLexer) setDay(d int) {
-	if DEBUG {
-		fmt.Printf("Setting day to %d\n", d)
-	}
+	DPrintf("Setting day to %d\n", d)
 	if l.state(HAVE_DAY, true) {
 		l.Error("Parsed two absolute days")
 		return
@@ -265,9 +263,7 @@ func (l *dateLexer) setDay(d int) {
 }
 
 func (l *dateLexer) setDays(d, n int, year ...int) {
-	if DEBUG {
-		fmt.Printf("Setting days to %d %s\n", n, time.Weekday(d))
-	}
+	DPrintf("Setting days to %d %s\n", n, time.Weekday(d))
 	if l.state(HAVE_DAYS, true) {
 		l.Error("Parsed two days")
 	}
@@ -287,17 +283,13 @@ func (l *dateLexer) setWeek(year, week, wday int) {
 		jan4 = 7
 	}
 	ord := week*7 + wday - jan4 - 3
-	if DEBUG {
-		fmt.Printf("Setting week to %d week %d day %d (ord=%d, jan4=%d)\n",
-			year, week, wday, ord, jan4)
-	}
+	DPrintf("Setting week to %d week %d day %d (ord=%d, jan4=%d)\n",
+		year, week, wday, ord, jan4)
 	l.setDate(year, 1, ord)
 }
 
 func (l *dateLexer) setMonths(m, n int, year ...int) {
-	if DEBUG {
-		fmt.Printf("Setting month to %d %s\n", n, time.Month(m))
-	}
+	DPrintf("Setting month to %d %s\n", n, time.Month(m))
 	if l.state(HAVE_MONTHS, true) {
 		l.Error("Parsed two months")
 		return
@@ -310,6 +302,7 @@ func (l *dateLexer) setMonths(m, n int, year ...int) {
 }
 
 func (l *dateLexer) setYear(year int) {
+	DPrintf("Setting year to %d\n", year)
 	if l.state(HAVE_DATE) {
 		l.date = time.Date(year, l.date.Month(), l.date.Day(),
 			0, 0, 0, 0, time.Local)
@@ -332,18 +325,18 @@ func (l *dateLexer) setYMD(ymd int, ln int) {
 			year += 2000
 		}
 	}
+	DPrintf("Setting YYYY-MM-DD to %04d-%02d-%02d\n", year, month, day)
 	l.setDate(year, month, day)
 }
 
 func (l *dateLexer) addOffset(off offset, rel int) {
-	if DEBUG {
-		fmt.Printf("Adding relative offset of %d %s\n", rel, off)
-	}
+	DPrintf("Adding relative offset of %d %s\n", rel, off)
 	l.offsets[off] += rel
 	l.state(HAVE_OFFSET, true)
 }
 
 func (l *dateLexer) setAgo() {
+	DPrintf("Setting all offsets to negative because of 'ago'.\n")
 	if l.state(HAVE_AGO, true) {
 		l.Error("Parsed two agos")
 		return
@@ -362,9 +355,6 @@ func (l *dateLexer) resolveTime(rel time.Time) time.Time {
 	//   b) save the integer number of hours as "days" and add that
 	// Currently, do (a), but (b) would be nice.
 	rel = time.Date(y, m, d, h, n, s, 0, l.time.Location())
-	if DEBUG {
-		fmt.Printf("Parsed time as %s %s\n", rel.Weekday(), rel)
-	}
 	return rel
 }
 
@@ -376,9 +366,6 @@ func (l *dateLexer) resolveDate(rel time.Time) time.Time {
 	}
 	h, n, s := rel.Clock()
 	rel = time.Date(y, m, d, h, n, s, 0, rel.Location())
-	if DEBUG {
-		fmt.Printf("Parsed date as %s %s\n", rel.Weekday(), rel)
-	}
 	return rel
 }
 
@@ -386,9 +373,6 @@ func (l *dateLexer) resolveDay(rel time.Time) time.Time {
 	y, m, _ := rel.Date()
 	h, n, s := rel.Clock()
 	rel = time.Date(y, m, l.day, h, n, s, 0, rel.Location())
-	if DEBUG {
-		fmt.Printf("Parsed day as %s %s\n", rel.Weekday(), rel)
-	}
 	return rel
 }
 
@@ -398,8 +382,10 @@ func (l *dateLexer) dayOffset(rel time.Time) time.Time {
 	// or *today* whilst "next <day>" *always* refers to the coming <day>.
 	diff := int(l.days.day - rel.Weekday())
 	if diff < 0 && l.days.num <= 0 {
+		DPrintf("Day offset %d->%d, diff=%d.\n", l.days.num, l.days.num+1, diff)
 		l.days.num++
 	} else if diff > 0 && l.days.num > 0 {
+		DPrintf("Day offset %d->%d, diff=%d.\n", l.days.num, l.days.num-1, diff)
 		l.days.num--
 	}
 	rel = rel.AddDate(0, 0, l.days.num*7+diff)
@@ -412,11 +398,14 @@ func (l *dateLexer) monthOffset(rel time.Time) time.Time {
 		// If just "march" or "this march" find closest month
 		// preferring 6 months in future over 6 months in past
 		diff = ((diff + 5) % 12) - 5
+		DPrintf("Month offset %d months\n", diff)
 		return rel.AddDate(0, diff, 0)
 	}
 	if diff < 0 && l.months.num < 0 {
+		DPrintf("Month offset %d->%d, diff=%d.\n", l.months.num, l.months.num+1, diff)
 		l.months.num++
 	} else if diff > 0 && l.months.num > 0 {
+		DPrintf("Month offset %d->%d, diff=%d.\n", l.months.num, l.months.num-1, diff)
 		l.months.num--
 	}
 	return rel.AddDate(0, l.months.num*12+diff, 0)
@@ -430,18 +419,24 @@ func (l *dateLexer) resolveDMY(rel time.Time) time.Time {
 	switch l.states & HAVE_DMY {
 	case HAVE_MYEAR + HAVE_MONTHS:
 		// this is month year, so just set those and bail out
+		DPrintf("MYEAR & MONTHS\n")
 		rel = mkrel(l.months.year, l.months.month, rel.Day())
 	case HAVE_DYEAR + HAVE_DAYS:
 		// this is num'th weekday of year, so compute day offset from "jan 0"
+		DPrintf("DYEAR & DAYS\n")
 		rel = l.dayOffset(mkrel(l.days.year, 1, 0))
 	case HAVE_MYEAR + HAVE_MONTHS + HAVE_DAYS:
 		// this is num'th weekday of month year, so offset from "0th" of month in year
+		DPrintf("MYEAR & MONTHS & DAYS\n")
 		rel = l.dayOffset(mkrel(l.months.year, l.months.month, 0))
 	case HAVE_DAYS:
+		DPrintf("DAYS\n")
 		rel = l.dayOffset(rel)
 	case HAVE_MONTHS:
+		DPrintf("MONTHS\n")
 		rel = l.monthOffset(rel)
 	case HAVE_MONTHS + HAVE_DAYS:
+		DPrintf("MONTHS & DAYS\n")
 		if l.months.month == 0 {
 			// just num'th weekday (of this month, implicitly)
 			l.months.month = rel.Month()
@@ -450,18 +445,16 @@ func (l *dateLexer) resolveDMY(rel time.Time) time.Time {
 		// this is num'th weekday of month, so we need to offset from "0th"
 		rel = l.dayOffset(mkrel(rel.Year(), rel.Month(), 0))
 	case HAVE_MYEAR:
+		DPrintf("MYEAR\n")
 		// These on their own are a little odd but probably due to the hack at
 		// datetime.y:163 so just set the explicit year and return
 		rel = mkrel(l.months.year, rel.Month(), rel.Day())
 	case HAVE_DYEAR:
+		DPrintf("DYEAR\n")
 		rel = mkrel(l.days.year, rel.Month(), rel.Day())
 	default:
 		panic("oh fuck this is too complicated :-(\n" + l.states.String())
 	}
-	if DEBUG {
-		fmt.Printf("Parsed days as %s %s\n", rel.Weekday(), rel)
-	}
-
 	return rel
 }
 
@@ -479,25 +472,18 @@ func (l *dateLexer) resolveOffset(rel time.Time) time.Time {
 
 func lexAndParse(input string) (*dateLexer, int) {
 	lexer := &dateLexer{Lexer: &util.Lexer{Input: input}}
-	if DEBUG {
+	if false {
 		fmt.Println("Parsing", input)
 		yyDebug = 5
 	}
 	if ret := yyParse(lexer); ret != 0 {
 		return nil, ret
 	}
-	if DEBUG {
-		fmt.Println("state: ", lexer.states)
-		fmt.Println("time: ", lexer.time)
-		fmt.Println("date: ", lexer.date)
-		fmt.Println("days: ", lexer.days)
-		fmt.Println("months: ", lexer.months)
-		fmt.Println("offset: ", lexer.offsets)
-	}
 	return lexer, 0
 }
 
 func resolve(l *dateLexer, rel time.Time) (time.Time, bool) {
+	DPrintf("Lexer state: %s\n", l.states)
 	if (l.state(HAVE_DATE) && l.state(HAVE_ABSYEAR)) ||
 		(l.state(HAVE_DYEAR) && l.state(HAVE_MYEAR)) {
 		// DATE is absolute, another absolute DAYS or MONTHS is ambiguous
@@ -507,21 +493,37 @@ func resolve(l *dateLexer, rel time.Time) (time.Time, bool) {
 
 	// Resolve any absolute time and date first
 	if l.state(HAVE_TIME) {
+		DPrintf("HAVE_TIME before: %s %s\n", rel.Weekday(), rel)
+		DPrintf("Lexer time: %s\n", l.time)
 		rel = l.resolveTime(rel)
+		DPrintf("HAVE_TIME after: %s %s\n", rel.Weekday(), rel)
 	}
 	if l.state(HAVE_DATE) {
+		DPrintf("HAVE_DATE before: %s %s\n", rel.Weekday(), rel)
+		DPrintf("Lexer date: %s\n", l.date)
 		rel = l.resolveDate(rel)
+		DPrintf("HAVE_DATE after: %s %s\n", rel.Weekday(), rel)
 	}
 	if l.state(HAVE_DAY) {
+		DPrintf("HAVE_DAY before: %s %s\n", rel.Weekday(), rel)
+		DPrintf("Lexer day: %d\n", l.day)
 		rel = l.resolveDay(rel)
+		DPrintf("HAVE_DAY after: %s %s\n", rel.Weekday(), rel)
+	}
+	// Apply any offsets (so that relative days are from the offset time)
+	if l.state(HAVE_OFFSET) {
+		DPrintf("HAVE_OFFSET before: %s %s\n", rel.Weekday(), rel)
+		DPrintf("Lexer offsets: %s\n", l.offsets)
+		rel = l.resolveOffset(rel)
+		DPrintf("HAVE_OFFSET after: %s %s\n", rel.Weekday(), rel)
 	}
 	// Resolve relative/absolute day/month/years
 	if l.state(HAVE_DMY) {
+		DPrintf("HAVE_DMY before: %s %s\n", rel.Weekday(), rel)
+		DPrintf("Lexer months: %s\n", l.months)
+		DPrintf("Lexer days: %s\n", l.days)
 		rel = l.resolveDMY(rel)
-	}
-	// And then apply any offset
-	if l.state(HAVE_OFFSET) {
-		rel = l.resolveOffset(rel)
+		DPrintf("HAVE_DMY after: %s %s\n", rel.Weekday(), rel)
 	}
 	return rel, true
 }
