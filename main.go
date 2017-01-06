@@ -29,6 +29,7 @@ import (
 	"github.com/fluffle/sp0rkle/drivers/seendriver"
 	"github.com/fluffle/sp0rkle/drivers/statsdriver"
 	"github.com/fluffle/sp0rkle/drivers/urldriver"
+	"github.com/fluffle/sp0rkle/util/datetime"
 )
 
 var (
@@ -38,12 +39,16 @@ var (
 		"Address of MongoDB server to connect to, defaults to localhost.")
 	backupDir   = flag.String("backup_dir", "backup", "Where to write BoltDB backups to.")
 	backupEvery = flag.Duration("backup_every", 24*time.Hour, "How often to write backups.")
+	timezone    = flag.String("timezone", "Europe/London", "Default timezone for date/time.")
 )
 
 func main() {
 	flag.Parse()
 	logging.InitFromFlags()
 	golog.Init()
+	if err := datetime.SetTZ(*timezone); err != nil {
+		logging.Fatal("Failed to set default timezone from --timezone=%q: %v", *timezone, err)
+	}
 
 	// Slightly more random than 1.
 	rand.Seed(time.Now().UnixNano() * int64(os.Getpid()))

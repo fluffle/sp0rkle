@@ -1,7 +1,6 @@
 package datetime
 
 import (
-	"flag"
 	"os"
 	"path"
 	"runtime"
@@ -19,18 +18,18 @@ type timeTests []timeTest
 func (tt timeTests) run(t *testing.T, start time.Time) {
 	for i, test := range tt {
 		DPrintf("\nStarting parse of %q\n\n", test.in)
-		ret, ok := parse(test.in, start)
+		ret, err := parse(test.in, start)
 		DPrintf("\nEnding parse of %q\n", test.in)
-		if !ok || !ret.Equal(test.t) {
-			t.Errorf("Unable to parse test %d\nin: %s\nexp: %s\ngot: %s",
-				i+1, test.in, test.t, ret)
+		if err != nil || !ret.Equal(test.t) {
+			t.Errorf("Unable to parse test %d\nin: %s\nexp: %s\ngot: %s (err=%v)",
+				i+1, test.in, test.t, ret, err)
 		}
 	}
 
 }
 
 func TestParseTimeFormats(t *testing.T) {
-	flag.Set("timezone", "UTC")
+	local = time.UTC
 	// RFC822 doesn't specify seconds, and Stamp doesn't specify year
 	ref := time.Date(2004, 6, 22, 13, 10, 0, 0, time.UTC)
 	formats := []string{
@@ -49,17 +48,17 @@ func TestParseTimeFormats(t *testing.T) {
 	}
 	for i, f := range formats {
 		in := ref.Format(f)
-		ret, ok := Parse(in)
-		if !ok || !ret.Equal(ref) {
-			t.Errorf("Unable to parse format %d\nin: %s\ngot: %s", i, in, ret)
+		ret, err := Parse(in)
+		if err != nil || !ret.Equal(ref) {
+			t.Errorf("Unable to parse format %d\nin: %s\ngot: %s (err=%v)", i, in, ret, err)
 		}
 	}
 }
 
 func TestParseTime(t *testing.T) {
-	now := time.Now()
+	now := time.Now().UTC()
 	mkt := func(h, m, s int, l ...string) time.Time {
-		loc := time.Local
+		loc := time.UTC
 		if len(l) > 0 {
 			loc = zone(l[0])
 		}
@@ -174,7 +173,7 @@ func TestParseAllTimezonesInZoneinfo(t *testing.T) {
 		return
 	}
 
-	now := time.Now()
+	now := time.Now().UTC()
 	mkt := func(h, m, s int, l ...string) time.Time {
 		loc := time.Local
 		if len(l) > 0 {
@@ -530,7 +529,7 @@ func TestRelDayMonth(t *testing.T) {
 */
 
 func TestUnixTime(t *testing.T) {
-	rel := time.Now()
+	rel := time.Now().UTC()
 	tests := timeTests{
 		{"@1234567890", time.Date(2009, 2, 13, 23, 31, 30, 0, time.UTC)},
 	}

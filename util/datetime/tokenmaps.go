@@ -1,15 +1,11 @@
 package datetime
 
 import (
-	"flag"
-	"fmt"
+	"sync"
 	"time"
 )
 
 const TimeFormat = "15:04:05, Monday 2 January 2006 MST"
-
-var timezone = flag.String("timezone", "Europe/London",
-	"The timezone to display reminder times in.")
 
 type tokenMap interface {
 	Lookup(input string, lval *yySymType) (tokenType int, ok bool)
@@ -166,8 +162,21 @@ func (rtm relMap) Lookup(input string, lval *yySymType) (int, bool) {
 type zoneMap map[string]string
 
 var zoneCache = make(map[string]*time.Location)
+var zoneMu = sync.Mutex{}
+var local *time.Location
+
+func SetTZ(timezone string) (err error) {
+	local, err = time.LoadLocation(timezone)
+	return err
+}
+
+func TZ() *time.Location {
+	return local
+}
 
 func zone(loc string) *time.Location {
+	zoneMu.Lock()
+	defer zoneMu.Unlock()
 	if l, ok := zoneCache[loc]; ok {
 		return l
 	}
@@ -187,10 +196,14 @@ func Zone(loc string) *time.Location {
 }
 
 func Format(t time.Time, format ...string) string {
-	if len(format) == 1 {
-		return t.In(Zone(*timezone)).Format(format[0])
+	if t.Location() == time.Local {
+		// Override local time with the value from --timezone.
+		t = t.In(local)
 	}
-	return t.In(Zone(*timezone)).Format(TimeFormat)
+	if len(format) == 1 {
+		return t.Format(format[0])
+	}
+	return t.Format(TimeFormat)
 }
 
 var zoneTokenMap = zoneMap{
@@ -285,20 +298,13 @@ type tokenMapList []tokenMap
 var tokenMaps = tokenMapList{wordTokenMap, numTokenMap, abbrTokenMap, relTokenMap, zoneTokenMap}
 
 func (l tokenMapList) Lookup(input string, lval *yySymType) (int, bool) {
-	if DEBUG {
-		fmt.Printf("Map lookup: %s\n", input)
-	}
-	// These maps are defined in tokenmaps.go
+	DPrintf("Map lookup: %s\n", input)
 	for _, m := range l {
 		if tok, ok := m.Lookup(input, lval); ok {
-			if DEBUG {
-				fmt.Printf("Map got: %d %d\n", lval.intval, tok)
-			}
+			DPrintf("Map got: %d %d\n", lval.intval, tok)
 			return tok, ok
 		}
 	}
-	if DEBUG {
-		fmt.Printf("Map lookup failed\n")
-	}
+	DPrintf("Map lookup failed\n")
 	return 0, false
 }

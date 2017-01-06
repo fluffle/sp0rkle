@@ -2,6 +2,7 @@
 package datetime
 
 import (
+	"errors"
 	"fmt"
 	"strconv"
 	"strings"
@@ -11,10 +12,8 @@ import (
 	"github.com/fluffle/sp0rkle/util"
 )
 
-var DEBUG = false
-
 func DPrintf(f string, args ...interface{}) {
-	if DEBUG {
+	if yyDebug > 0 {
 		fmt.Printf(f, args...)
 	}
 }
@@ -132,12 +131,14 @@ func (ls lexerState) String() string {
 type dateLexer struct {
 	*util.Lexer
 	hourfmt, ampmfmt, zonefmt string
+	rel                       time.Time // base time any relative offsets are computed against
 	time, date                time.Time // takes care of absolute time and date specs
 	day                       int       // takes care of absolute day of relative month
 	offsets                   relTime   // takes care of +- ymd hms
 	days                      relDays   // takes care of specific days into future
 	months                    relMonths // takes care of specific months into future
 	states                    lexerState
+	errors                    []string
 }
 
 func (l *dateLexer) state(s lexerState, v ...bool) bool {
@@ -200,7 +201,7 @@ func (l *dateLexer) Lex(lval *yySymType) int {
 }
 
 func (l *dateLexer) Error(e string) {
-	fmt.Println(e)
+	l.errors = append(l.errors, e)
 }
 
 func (l *dateLexer) setUnix(epoch int64) {
@@ -215,10 +216,7 @@ func (l *dateLexer) setUnix(epoch int64) {
 
 func (l *dateLexer) setTime(h, m, s int, loc *time.Location) {
 	if loc == nil {
-		// This is a dirty hack.
-		// TODO(fluffle): Pass a timezone into Parse() and deal
-		// with timezones in resolve().
-		loc = Zone(*timezone)
+		loc = l.rel.Location()
 	}
 	h, m, s = h%24, m%60, s%60
 	DPrintf("Setting time to %d:%d:%d (%s)\n", h, m, s, loc)
@@ -347,40 +345,37 @@ func (l *dateLexer) setAgo() {
 }
 
 // Replaces rel's hour, minute, second and time.Location with the lexer's time
-func (l *dateLexer) resolveTime(rel time.Time) time.Time {
-	y, m, d := rel.Date()
+func (l *dateLexer) resolveTime() {
+	y, m, d := l.rel.Date()
 	h, n, s := l.time.Clock()
 	// We can:
 	//   a) drop >24h info completely
 	//   b) save the integer number of hours as "days" and add that
 	// Currently, do (a), but (b) would be nice.
-	rel = time.Date(y, m, d, h, n, s, 0, l.time.Location())
-	return rel
+	l.rel = time.Date(y, m, d, h, n, s, 0, l.time.Location())
 }
 
 // Replaces rel's year, month and day with the lexer's date
-func (l *dateLexer) resolveDate(rel time.Time) time.Time {
+func (l *dateLexer) resolveDate() {
 	y, m, d := l.date.Date()
 	if y == 0 {
-		y = rel.Year()
+		y = l.rel.Year()
 	}
-	h, n, s := rel.Clock()
-	rel = time.Date(y, m, d, h, n, s, 0, rel.Location())
-	return rel
+	h, n, s := l.rel.Clock()
+	l.rel = time.Date(y, m, d, h, n, s, 0, l.rel.Location())
 }
 
-func (l *dateLexer) resolveDay(rel time.Time) time.Time {
-	y, m, _ := rel.Date()
-	h, n, s := rel.Clock()
-	rel = time.Date(y, m, l.day, h, n, s, 0, rel.Location())
-	return rel
+func (l *dateLexer) resolveDay() {
+	y, m, _ := l.rel.Date()
+	h, n, s := l.rel.Clock()
+	l.rel = time.Date(y, m, l.day, h, n, s, 0, l.rel.Location())
 }
 
-func (l *dateLexer) dayOffset(rel time.Time) time.Time {
+func (l *dateLexer) dayOffset() {
 	// Correct for the assumption that "<day>" or "this <day>" generally
 	// refers to the coming <day> unless it refers to the day of this year
 	// or *today* whilst "next <day>" *always* refers to the coming <day>.
-	diff := int(l.days.day - rel.Weekday())
+	diff := int(l.days.day - l.rel.Weekday())
 	if diff < 0 && l.days.num <= 0 {
 		DPrintf("Day offset %d->%d, diff=%d.\n", l.days.num, l.days.num+1, diff)
 		l.days.num++
@@ -388,18 +383,18 @@ func (l *dateLexer) dayOffset(rel time.Time) time.Time {
 		DPrintf("Day offset %d->%d, diff=%d.\n", l.days.num, l.days.num-1, diff)
 		l.days.num--
 	}
-	rel = rel.AddDate(0, 0, l.days.num*7+diff)
-	return rel
+	l.rel = l.rel.AddDate(0, 0, l.days.num*7+diff)
 }
 
-func (l *dateLexer) monthOffset(rel time.Time) time.Time {
-	diff := int(l.months.month - rel.Month())
+func (l *dateLexer) monthOffset() {
+	diff := int(l.months.month - l.rel.Month())
 	if l.months.num == 0 {
 		// If just "march" or "this march" find closest month
 		// preferring 6 months in future over 6 months in past
 		diff = ((diff + 5) % 12) - 5
 		DPrintf("Month offset %d months\n", diff)
-		return rel.AddDate(0, diff, 0)
+		l.rel = l.rel.AddDate(0, diff, 0)
+		return
 	}
 	if diff < 0 && l.months.num < 0 {
 		DPrintf("Month offset %d->%d, diff=%d.\n", l.months.num, l.months.num+1, diff)
@@ -408,136 +403,130 @@ func (l *dateLexer) monthOffset(rel time.Time) time.Time {
 		DPrintf("Month offset %d->%d, diff=%d.\n", l.months.num, l.months.num-1, diff)
 		l.months.num--
 	}
-	return rel.AddDate(0, l.months.num*12+diff, 0)
+	l.rel = l.rel.AddDate(0, l.months.num*12+diff, 0)
 }
 
-func (l *dateLexer) resolveDMY(rel time.Time) time.Time {
-	h, n, s := rel.Clock()
+func (l *dateLexer) resolveDMY() {
+	h, n, s := l.rel.Clock()
 	mkrel := func(y int, m time.Month, d int) time.Time {
-		return time.Date(y, m, d, h, n, s, 0, rel.Location())
+		return time.Date(y, m, d, h, n, s, 0, l.rel.Location())
 	}
 	switch l.states & HAVE_DMY {
 	case HAVE_MYEAR + HAVE_MONTHS:
 		// this is month year, so just set those and bail out
 		DPrintf("MYEAR & MONTHS\n")
-		rel = mkrel(l.months.year, l.months.month, rel.Day())
+		l.rel = mkrel(l.months.year, l.months.month, l.rel.Day())
 	case HAVE_DYEAR + HAVE_DAYS:
 		// this is num'th weekday of year, so compute day offset from "jan 0"
 		DPrintf("DYEAR & DAYS\n")
-		rel = l.dayOffset(mkrel(l.days.year, 1, 0))
+		l.rel = mkrel(l.days.year, 1, 0)
+		l.dayOffset()
 	case HAVE_MYEAR + HAVE_MONTHS + HAVE_DAYS:
 		// this is num'th weekday of month year, so offset from "0th" of month in year
 		DPrintf("MYEAR & MONTHS & DAYS\n")
-		rel = l.dayOffset(mkrel(l.months.year, l.months.month, 0))
+		l.rel = mkrel(l.months.year, l.months.month, 0)
+		l.dayOffset()
 	case HAVE_DAYS:
 		DPrintf("DAYS\n")
-		rel = l.dayOffset(rel)
+		l.dayOffset()
 	case HAVE_MONTHS:
 		DPrintf("MONTHS\n")
-		rel = l.monthOffset(rel)
+		l.monthOffset()
 	case HAVE_MONTHS + HAVE_DAYS:
 		DPrintf("MONTHS & DAYS\n")
 		if l.months.month == 0 {
 			// just num'th weekday (of this month, implicitly)
-			l.months.month = rel.Month()
+			l.months.month = l.rel.Month()
 		}
-		rel = l.monthOffset(rel)
+		l.monthOffset()
 		// this is num'th weekday of month, so we need to offset from "0th"
-		rel = l.dayOffset(mkrel(rel.Year(), rel.Month(), 0))
+		l.rel = mkrel(l.rel.Year(), l.rel.Month(), 0)
+		l.dayOffset()
 	case HAVE_MYEAR:
 		DPrintf("MYEAR\n")
 		// These on their own are a little odd but probably due to the hack at
 		// datetime.y:163 so just set the explicit year and return
-		rel = mkrel(l.months.year, rel.Month(), rel.Day())
+		l.rel = mkrel(l.months.year, l.rel.Month(), l.rel.Day())
 	case HAVE_DYEAR:
 		DPrintf("DYEAR\n")
-		rel = mkrel(l.days.year, rel.Month(), rel.Day())
+		l.rel = mkrel(l.days.year, l.rel.Month(), l.rel.Day())
 	default:
 		panic("oh fuck this is too complicated :-(\n" + l.states.String())
 	}
-	return rel
 }
 
 // Applies the lexer's relative offset to the provided base time.
-func (l *dateLexer) resolveOffset(rel time.Time) time.Time {
-	rel = rel.AddDate(l.offsets[O_YEAR], l.offsets[O_MONTH], l.offsets[O_DAY])
-	rel = rel.Add(time.Hour*time.Duration(l.offsets[O_HOUR]) +
+func (l *dateLexer) resolveOffset() {
+	l.rel = l.rel.AddDate(l.offsets[O_YEAR], l.offsets[O_MONTH], l.offsets[O_DAY])
+	l.rel = l.rel.Add(time.Hour*time.Duration(l.offsets[O_HOUR]) +
 		time.Minute*time.Duration(l.offsets[O_MIN]) +
 		time.Second*time.Duration(l.offsets[O_SEC]))
-	if DEBUG {
-		fmt.Printf("Parsed offset as %s %s\n", rel.Weekday(), rel)
-	}
-	return rel
 }
 
-func lexAndParse(input string) (*dateLexer, int) {
-	lexer := &dateLexer{Lexer: &util.Lexer{Input: input}}
-	if false {
-		fmt.Println("Parsing", input)
-		yyDebug = 5
-	}
-	if ret := yyParse(lexer); ret != 0 {
-		return nil, ret
-	}
-	return lexer, 0
-}
-
-func resolve(l *dateLexer, rel time.Time) (time.Time, bool) {
+func (l *dateLexer) resolve() (time.Time, error) {
 	DPrintf("Lexer state: %s\n", l.states)
 	if (l.state(HAVE_DATE) && l.state(HAVE_ABSYEAR)) ||
 		(l.state(HAVE_DYEAR) && l.state(HAVE_MYEAR)) {
 		// DATE is absolute, another absolute DAYS or MONTHS is ambiguous
 		// Providing an absolute monthyear and an absolute dayyear is also bad
-		return time.Time{}, false
+		return time.Time{}, errors.New("multiple conflicting absolute dates")
 	}
 
 	// Resolve any absolute time and date first
 	if l.state(HAVE_TIME) {
-		DPrintf("HAVE_TIME before: %s %s\n", rel.Weekday(), rel)
+		DPrintf("HAVE_TIME before: %s %s\n", l.rel.Weekday(), l.rel)
 		DPrintf("Lexer time: %s\n", l.time)
-		rel = l.resolveTime(rel)
-		DPrintf("HAVE_TIME after: %s %s\n", rel.Weekday(), rel)
+		l.resolveTime()
+		DPrintf("HAVE_TIME after: %s %s\n", l.rel.Weekday(), l.rel)
 	}
 	if l.state(HAVE_DATE) {
-		DPrintf("HAVE_DATE before: %s %s\n", rel.Weekday(), rel)
+		DPrintf("HAVE_DATE before: %s %s\n", l.rel.Weekday(), l.rel)
 		DPrintf("Lexer date: %s\n", l.date)
-		rel = l.resolveDate(rel)
-		DPrintf("HAVE_DATE after: %s %s\n", rel.Weekday(), rel)
+		l.resolveDate()
+		DPrintf("HAVE_DATE after: %s %s\n", l.rel.Weekday(), l.rel)
 	}
 	if l.state(HAVE_DAY) {
-		DPrintf("HAVE_DAY before: %s %s\n", rel.Weekday(), rel)
+		DPrintf("HAVE_DAY before: %s %s\n", l.rel.Weekday(), l.rel)
 		DPrintf("Lexer day: %d\n", l.day)
-		rel = l.resolveDay(rel)
-		DPrintf("HAVE_DAY after: %s %s\n", rel.Weekday(), rel)
+		l.resolveDay()
+		DPrintf("HAVE_DAY after: %s %s\n", l.rel.Weekday(), l.rel)
 	}
-	// Apply any offsets (so that relative days are from the offset time)
+	// Apply any offsets (so that l.relative days are from the offset time)
 	if l.state(HAVE_OFFSET) {
-		DPrintf("HAVE_OFFSET before: %s %s\n", rel.Weekday(), rel)
+		DPrintf("HAVE_OFFSET before: %s %s\n", l.rel.Weekday(), l.rel)
 		DPrintf("Lexer offsets: %s\n", l.offsets)
-		rel = l.resolveOffset(rel)
-		DPrintf("HAVE_OFFSET after: %s %s\n", rel.Weekday(), rel)
+		l.resolveOffset()
+		DPrintf("HAVE_OFFSET after: %s %s\n", l.rel.Weekday(), l.rel)
 	}
-	// Resolve relative/absolute day/month/years
+	// Resolve l.relative/absolute day/month/years
 	if l.state(HAVE_DMY) {
-		DPrintf("HAVE_DMY before: %s %s\n", rel.Weekday(), rel)
+		DPrintf("HAVE_DMY before: %s %s\n", l.rel.Weekday(), l.rel)
 		DPrintf("Lexer months: %s\n", l.months)
 		DPrintf("Lexer days: %s\n", l.days)
-		rel = l.resolveDMY(rel)
-		DPrintf("HAVE_DMY after: %s %s\n", rel.Weekday(), rel)
+		l.resolveDMY()
+		DPrintf("HAVE_DMY after: %s %s\n", l.rel.Weekday(), l.rel)
 	}
-	return rel, true
+	return l.rel, nil
 }
 
-func parse(input string, rel time.Time) (time.Time, bool) {
-	lexer, ret := lexAndParse(input)
-	if lexer == nil || lexer.states == 0 {
-		fmt.Println("Parse error: ", ret)
-		return time.Time{}, false
+func parse(input string, rel time.Time) (time.Time, error) {
+	yyDebug = 0
+	yyErrorVerbose = true
+
+	lexer := &dateLexer{Lexer: &util.Lexer{Input: input}, rel: rel}
+	if ret := yyParse(lexer); ret != 0 {
+		return time.Time{}, errors.New(strings.Join(lexer.errors, "; "))
 	}
-	// return time.Time{}, false
-	return resolve(lexer, rel)
+	if lexer.states == 0 {
+		return time.Time{}, errors.New("no dates parsed from input")
+	}
+	return lexer.resolve()
 }
 
-func Parse(input string) (time.Time, bool) {
-	return parse(input, time.Now())
+func Parse(input string) (time.Time, error) {
+	return parse(input, time.Now().In(local))
+}
+
+func ParseZ(input string, zone *time.Location) (time.Time, error) {
+	return parse(input, time.Now().In(zone))
 }
