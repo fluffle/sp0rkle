@@ -2,13 +2,18 @@ package conf
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/fluffle/goirc/logging"
 	"github.com/fluffle/sp0rkle/db"
 	"gopkg.in/mgo.v2"
 )
 
-const COLLECTION = "conf"
+const (
+	COLLECTION = "conf"
+	// Conf namespace for per-nick timezones
+	zoneNs = "timezones"
+)
 
 var mongo db.C
 
@@ -36,6 +41,15 @@ var checker db.M
 func Ns(ns string) *both {
 	checker.Init(migrator{}, COLLECTION)
 	return &both{bolt: Bolt(ns), mongo: Mongo(ns), Checker: checker}
+}
+
+// Lazy, I shouldn't really do this ;-)
+func Zone(nick string, tz ...string) string {
+	if len(tz) > 0 && tz[0] == "" {
+		Ns(zoneNs).Delete(strings.ToLower(nick))
+		return ""
+	}
+	return Ns(zoneNs).String(strings.ToLower(nick), tz...)
 }
 
 type Entry struct {

@@ -175,6 +175,10 @@ func TZ() *time.Location {
 }
 
 func zone(loc string) *time.Location {
+	if loc == "" {
+		// time.LoadLocation("") returns UTC.
+		return nil
+	}
 	zoneMu.Lock()
 	defer zoneMu.Unlock()
 	if l, ok := zoneCache[loc]; ok {
@@ -193,6 +197,13 @@ func Zone(loc string) *time.Location {
 		return zone(zoneTokenMap[loc])
 	}
 	return zone(loc)
+}
+
+func ZoneOrLocal(loc string) *time.Location {
+	if z := Zone(loc); z != nil {
+		return z
+	}
+	return local
 }
 
 func Format(t time.Time, format ...string) string {

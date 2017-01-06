@@ -9,6 +9,7 @@ import (
 	"unicode/utf8"
 
 	"github.com/fluffle/sp0rkle/bot"
+	"github.com/fluffle/sp0rkle/collections/conf"
 	"github.com/fluffle/sp0rkle/util/calc"
 	"github.com/fluffle/sp0rkle/util/datetime"
 )
@@ -31,23 +32,23 @@ func calculate(ctx *bot.Context) {
 }
 
 func date(ctx *bot.Context) {
-	tstr, zone := ctx.Text(), ""
+	tstr, zstr := ctx.Text(), ""
 	if idx := strings.Index(tstr, "in "); idx != -1 {
-		tstr, zone = tstr[:idx], strings.TrimSpace(tstr[idx+3:])
+		tstr, zstr = tstr[:idx], strings.TrimSpace(tstr[idx+3:])
 	}
-	tm, ok := time.Now(), true
+	zone := datetime.Zone(zstr)
+	if zone == nil {
+		zone = datetime.ZoneOrLocal(conf.Zone(ctx.Nick))
+	}
+	tm := time.Now().In(zone)
 	if tstr != "" {
-		if tm, ok = datetime.Parse(tstr); !ok {
-			ctx.ReplyN("Couldn't parse time string '%s'.", tstr)
+		var err error
+		if tm, err = datetime.ParseZ(tstr, zone); err != nil {
+			ctx.ReplyN("Couldn't parse time string %q: %v.", tstr, err)
 			return
 		}
 	}
-	if loc := datetime.Zone(zone); zone != "" && loc != nil {
-		tm = tm.In(loc)
-		ctx.ReplyN("%s", tm.Format(datetime.TimeFormat))
-	} else {
-		ctx.ReplyN("%s", datetime.Format(tm))
-	}
+	ctx.ReplyN("%s", datetime.Format(tm))
 }
 
 func netmask(ctx *bot.Context) {

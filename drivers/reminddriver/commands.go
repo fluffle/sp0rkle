@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/fluffle/sp0rkle/bot"
+	"github.com/fluffle/sp0rkle/collections/conf"
 	"github.com/fluffle/sp0rkle/collections/reminders"
 	"github.com/fluffle/sp0rkle/util/datetime"
 	"github.com/fluffle/sp0rkle/util/push"
@@ -63,7 +64,10 @@ func set(ctx *bot.Context) {
 		ctx.ReplyN("You asked me to remind %s.", ctx.Text())
 		return
 	}
-	at, ok, reminder, timestr := time.Now(), false, "", ""
+	// Look up a per-user timezone if one is set.
+	z := datetime.ZoneOrLocal(conf.Zone(ctx.Nick))
+	// Parse the reminder time from the input.
+	at, err, reminder, timestr := time.Now(), error(nil), "", ""
 	for i := 1; i+1 < len(s); i++ {
 		lc := strings.ToLower(s[i])
 		if lc == "in" || lc == "at" || lc == "on" {
@@ -75,9 +79,8 @@ func set(ctx *bot.Context) {
 		} else {
 			continue
 		}
-		// TODO(fluffle): surface better errors from datetime.Parse
-		at, ok = datetime.Parse(timestr)
-		if ok {
+		at, err = datetime.ParseZ(timestr, z)
+		if err == nil {
 			reminder = strings.Join(s[1:i], " ")
 			break
 		}
@@ -86,17 +89,17 @@ func set(ctx *bot.Context) {
 		ctx.ReplyN("You asked me to remind %s.", ctx.Text())
 		return
 	}
-	if !ok {
-		ctx.ReplyN("Couldn't parse time string '%s'", timestr)
+	if err != nil {
+		ctx.ReplyN("Couldn't parse time string %q: %v", timestr, err)
 		return
 	}
 	now := time.Now()
-	start := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, time.Local)
+	start := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, datetime.TZ())
 	if at.Before(now) && at.After(start) {
 		at = at.Add(24 * time.Hour)
 	}
 	if at.Before(now) {
-		ctx.ReplyN("Time '%s' is in the past.", timestr)
+		ctx.ReplyN("Time %q is in the past.", timestr)
 		return
 	}
 	n, c := ctx.Storable()
@@ -124,12 +127,15 @@ func snooze(ctx *bot.Context) {
 		ctx.ReplyN("No record of an expired reminder for you, sorry!")
 		return
 	}
-	now := time.Now()
+	// Look up a per-user timezone if one is set.
+	z := datetime.ZoneOrLocal(conf.Zone(ctx.Nick))
+	now := time.Now().In(z)
 	at := now.Add(30 * time.Minute)
 	if ctx.Text() != "" {
-		at, ok = datetime.Parse(ctx.Text())
-		if !ok {
-			ctx.ReplyN("Couldn't parse time string '%s'.")
+		var err error
+		at, err = datetime.ParseZ(ctx.Text(), z)
+		if err != nil {
+			ctx.ReplyN("Couldn't parse time string %q: %v.", ctx.Text(), err)
 			return
 		}
 		if at.Before(now) {
@@ -177,4 +183,25 @@ func tell(ctx *bot.Context) {
 	// Any previously-generated list of reminders is now obsolete.
 	delete(listed, ctx.Nick)
 	ctx.ReplyN("%s", r.Acknowledge())
+}
+
+// zone
+func zone(ctx *bot.Context) {
+	fields := strings.Fields(ctx.Text())
+	if len(fields) == 0 {
+		ctx.ReplyN("Your timezone is ... fat? Like your mum?")
+		return
+	}
+	if z := datetime.Zone(fields[0]); z != nil {
+		conf.Zone(ctx.Nick, fields[0])
+		ctx.ReplyN("Reminders will now be in %q.", z)
+	} else {
+		ctx.ReplyN("Don't recognise %q as a valid timezone, sorry.", fields[0])
+	}
+}
+
+// unzone
+func unzone(ctx *bot.Context) {
+	conf.Zone(ctx.Nick, "")
+	ctx.ReplyN("I've forgotten where you live... honest!")
 }

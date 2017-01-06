@@ -50,6 +50,10 @@ func Init() {
 		"in|at|on <time>  -- Reminds nick about msg at time.")
 	bot.Command(snooze, "snooze", "snooze [duration]  -- "+
 		"Resets the previously-triggered reminder.")
+	bot.Command(zone, "my timezone is", "my timezone is <zone>  -- "+
+		"Sets a local timezone for your nick.")
+	bot.Command(unzone, "forget my timezone", "forget my timezone  -- "+
+		"Unsets a local timezone for your nick.")
 }
 
 func Remind(r *reminders.Reminder, ctx *bot.Context) {
