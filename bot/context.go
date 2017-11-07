@@ -32,7 +32,7 @@ type Context struct {
 	rws  RewriteSet
 }
 
-func context(conn *client.Conn, line *client.Line) *Context {
+func reqContext(conn *client.Conn, line *client.Line) *Context {
 	ctx := &Context{conn: conn, Line: line.Copy(), rws: bot.rewriters}
 	// This is a bit of a dirty hack; context() returns nil to ignore a line.
 	// TODO(fluffle): Ignores based on masks (or more likely regex).

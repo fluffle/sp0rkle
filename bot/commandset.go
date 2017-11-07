@@ -12,7 +12,7 @@ import (
 type HandlerFunc func(*Context)
 
 func (hf HandlerFunc) Handle(conn *client.Conn, line *client.Line) {
-	if ctx := context(conn, line); ctx != nil {
+	if ctx := reqContext(conn, line); ctx != nil {
 		hf(ctx)
 	}
 }
@@ -107,7 +107,7 @@ func (cs *commandSet) possible(txt string) []string {
 func (cs *commandSet) Handle(conn *client.Conn, line *client.Line) {
 	// This is a dirty hack to treat factoid additions as a special
 	// case, since they may begin with command string prefixes.
-	ctx := context(conn, line)
+	ctx := reqContext(conn, line)
 	if ctx == nil || util.IsFactoidAddition(line.Text()) {
 		return
 	}

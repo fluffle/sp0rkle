@@ -29,7 +29,7 @@ func githubClient() *github.Client {
 	ts := oauth2.StaticTokenSource(
 		&oauth2.Token{AccessToken: bot.GetSecret(*githubToken)},
 	)
-	tc := oauth2.NewClient(oauth2.NoContext, ts)
+	tc := oauth2.NewClient(bot.Ctx(), ts)
 
 	return github.NewClient(tc)
 }
@@ -52,7 +52,7 @@ func githubCreateIssue(ctx *bot.Context) {
 	if len(s) == 2 {
 		req.Body = &s[1]
 	}
-	issue, _, err := gh.Issues.Create(githubUser, githubRepo, req)
+	issue, _, err := gh.Issues.Create(bot.Ctx(), githubUser, githubRepo, req)
 	if err != nil {
 		ctx.ReplyN("Error creating issue: %v", err)
 		return
@@ -76,7 +76,8 @@ func githubUpdateIssue(ctx *bot.Context) {
 	}
 	text = fmt.Sprintf("<%s/%s> %s", ctx.Nick, ctx.Target(), text)
 	comm, _, err := gh.Issues.CreateComment(
-		githubUser, githubRepo, issue, &github.IssueComment{Body: &text})
+		bot.Ctx(), githubUser, githubRepo, issue,
+		&github.IssueComment{Body: &text})
 	if err != nil {
 		ctx.ReplyN("Error creating issue comment: %v", err)
 		return
@@ -101,7 +102,7 @@ func githubWatcher(ctx *bot.Context) {
 	issue := int(l.Number())
 
 	labels, _, err := gh.Issues.ListLabelsByIssue(
-		githubUser, githubRepo, issue, &github.ListOptions{})
+		bot.Ctx(), githubUser, githubRepo, issue, &github.ListOptions{})
 	if err != nil {
 		logging.Error("Error getting labels for issue %d: %v", issue, err)
 		return

@@ -3,6 +3,7 @@ package main
 // sp0rkle will live again!
 
 import (
+	"context"
 	_ "expvar"
 	"flag"
 	"math/rand"
@@ -54,7 +55,8 @@ func main() {
 	rand.Seed(time.Now().UnixNano() * int64(os.Getpid()))
 
 	// Initialise bot state
-	bot.Init()
+	ctx := context.Background()
+	bot.Init(ctx)
 
 	// Connect to databases
 

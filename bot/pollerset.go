@@ -50,7 +50,7 @@ func (ps *pollerSet) Handle(conn *client.Conn, line *client.Line) {
 	defer ps.Unlock()
 	switch line.Cmd {
 	case client.CONNECTED:
-		ps.conns[conn] = context(conn, line)
+		ps.conns[conn] = reqContext(conn, line)
 		logging.Debug("Conn: # conns: %d, # pollers: %d", len(ps.conns), len(ps.set))
 		if len(ps.conns) == 1 {
 			for p := range ps.set {
@@ -78,6 +78,7 @@ func (ps *pollerSet) startOne(p Poller) chan struct{} {
 	quit := make(chan struct{})
 	go func() {
 		p.Start()
+		p.Poll(ps.contexts())
 		for {
 			select {
 			case <-tick.C:

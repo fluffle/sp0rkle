@@ -1,6 +1,7 @@
 package bot
 
 import (
+	"context"
 	"flag"
 	"io/ioutil"
 	"os"
@@ -20,6 +21,7 @@ func HttpHost() string {
 }
 
 type botData struct {
+	ctx       context.Context
 	connected bool
 	servers   ServerSet
 	rewriters RewriteSet
@@ -30,7 +32,7 @@ type botData struct {
 var bot *botData
 var lock sync.Mutex
 
-func Init() {
+func Init(ctx context.Context) {
 	lock.Lock()
 	defer lock.Unlock()
 	if bot != nil {
@@ -38,6 +40,7 @@ func Init() {
 	}
 
 	bot = &botData{
+		ctx:       ctx,
 		servers:   newServerSet(),
 		commands:  newCommandSet(),
 		rewriters: newRewriteSet(),
@@ -120,4 +123,10 @@ func GetSecret(s string) string {
 		return ""
 	}
 	return s
+}
+
+// TODO(fluffle): The long slog refactor of subsuming the bot context
+// into a context.Context Value and using context.Context everywhere.
+func Ctx() context.Context {
+	return bot.ctx
 }
