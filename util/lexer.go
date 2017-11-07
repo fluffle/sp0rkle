@@ -91,7 +91,7 @@ func (l *Lexer) Rewind() {
 
 // number() is a higher-level function that extracts a number from the
 // input beginning at lexer.pos. A number matches the following regex:
-//     -?[0-9]+(.[0-9]+)?([eE]-?[0-9]+)?
+//     -?[0-9]+(.[0-9]+)?([eE][+-]?[0-9]+)?
 func (l *Lexer) Number() float64 {
 	s := l.pos // l.start is reset through the multiple scans
 	if l.Peek() == '-' {
@@ -104,7 +104,7 @@ func (l *Lexer) Number() float64 {
 		l.Rewind()
 	}
 	if c := l.Next(); c == "e" || c == "E" {
-		if l.Peek() == '-' {
+		if l.Peek() == '-' || l.Peek() == '+' {
 			l.pos += l.width
 		}
 		l.Scan(unicode.IsDigit)
