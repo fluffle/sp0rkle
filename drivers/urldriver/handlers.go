@@ -14,7 +14,7 @@ func urlScan(ctx *bot.Context) {
 	n, c := ctx.Storable()
 	for _, w := range words {
 		if util.LooksURLish(w) {
-			if u := uc.GetByUrl(w); u != nil {
+			if u := uc.GetByUrl(w); u.Exists() {
 				if u.Nick != bot.Nick(ctx.Nick) &&
 					time.Since(u.Timestamp) > 2*time.Hour {
 					ctx.Reply("that URL first mentioned by %s %s ago",
@@ -26,7 +26,7 @@ func urlScan(ctx *bot.Context) {
 			if len(w) > autoShortenLimit && ctx.Public() {
 				u.Shortened = Encode(w)
 			}
-			if err := uc.Insert(u); err != nil {
+			if err := uc.Put(u); err != nil {
 				ctx.ReplyN("Couldn't insert url '%s': %s", w, err)
 				continue
 			}
@@ -34,7 +34,7 @@ func urlScan(ctx *bot.Context) {
 				ctx.Reply("%s's URL shortened as %s%s%s",
 					ctx.Nick, bot.HttpHost(), shortenPath, u.Shortened)
 			}
-			lastseen[ctx.Target()] = u.Id
+			lastseen[ctx.Target()] = u.Id_
 		}
 	}
 }

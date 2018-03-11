@@ -24,6 +24,7 @@ import (
 const shortenPath string = "/s/"
 const cachePath string = "/c/"
 const autoShortenLimit int = 120
+const maxCacheSize = 1 << 22 // 4MB
 
 var badUrlStrings = []string{
 	"4chan",
@@ -92,9 +93,9 @@ func Encode(url string) string {
 		// resulting in 5 1/3 bytes of encoded data, we can drop
 		// the two padding equals signs for brevity.
 		s := (base64.URLEncoding.EncodeToString(crcb))[:6]
-		q := uc.Find(bson.M{"$or": []bson.M{
-			bson.M{"cachedas": s}, bson.M{"shortened": s}}})
-		if n, err := q.Count(); n == 0 && err == nil {
+		cached := uc.GetCached(s)
+		shortened := uc.GetShortened(s)
+		if !(cached.Exists() || shortened.Exists()) {
 			return s
 		}
 		crcb[rand.Intn(4)]++
@@ -105,16 +106,20 @@ func Encode(url string) string {
 
 func Shorten(u *urls.Url) error {
 	u.Shortened = Encode(u.Url)
-	if _, err := uc.UpsertId(u.Id, u); err != nil {
+	if err := uc.Put(u); err != nil {
 		return err
 	}
 	return nil
 }
 
 func Cache(u *urls.Url) error {
+	u.CachedAs = Encode(u.Url)
+	if u.CachedAs == "" {
+		return fmt.Errorf("collided 10 times while encoding URL")
+	}
 	for _, s := range badUrlStrings {
 		if strings.Index(u.Url, s) != -1 {
-			return fmt.Errorf("Url contains bad substring '%s'.", s)
+			return fmt.Errorf("url contains bad substring %q", s)
 		}
 	}
 	// Try a HEAD req first to get Content-Length header.
@@ -123,16 +128,13 @@ func Cache(u *urls.Url) error {
 		return err
 	}
 	if res.StatusCode != 200 {
-		return fmt.Errorf("Received non-200 response '%s' from server.",
-			res.Status)
+		return fmt.Errorf("received non-200 response %q from server.", res.Status)
 	}
 	if size := res.Header.Get("Content-Length"); size != "" {
 		if bytes, err := strconv.Atoi(size); err != nil {
-			return fmt.Errorf("Received unparseable content length '%s' "+
-				"from server: %v.", size, err)
-		} else if bytes > 1<<22 {
-			return fmt.Errorf("Response too large (%d MB) to cache safely.",
-				bytes/1024/1024)
+			return fmt.Errorf("received unparseable content length %q from server: %v", size, err)
+		} else if bytes > maxCacheSize {
+			return fmt.Errorf("response too large (%d MB) to cache safely", bytes/1024/1024)
 		}
 	}
 	res, err = http.Get(u.Url)
@@ -140,12 +142,10 @@ func Cache(u *urls.Url) error {
 		return err
 	}
 	defer res.Body.Close()
-	// 1 << 22 == 4MB
-	if res.ContentLength > 1<<22 {
-		return fmt.Errorf("Response too large (%d MB) to cache safely.",
+	if res.ContentLength > maxCacheSize {
+		return fmt.Errorf("response too large (%d MB) to cache safely",
 			res.ContentLength/1024/1024)
 	}
-	u.CachedAs = Encode(u.Url)
 	fh, err := os.OpenFile(util.JoinPath(*urlCacheDir, u.CachedAs),
 		os.O_WRONLY|os.O_CREATE|os.O_TRUNC, os.FileMode(0600))
 	defer fh.Close()
@@ -157,7 +157,7 @@ func Cache(u *urls.Url) error {
 	}
 	u.CacheTime = time.Now()
 	u.MimeType = res.Header.Get("Content-Type")
-	if _, err := uc.UpsertId(u.Id, u); err != nil {
+	if err := uc.Put(u); err != nil {
 		return err
 	}
 	return nil
