@@ -12,13 +12,15 @@ type migrator struct{}
 func (migrator) Migrate() error {
 	var all []Entry
 	mongo.Init(db.Mongo, COLLECTION, mongoIndexes)
+	bolt.Init(db.Bolt, COLLECTION, nil)
 	if err := mongo.All(db.K{}, &all); err != nil {
 		return err
 	}
-	for _, e := range all {
-		logging.Debug("Migrating conf entry %s.", e)
-		Bolt(e.Ns).Value(e.Key, e.Value)
+	if err := bolt.BatchPut(all); err != nil {
+		logging.Error("Migrating conf entries: %v.", err)
+		return err
 	}
+	logging.Debug("Migrated %d conf entries.", len(all))
 	return nil
 }
 

@@ -83,15 +83,12 @@ func (m *migrator) Migrate() error {
 	if err := m.mongo.All(db.K{}, &all); err != nil {
 		return err
 	}
-	var fail error
-	for _, k := range all {
-		logging.Debug("Migrating karma entry for %s.", k.Subject)
-		if err := m.bolt.Put(k); err != nil {
-			logging.Error("Inserting karma entry failed: %v", err)
-			fail = err
-		}
+	if err := m.bolt.BatchPut(all); err != nil {
+		logging.Error("Migrating karma entries: %v", err)
+		return err
 	}
-	return fail
+	logging.Info("Migrated %d karma entries.", len(all))
+	return nil
 }
 
 func (m *migrator) Diff() ([]string, []string, error) {

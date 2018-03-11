@@ -107,18 +107,12 @@ func (m *migrator) Migrate() error {
 	if err := m.mongo.All(db.K{}, &all); err != nil {
 		return err
 	}
-	var fail error
-	for _, ns := range all {
-		logging.Debug("Migrating stats entry for %s in %s.", ns.Nick, ns.Chan)
-		if err := m.bolt.Put(ns); err != nil {
-			// Try to migrate as much as possible.
-			logging.Error("Inserting stats entry failed: %v", err)
-			fail = err
-		}
+	if err := m.bolt.BatchPut(all); err != nil {
+		logging.Error("Migrating stats entries: %v", err)
+		return err
 	}
-	// This only returns the last error if there was one,
-	// but signaling failure is good enough.
-	return fail
+	logging.Info("Migrated %d stats entries.", len(all))
+	return nil
 }
 
 func (m *migrator) Diff() ([]string, []string, error) {
