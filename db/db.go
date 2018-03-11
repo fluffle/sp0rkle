@@ -30,6 +30,7 @@ type Collection interface {
 	Match(string, string, interface{}) error
 	All(Key, interface{}) error
 	Put(interface{}) error
+	BatchPut(interface{}) error
 	Del(interface{}) error
 	Next(Key, ...uint64) (int, error)
 	// Turn on debugging for this collection.

@@ -96,6 +96,10 @@ func (m *mongoCollection) Put(value interface{}) (err error) {
 	return err
 }
 
+func (m *mongoCollection) BatchPut(value interface{}) error {
+	panic("no batch puts for you")
+}
+
 func (m *mongoCollection) Del(value interface{}) error {
 	switch value := value.(type) {
 	case Keyer:

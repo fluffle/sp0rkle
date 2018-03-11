@@ -112,6 +112,10 @@ func (b *Both) Put(value interface{}) error {
 	return mErr
 }
 
+func (b *Both) BatchPut(value interface{}) error {
+	return b.BoltC.BatchPut(value)
+}
+
 func (b *Both) Del(value interface{}) error {
 	mErr := b.MongoC.Del(value)
 	bErr := b.BoltC.Del(value)

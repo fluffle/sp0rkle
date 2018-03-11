@@ -486,79 +486,146 @@ func (bucket *boltBucket) Put(value interface{}) error {
 	}
 	switch value := value.(type) {
 	case Keyer:
-		return bucket.putKeyer(value, data)
+		return bucket.putOneKeyer(value, data)
 	case Indexer:
-		return bucket.putIndexer(value, data)
+		return bucket.putOneIndexer(value, data)
 	}
 	return fmt.Errorf("put: don't know how to put value %#v", value)
 }
 
-func (bucket *boltBucket) putKeyer(value Keyer, data []byte) error {
+func (bucket *boltBucket) BatchPut(value interface{}) error {
+	// vv == value Value
+	vv := reflect.ValueOf(value)
+	if vv.Kind() != reflect.Slice {
+		panic("BatchPut() requires a slice.")
+	}
+	// et == (slice) element Type
+	et := vv.Type().Elem()
+
+	// Per https://stackoverflow.com/questions/7132848/how-to-get-the-reflect-type-of-an-interface
+	keyerType := reflect.TypeOf((*Keyer)(nil)).Elem()
+	indexerType := reflect.TypeOf((*Indexer)(nil)).Elem()
+
+	if et.Implements(keyerType) {
+		values := make([]Keyer, vv.Len())
+		for i := 0; i < vv.Len(); i++ {
+			values[i], _ = vv.Index(i).Interface().(Keyer)
+		}
+		return bucket.putAllKeyer(values)
+	} else if et.Implements(indexerType) {
+		values := make([]Indexer, vv.Len())
+		for i := 0; i < vv.Len(); i++ {
+			values[i], _ = vv.Index(i).Interface().(Indexer)
+		}
+		return bucket.putAllIndexer(values)
+	}
+	return fmt.Errorf("batchput: don't know how to put value %#v", value)
+}
+
+func (bucket *boltBucket) putOneKeyer(value Keyer, data []byte) error {
 	return bucket.db.Update(func(tx *bolt.Tx) error {
-		b, k, err := bucketFor(value.K(), tx.Bucket(bucket.name))
-		if err != nil {
-			return err
-		}
-		if len(k) == 0 {
-			return errors.New("put: zero length key")
-		}
-		if bucket.debug {
-			logging.Debug("Put(%s): %s = %q", bucket.name, value.K(), data)
-		}
-		return b.Put(k, data)
+		return bucket.putKeyerTx(tx, value, data)
 	})
 }
 
-func (bucket *boltBucket) putIndexer(value Indexer, data []byte) error {
+func (bucket *boltBucket) putAllKeyer(values []Keyer) error {
 	return bucket.db.Update(func(tx *bolt.Tx) error {
-		root := tx.Bucket(bucket.name)
-		ptr := toPointer(value)
-		v := root.Get(ptr)
-		if isBson(v) {
-			// There's already a value here, probably being pointed at.
-			// Jump through some hoops to clean up those index pointers.
-			// TODO(fluffle): This makes some assumptions that may not
-			// hold true, and might leave dangling index pointers, ugh.
-			//   1) The old value is of the same type as the new one.
-			old := dupe(value).(Indexer)
-			if err := bson.Unmarshal(suffix(v), old); err != nil {
-				return err
-			}
-			//   2) The indexes derived from the old data are exactly
-			//      the correct set that should be deleted to tidy up.
-			for _, key := range old.Indexes() {
-				b, k, err := bucketFor(key, root)
-				if err != nil {
-					return err
-				}
-				if bucket.debug {
-					logging.Debug("Clean index(%s): %s = %q", bucket.name, key, ptr)
-				}
-				if err = b.Delete(k); err != nil {
-					return err
-				}
-			}
-		}
-		if bucket.debug {
-			logging.Debug("Put(%s): %s = %q", bucket.name, value.Id(), data)
-		}
-		if err := root.Put(ptr, data); err != nil {
-			return err
-		}
-		for _, key := range value.Indexes() {
-			b, k, err := bucketFor(key, root)
+		for _, value := range values {
+			data, err := toBson(value)
 			if err != nil {
 				return err
 			}
-			if bucket.debug {
-				logging.Debug("Put index(%s): %s = %q", bucket.name, key, ptr)
-			}
-			if err = b.Put(k, ptr); err != nil {
+			if err = bucket.putKeyerTx(tx, value, data); err != nil {
 				return err
 			}
 		}
 		return nil
 	})
+}
+
+func (bucket *boltBucket) putKeyerTx(tx *bolt.Tx, value Keyer, data []byte) error {
+	b, k, err := bucketFor(value.K(), tx.Bucket(bucket.name))
+	if err != nil {
+		return err
+	}
+	if len(k) == 0 {
+		return errors.New("put: zero length key")
+	}
+	if bucket.debug {
+		logging.Debug("Put(%s): %s = %q", bucket.name, value.K(), data)
+	}
+	return b.Put(k, data)
+}
+
+func (bucket *boltBucket) putOneIndexer(value Indexer, data []byte) error {
+	return bucket.db.Update(func(tx *bolt.Tx) error {
+		return bucket.putIndexerTx(tx, value, data)
+	})
+}
+
+func (bucket *boltBucket) putAllIndexer(values []Indexer) error {
+	return bucket.db.Update(func(tx *bolt.Tx) error {
+		for _, value := range values {
+			data, err := toBson(value)
+			if err != nil {
+				return err
+			}
+			if err = bucket.putIndexerTx(tx, value, data); err != nil {
+				return err
+			}
+		}
+		return nil
+	})
+}
+
+func (bucket *boltBucket) putIndexerTx(tx *bolt.Tx, value Indexer, data []byte) error {
+	root := tx.Bucket(bucket.name)
+	ptr := toPointer(value)
+	v := root.Get(ptr)
+	if isBson(v) {
+		// There's already a value here, probably being pointed at.
+		// Jump through some hoops to clean up those index pointers.
+		// TODO(fluffle): This makes some assumptions that may not
+		// hold true, and might leave dangling index pointers, ugh.
+		//   1) The old value is of the same type as the new one.
+		old := dupe(value).(Indexer)
+		if err := bson.Unmarshal(suffix(v), old); err != nil {
+			return err
+		}
+		//   2) The indexes derived from the old data are exactly
+		//      the correct set that should be deleted to tidy up.
+		for _, key := range old.Indexes() {
+			b, k, err := bucketFor(key, root)
+			if err != nil {
+				return err
+			}
+			if bucket.debug {
+				logging.Debug("Clean index(%s): %s = %q", bucket.name, key, ptr)
+			}
+			if err = b.Delete(k); err != nil {
+				return err
+			}
+		}
+	}
+	if bucket.debug {
+		logging.Debug("Put(%s): %s = %q", bucket.name, value.Id(), data)
+	}
+	if err := root.Put(ptr, data); err != nil {
+		return err
+	}
+	for _, key := range value.Indexes() {
+		b, k, err := bucketFor(key, root)
+		if err != nil {
+			return err
+		}
+		if bucket.debug {
+			logging.Debug("Put index(%s): %s = %q", bucket.name, key, ptr)
+		}
+		if err = b.Put(k, ptr); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func (bucket *boltBucket) Del(value interface{}) error {
