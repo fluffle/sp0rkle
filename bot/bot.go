@@ -65,8 +65,9 @@ func Init(ctx context.Context) {
 	Command(unignore, "unignore", "unignore <nick>  -- "+
 		"make the bot unignore <nick> again.")
 
-	// Mongo -> Bolt migration
-	Handle(migrate, client.NOTICE)
+	// Mongo -> Bolt migration. Run in background goroutine
+	// because some migrations can take a looong time.
+	HandleBG(migrate, client.NOTICE)
 }
 
 func Connect() chan bool {
@@ -98,6 +99,12 @@ func Shutdown() {
 func Handle(fn HandlerFunc, events ...string) {
 	for _, ev := range events {
 		bot.servers.HandleAll(ev, fn)
+	}
+}
+
+func HandleBG(fn HandlerFunc, events ...string) {
+	for _, ev := range events {
+		bot.servers.HandleAllBG(ev, fn)
 	}
 }
 
