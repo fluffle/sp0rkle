@@ -87,12 +87,20 @@ func addMigrator(m Migrator, coll string) Checker {
 }
 
 func Migrate() error {
-	ms.Lock()
-	defer ms.Unlock()
 	ms.db.Init(Bolt, COLLECTION, nil)
 
-	failed := []string{}
+	// Holding the lock while migrating prevents the Checker returned by
+	// addMigrator from checking migration state (and thus locks up the
+	// bot) while migration is running in the background.
+	migrators := map[string]*migrator{}
+	ms.RLock()
 	for coll, m := range ms.migrators {
+		migrators[coll] = m
+	}
+	ms.RUnlock()
+
+	failed := []string{}
+	for coll, m := range migrators {
 		if m.migrated {
 			continue
 		}
@@ -118,10 +126,13 @@ func Migrate() error {
 				continue
 			}
 		}
+		// This is probably a little more locking than strictly necessary.
+		ms.Lock()
 		if err := ms.db.Put(K{{"collection", coll}}, &done{true}); err != nil {
 			logging.Warn("Setting migrated status for %q: %v", coll, err)
 		}
 		m.migrated = true
+		ms.Unlock()
 	}
 	if len(failed) > 0 {
 		return fmt.Errorf("migration failed for: \"%s\"",
