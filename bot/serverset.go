@@ -1,6 +1,7 @@
 package bot
 
 import (
+	"crypto/tls"
 	"flag"
 	"fmt"
 	"os"
@@ -91,7 +92,12 @@ func newServerSet() *serverSet {
 		// Configure IRC client
 		cfg := client.NewConfig(*nick, "boing", "slowly becoming sp0rkle")
 		cfg.Flood = true
-		cfg.SSL = *ssl
+		if *ssl {
+			cfg.SSL = true
+			cfg.SSLConfig = &tls.Config{
+				ServerName: strings.Split(hostport, ":")[0],
+			}
+		}
 		cfg.Recover = unfail
 		cfg.Server = hostport
 		conn := client.Client(cfg)
