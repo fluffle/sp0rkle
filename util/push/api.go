@@ -13,6 +13,12 @@ import (
 	"golang.org/x/oauth2"
 )
 
+// TODO(fluffle):
+//  - End to end encryption: https://docs.pushbullet.com/#end-to-end-encryption
+//  - Log and surface push errors
+//  - Allow users to view and update the devices sp0rkle knows about / pushes to
+//  - Read api docs and add features
+
 var (
 	pushClientID = flag.String("push_client_id", "",
 		"Pushbullet client ID.")
