@@ -167,15 +167,41 @@ func (ss *serverSet) HandleAllBG(ev string, h client.Handler) {
 // Catch, log, and complain about panics in handlers.
 func unfail(conn *client.Conn, line *client.Line) {
 	if err := recover(); err != nil {
-		_, f, l, _ := runtime.Caller(4)
-		i := strings.Index(f, "sp0rkle/")
-		if i < 0 {
-			i = 0
-		} else {
-			i += 8
+		// Depth 4 is where our code usually starts.
+		// But if the panic is somewhere in the depths of the standard
+		// library or dependency code it's helpful to know what
+		// our code was up to at the time too, so walk up the stack.
+		callers := make([]uintptr, 20)
+		depth := 4
+		n := runtime.Callers(depth, callers)
+		frames := runtime.CallersFrames(callers[:n])
+		msgs := []string{fmt.Sprintf("panic: %v frames:", err)}
+		for frame, ok := frames.Next(); ok; frame, ok = frames.Next() {
+			msgs = append(msgs, fmt.Sprintf("(%d) %s at %s:%d",
+				depth, trimPath(frame.Function), trimPath(frame.File), frame.Line))
+			depth++
 		}
-		logging.Error("panic at %s:%d: %v", f[i:], l, err)
-		conn.Privmsg(line.Target(), fmt.Sprintf(
-			"panic at %s:%d: %v", f[i:], l, err))
+		msg := strings.Join(msgs, ", ")
+		logging.Error(msg)
+		conn.Privmsg(line.Target(), msg)
 	}
+}
+
+func trimPath(path string) string {
+	prefixes := []string{"sp0rkle/", "fluffle/", runtime.GOROOT() + "/src/"}
+	for _, prefix := range prefixes {
+		trimmed, ok := trim(path, prefix)
+		if ok {
+			return trimmed
+		}
+	}
+	return path
+}
+
+func trim(path string, prefix string) (string, bool) {
+	i := strings.Index(path, prefix)
+	if i < 0 {
+		return path, false
+	}
+	return path[i+len(prefix):], true
 }
