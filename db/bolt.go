@@ -161,15 +161,17 @@ func (b *boltDatabase) C(name string) Collection {
 	}
 
 	err := b.db.Update(func(tx *bolt.Tx) error {
-		if _, err := tx.CreateBucketIfNotExists([]byte(name)); err != nil {
-			return err
-		}
-		return nil
+		_, err := tx.CreateBucketIfNotExists([]byte(name))
+		return err
 	})
 	if err != nil {
 		logging.Fatal("Creating BoltDB bucket failed: %v")
 	}
 	return &boltBucket{name: []byte(name), db: b.db}
+}
+
+func (b *boltDatabase) DB() *bolt.DB {
+	return b.db
 }
 
 func (b *boltDatabase) backupLoop() {
@@ -636,7 +638,12 @@ func (bucket *boltBucket) Del(value interface{}) error {
 			if err != nil {
 				return err
 			}
-			return b.Delete(k)
+			// Allow partial keys to recursively delete nested buckets.
+			if b.Bucket(k) != nil {
+				return b.DeleteBucket(k)
+			} else {
+				return b.Delete(k)
+			}
 		})
 	case Indexer:
 		return bucket.db.Update(func(tx *bolt.Tx) error {
