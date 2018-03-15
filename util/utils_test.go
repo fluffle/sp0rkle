@@ -1,8 +1,6 @@
 package util
 
-import (
-	"testing"
-)
+import "testing"
 
 // This is also implicitly testing HasPrefixedNick, I guess...
 func TestHasPrefixedNick(t *testing.T) {

@@ -2,11 +2,10 @@ package db
 
 import (
 	"bytes"
+	"encoding/binary"
 	"fmt"
 	"strings"
 	"sync"
-
-	"github.com/fluffle/sp0rkle/util"
 
 	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
@@ -108,11 +107,12 @@ func (e I) Pair() (string, interface{}) {
 }
 
 func (e I) Bytes() []byte {
-	v := util.EncodeVarint(uint64(e.Value))
-	b := bytes.NewBuffer(make([]byte, 0, len(e.Name)+len(v)+1))
+	v := make([]byte, binary.MaxVarintLen64)
+	n := binary.PutUvarint(v, uint64(e.Value))
+	b := bytes.NewBuffer(make([]byte, 0, len(e.Name)+n+1))
 	b.WriteString(e.Name)
 	b.WriteByte(USEP)
-	b.Write(v)
+	b.Write(v[:n])
 	return b.Bytes()
 }
 
@@ -146,17 +146,17 @@ func (k K) B() ([][]byte, []byte) {
 	if len(k) == 0 {
 		return nil, nil
 	}
-	items := make([][]byte, 0, len(k))
-	for _, e := range k {
-		items = append(items, e.Bytes())
+	items := make([][]byte, len(k))
+	for i, e := range k {
+		items[i] = e.Bytes()
 	}
 	return items[:len(items)-1], items[len(items)-1]
 }
 
 func (k K) String() string {
-	s := make([]string, 0, len(k))
-	for _, e := range k {
-		s = append(s, e.String())
+	s := make([]string, len(k))
+	for i, e := range k {
+		s[i] = e.String()
 	}
 	return "K<" + strings.Join(s, ", ") + ">"
 }

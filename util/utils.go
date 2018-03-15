@@ -207,19 +207,3 @@ func TimeSince(t time.Time) string {
 	}
 	return ""
 }
-
-// From https://github.com/golang/protobuf/blob/master/proto/encode.go
-const maxVarintBytes = 10 // maximum length of a varint
-
-// EncodeVarint returns the varint encoding of x.
-func EncodeVarint(x uint64) []byte {
-	var buf [maxVarintBytes]byte
-	var n int
-	for n = 0; x > 127; n++ {
-		buf[n] = 0x80 | uint8(x&0x7F)
-		x >>= 7
-	}
-	buf[n] = uint8(x)
-	n++
-	return buf[0:n]
-}
