@@ -3,6 +3,7 @@ package markov
 import (
 	"errors"
 	"math/rand"
+	"strconv"
 	"strings"
 
 	"github.com/fluffle/golog/logging"
@@ -22,8 +23,18 @@ type Link struct {
 	Uses  int
 }
 
+type Links []Link
+
+func (ls Links) Strings() []string {
+	s := make([]string, len(ls))
+	for i, l := range ls {
+		s[i] = l.Value + "=" + strconv.Itoa(l.Uses)
+	}
+	return s
+}
+
 type Source interface {
-	GetLinks(value string) ([]Link, error)
+	GetLinks(value string) (Links, error)
 }
 
 func Action(data Source) (string, error) {
