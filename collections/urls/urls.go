@@ -156,7 +156,7 @@ func mongoIndexes(c db.Collection) {
 
 func (uc *Collection) GetById(id bson.ObjectId) *Url {
 	res := &Url{Id_: id}
-	if err := uc.Get(res.byId(), res); err == nil {
+	if err := uc.Get(res.byId(), res); err == nil && res.Exists() {
 		return res
 	}
 	return nil
@@ -164,7 +164,7 @@ func (uc *Collection) GetById(id bson.ObjectId) *Url {
 
 func (uc *Collection) GetByUrl(u string) *Url {
 	res := &Url{Url: u}
-	if err := uc.Get(res.byUrl(), res); err == nil {
+	if err := uc.Get(res.byUrl(), res); err == nil && res.Exists() {
 		return res
 	}
 	return nil
@@ -230,7 +230,7 @@ func (uc *Collection) GetRand(regex string) *Url {
 
 func (uc *Collection) GetCached(c string) *Url {
 	res := &Url{CachedAs: c}
-	if err := uc.Get(res.byCachedAs(), res); err == nil {
+	if err := uc.Get(res.byCachedAs(), res); err == nil && res.Exists() {
 		return res
 	}
 	return nil
@@ -238,7 +238,7 @@ func (uc *Collection) GetCached(c string) *Url {
 
 func (uc *Collection) GetShortened(s string) *Url {
 	res := &Url{Shortened: s}
-	if err := uc.Get(res.byShortened(), res); err == nil {
+	if err := uc.Get(res.byShortened(), res); err == nil && res.Exists() {
 		return res
 	}
 	return nil

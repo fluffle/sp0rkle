@@ -28,7 +28,7 @@ func seenCmd(ctx *bot.Context) {
 				ctx.ReplyN("1 possible match: %s", n)
 			}
 		} else if len(m) > 10 {
-			ctx.ReplyN("%d possible matches, first 10 are: %s.",
+			ctx.ReplyN("%d possible matches, most recent 10 are: %s.",
 				len(m), strings.Join(m[:9], ", "))
 
 		} else {

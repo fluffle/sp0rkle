@@ -99,7 +99,7 @@ func (e S) String() string {
 // Integer key element.
 type I struct {
 	Name  string
-	Value int
+	Value uint64
 }
 
 func (e I) Pair() (string, interface{}) {
@@ -107,12 +107,13 @@ func (e I) Pair() (string, interface{}) {
 }
 
 func (e I) Bytes() []byte {
-	v := make([]byte, binary.MaxVarintLen64)
-	n := binary.PutUvarint(v, uint64(e.Value))
-	b := bytes.NewBuffer(make([]byte, 0, len(e.Name)+n+1))
+	v := make([]byte, 8)
+	// Big endian is lexographically sortable, handy for indexes.
+	binary.BigEndian.PutUint64(v, e.Value)
+	b := bytes.NewBuffer(make([]byte, 0, len(e.Name)+9))
 	b.WriteString(e.Name)
 	b.WriteByte(USEP)
-	b.Write(v[:n])
+	b.Write(v)
 	return b.Bytes()
 }
 

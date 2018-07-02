@@ -2,6 +2,7 @@ package seen
 
 import (
 	"fmt"
+	"sort"
 	"strings"
 	"time"
 
@@ -10,6 +11,7 @@ import (
 	"github.com/fluffle/sp0rkle/db"
 	"github.com/fluffle/sp0rkle/util"
 	"github.com/fluffle/sp0rkle/util/datetime"
+	"github.com/fluffle/sp0rkle/util/diff"
 	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
 )
@@ -24,7 +26,10 @@ type Nick struct {
 	Key       string
 	Action    string
 	Text      string
+	Id_       bson.ObjectId `bson:"_id"`
 }
+
+var _ db.Indexer = (*Nick)(nil)
 
 type seenMsg func(*Nick) string
 
@@ -67,6 +72,7 @@ func SawNick(nick bot.Nick, ch bot.Chan, act, txt string) *Nick {
 		Key:       nick.Lower(),
 		Action:    act,
 		Text:      txt,
+		Id_:       bson.NewObjectId(),
 	}
 }
 
@@ -82,54 +88,157 @@ func (n *Nick) String() string {
 		util.TimeSince(n.Timestamp))
 }
 
-func (n *Nick) Id() bson.M {
-	return bson.M{"key": n.Key, "action": n.Action}
+func (n *Nick) Indexes() []db.Key {
+	// Yes, this creates two buckets per nick, but then we don't have to worry
+	// about the keys *in* the bucket. Using "nick" for both keys would mean an
+	// All() lookup for "nick" would resolve both action and ts pointers.
+	// This way either we look up nick + action or key (implicitly ordered by ts).
+	//
+	// This could *theoretically* be reduced to one bucket by taking into
+	// account implementation details of All() and boltdb key ordering --
+	// if the timestamp key sorts lexographically before the action key then
+	// those pointers will be resolved first (in timestamp order), and
+	// the action pointers *should* be deduped and ignored by All().
+	// This means the results of All() would still be in timestamp order.
+	return []db.Key{
+		db.K{db.S{"nick", n.Nick.Lower()}, db.S{"action", n.Action}},
+		db.K{db.S{"key", n.Nick.Lower()}, db.I{"ts", uint64(n.Timestamp.UnixNano())}},
+	}
+}
+
+func (n *Nick) Id() bson.ObjectId {
+	return n.Id_
+}
+
+func (n *Nick) Exists() bool {
+	return n != nil && len(n.Id_) > 0
+}
+
+func (n *Nick) byNick() db.K {
+	// Uses "key" not "nick" bucket, so that results are ordered by timestamp.
+	return db.K{db.S{"key", n.Nick.Lower()}}
+}
+
+func (n *Nick) byNickAction() db.K {
+	return db.K{db.S{"nick", n.Nick.Lower()}, db.S{"action", n.Action}}
+}
+
+type Nicks []*Nick
+
+func (ns Nicks) Strings() []string {
+	s := make([]string, len(ns))
+	for i, n := range ns {
+		s[i] = fmt.Sprintf("%#v", n)
+	}
+	return s
+}
+
+// Implement sort.Interface to sort by descending timestamp.
+func (ns Nicks) Len() int           { return len(ns) }
+func (ns Nicks) Swap(i, j int)      { ns[i], ns[j] = ns[j], ns[i] }
+func (ns Nicks) Less(i, j int) bool { return ns[i].Timestamp.After(ns[j].Timestamp) }
+
+type migrator struct {
+	mongo, bolt db.Collection
+}
+
+func (m *migrator) Migrate() error {
+	var all Nicks
+	if err := m.mongo.All(db.K{}, &all); err != nil {
+		return err
+	}
+	if err := m.bolt.BatchPut(all); err != nil {
+		logging.Error("Migrating seen: %v", err)
+		return err
+	}
+	logging.Info("Migrated %d seen entries.", len(all))
+	return nil
+}
+
+func (m *migrator) Diff() ([]string, []string, error) {
+	var mAll, bAll Nicks
+	if err := m.mongo.All(db.K{}, &mAll); err != nil {
+		return nil, nil, err
+	}
+	if err := m.bolt.All(db.K{}, &bAll); err != nil {
+		return nil, nil, err
+	}
+	return mAll.Strings(), bAll.Strings(), nil
 }
 
 type Collection struct {
-	// Wrap mgo.Collection
-	*mgo.Collection
+	db.Both
 }
 
 func Init() *Collection {
-	sc := &Collection{db.Mongo.C(COLLECTION).Mongo()}
+	sc := &Collection{db.Both{}}
+	sc.Both.MongoC.Init(db.Mongo, COLLECTION, mongoIndexes)
+	sc.Both.BoltC.Init(db.Bolt, COLLECTION, nil)
+	sc.Both.Debug(true)
+	m := &migrator{
+		mongo: sc.Both.MongoC,
+		bolt:  sc.Both.BoltC,
+	}
+	sc.Both.Checker.Init(m, COLLECTION)
+	return sc
+}
+
+func mongoIndexes(c db.Collection) {
 	indexes := [][]string{
 		{"key", "action"}, // For searching ...
 		{"timestamp"},     // ... and ordering seen entries.
 	}
 	for _, key := range indexes {
-		if err := sc.EnsureIndex(mgo.Index{Key: key}); err != nil {
+		if err := c.Mongo().EnsureIndex(mgo.Index{Key: key}); err != nil {
 			logging.Error("Couldn't create %v index on sp0rkle.seen: %v", key, err)
 		}
 	}
-	return sc
 }
 
 func (sc *Collection) LastSeen(nick string) *Nick {
-	var res Nick
-	q := sc.Find(bson.M{"key": strings.ToLower(nick)}).Sort("-timestamp")
-	if err := q.One(&res); err == nil {
-		return &res
+	var mAll, bAll Nicks
+	n := &Nick{Nick: bot.Nick(nick)}
+
+	// Not using Both here because it's a useful test of BoltDB ordering.
+	q := sc.Mongo().Find(bson.M{"key": strings.ToLower(nick)}).Sort("timestamp")
+	mErr := q.All(&mAll)
+	bErr := sc.BoltC.All(n.byNick(), &bAll)
+	if mErr != bErr {
+		logging.Warn("LastSeen errors differ: %v != %v", mErr, bErr)
 	}
-	return nil
+	mStr := mAll.Strings()
+	bStr := bAll.Strings()
+	unified, err := diff.Unified(mStr, bStr)
+	if err != nil {
+		logging.Debug("LastSeen: %v\n%s", err, strings.Join(unified, "\n"))
+	}
+	if sc.Migrated() {
+		return bAll[len(bAll)-1]
+	}
+	return mAll[len(mAll)-1]
 }
 
 func (sc *Collection) LastSeenDoing(nick, act string) *Nick {
-	var res Nick
-	q := sc.Find(bson.M{"key": strings.ToLower(nick), "action": act}).Sort("-timestamp")
-	if err := q.One(&res); err == nil {
-		return &res
+	n := &Nick{Nick: bot.Nick(nick), Action: act}
+	if err := sc.Get(n.byNickAction(), n); err == nil && n.Exists() {
+		return n
 	}
 	return nil
 }
 
 func (sc *Collection) SeenAnyMatching(rx string) []string {
-	var res []string
-	q := sc.Find(bson.M{"key": bson.M{"$regex": rx, "$options": "i"}}).Sort("-timestamp")
-	if err := q.Distinct("key", &res); err != nil {
-		logging.Warn("SeenAnyMatching Find error: %v", err)
-		return []string{}
+	var ns Nicks
+	if err := sc.Match("Nick", rx, &ns); err != nil {
+		return nil
 	}
-	logging.Debug("Looked for matches, found %#v", res)
+	sort.Sort(ns)
+	seen := make(map[string]bool)
+	res := make([]string, 0, len(ns))
+	for _, n := range ns {
+		if !seen[n.Nick.Lower()] {
+			res = append(res, string(n.Nick))
+			seen[n.Nick.Lower()] = true
+		}
+	}
 	return res
 }

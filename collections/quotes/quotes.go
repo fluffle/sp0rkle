@@ -34,7 +34,7 @@ func NewQuote(q string, n bot.Nick, c bot.Chan) *Quote {
 
 func (q *Quote) Indexes() []db.Key {
 	return []db.Key{
-		db.K{db.I{"qid", q.QID}},
+		db.K{db.I{"qid", uint64(q.QID)}},
 	}
 }
 
@@ -43,7 +43,7 @@ func (q *Quote) Id() bson.ObjectId {
 }
 
 func (q *Quote) byQID() db.K {
-	return db.K{db.I{"qid", q.QID}}
+	return db.K{db.I{"qid", uint64(q.QID)}}
 }
 
 type Quotes []*Quote

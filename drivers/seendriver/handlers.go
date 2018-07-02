@@ -24,7 +24,7 @@ func smoke(ctx *bot.Context) {
 	} else {
 		sn = seen.SawNick(n, c, "SMOKE", "")
 	}
-	if _, err := sc.Upsert(sn.Id(), sn); err != nil {
+	if err := sc.Put(sn); err != nil {
 		ctx.Reply("Failed to store smoke data: %v", err)
 	}
 }
@@ -35,7 +35,7 @@ func recordPrivmsg(ctx *bot.Context) {
 	}
 	sn := seenNickFromLine(ctx)
 	sn.Text = ctx.Text()
-	if _, err := sc.Upsert(sn.Id(), sn); err != nil {
+	if err := sc.Put(sn); err != nil {
 		ctx.Reply("Failed to store seen data: %v", err)
 	}
 }
@@ -46,7 +46,7 @@ func recordJoin(ctx *bot.Context) {
 		// If we have a PART message
 		sn.Text = ctx.Text()
 	}
-	if _, err := sc.Upsert(sn.Id(), sn); err != nil {
+	if err := sc.Put(sn); err != nil {
 		ctx.Reply("Failed to store seen data: %v", err)
 	}
 }
@@ -55,7 +55,7 @@ func recordNick(ctx *bot.Context) {
 	sn := seenNickFromLine(ctx)
 	sn.Chan = ""
 	sn.Text = ctx.Target()
-	if _, err := sc.Upsert(sn.Id(), sn); err != nil {
+	if err := sc.Put(sn); err != nil {
 		// We don't have anyone to reply to in this case, so log instead.
 		logging.Warn("Failed to store seen data: %v", err)
 	}
@@ -74,8 +74,7 @@ func recordKick(ctx *bot.Context) {
 		kr.Timestamp, kr.Text = time.Now(), ctx.Args[2]
 	}
 	kr.OtherNick = kn
-	_, err := sc.Upsert(kr.Id(), kr)
-	if err != nil {
+	if err := sc.Put(kr); err != nil {
 		ctx.Reply("Failed to store seen data: %v", err)
 	}
 	// Now, handle KICKED
@@ -87,8 +86,7 @@ func recordKick(ctx *bot.Context) {
 		ke.Timestamp, ke.Text = time.Now(), ctx.Args[2]
 	}
 	ke.OtherNick = n
-	_, err = sc.Upsert(ke.Id(), ke)
-	if err != nil {
+	if err := sc.Put(ke); err != nil {
 		ctx.Reply("Failed to store seen data: %v", err)
 	}
 }

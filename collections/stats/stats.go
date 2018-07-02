@@ -74,7 +74,7 @@ func (ns *NickStat) String() string {
 func (ns *NickStat) Indexes() []db.Key {
 	return []db.Key{
 		db.K{db.S{"chan", string(ns.Chan)}, db.S{"key", ns.Key}},
-		db.K{db.S{"lines", string(ns.Chan)}, db.I{"lines", ns.Lines}},
+		db.K{db.S{"lines", string(ns.Chan)}, db.I{"lines", uint64(ns.Lines)}},
 	}
 }
 
