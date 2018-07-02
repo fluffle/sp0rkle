@@ -20,13 +20,15 @@ import (
 
 const (
 	prefixLen = 4
+	idTag     = "_id"
+	bsonTag   = "_bs"
 )
 
 var (
 	// It is important that these are prefixLen long.
 	// idPrefix is conveniently what K{{"_id", "stuff"}} serializes to.
-	idPrefix   = append([]byte("_id"), USEP)
-	bsonPrefix = append([]byte("_bs"), USEP)
+	idPrefix   = append([]byte(idTag), USEP)
+	bsonPrefix = append([]byte(bsonTag), USEP)
 )
 
 func isBson(data []byte) bool {
@@ -55,12 +57,12 @@ func isPointer(data []byte) bool {
 }
 
 func toPointer(value Indexer) []byte {
-	e := S{string(idPrefix), string(value.Id())}
+	e := S{idTag, string(value.Id())}
 	return e.Bytes()
 }
 
 func fromPointer(data []byte) K {
-	return K{S{"_id", string(data[prefixLen:])}}
+	return K{S{idTag, string(data[prefixLen:])}}
 }
 
 func suffix(data []byte) []byte {
