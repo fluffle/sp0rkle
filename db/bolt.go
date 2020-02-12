@@ -12,8 +12,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/boltdb/bolt"
 	"github.com/fluffle/golog/logging"
+	bolt "go.etcd.io/bbolt"
 	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
 )

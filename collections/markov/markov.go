@@ -6,12 +6,12 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/boltdb/bolt"
 	"github.com/fluffle/golog/logging"
 	"github.com/fluffle/sp0rkle/db"
 	"github.com/fluffle/sp0rkle/util"
 	"github.com/fluffle/sp0rkle/util/diff"
 	"github.com/fluffle/sp0rkle/util/markov"
+	bolt "go.etcd.io/bbolt"
 	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
 )
