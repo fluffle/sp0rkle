@@ -362,7 +362,7 @@ func (bucket *boltBucket) All(key Key, value interface{}) error {
 		cs := []*bolt.Cursor{b.Cursor()}
 		if len(last) > 0 {
 			if b = b.Bucket(last); b == nil {
-				return bolt.ErrBucketNotFound
+				return nil
 			}
 			cs[0] = b.Cursor()
 		}

@@ -33,16 +33,24 @@ func (b *Both) Migrated() bool {
 	return b.Checker.Migrated()
 }
 
-// This function rigourously tested for all of 5 minutes
-// at http://play.golang.org/p/IwZQ17Bpjt ;-)
-func dupe(in interface{}) interface{} {
-	vv := reflect.ValueOf(in)
-	vt := reflect.TypeOf(in)
-	if vv.Kind() == reflect.Ptr {
-		vt = vv.Elem().Type()
-		return reflect.New(vt).Interface()
+func dupeR(vt reflect.Type, vv reflect.Value) reflect.Value {
+	switch vv.Kind() {
+	case reflect.Ptr:
+		duped := dupeR(vv.Elem().Type(), vv.Elem())
+		ptr := reflect.New(vv.Elem().Type())
+		ptr.Elem().Set(duped)
+		return ptr
+	case reflect.Slice:
+		return reflect.MakeSlice(vt, 0, vv.Cap())
+	default:
+		return reflect.New(vt).Elem()
 	}
-	return reflect.New(vt).Elem().Interface()
+}
+
+// This function rigourously tested for all of 15 minutes
+// at https://play.golang.org/p/IrEWIxm_PEH ;-)
+func dupe(in interface{}) interface{} {
+	return dupeR(reflect.TypeOf(in), reflect.ValueOf(in)).Interface()
 }
 
 func (b *Both) Get(key Key, value interface{}) error {
