@@ -1,6 +1,7 @@
 package factoids
 
 import (
+	"fmt"
 	"math/rand"
 	"strings"
 	"time"
@@ -31,8 +32,10 @@ type Factoid struct {
 	Type                        FactoidType
 	Created, Modified, Accessed *FactoidStat
 	Perms                       *FactoidPerms
-	Id                          bson.ObjectId `bson:"_id,omitempty"`
+	Id_                         bson.ObjectId `bson:"_id,omitempty"`
 }
+
+var _ db.Indexer = (*Factoid)(nil)
 
 // Represent info about things that happened to the factoid
 type FactoidStat struct {
@@ -46,10 +49,22 @@ type FactoidStat struct {
 	Count int
 }
 
+func (fs *FactoidStat) String() string {
+	return fmt.Sprintf("%s,%s@%s#%d", fs.Nick, fs.Chan,
+		fs.Timestamp.Format(time.RFC3339), fs.Count)
+}
+
 // Represent info about things that can be done to the factoid
 type FactoidPerms struct {
 	ReadOnly bool
 	Nick     bot.Nick
+}
+
+func (fp *FactoidPerms) String() string {
+	if fp.ReadOnly {
+		return string(fp.Nick) + "(ro)"
+	}
+	return string(fp.Nick)
 }
 
 // Represent info returned from the Info MapReduce
@@ -67,8 +82,14 @@ func NewFactoid(key, value string, n bot.Nick, c bot.Chan) *Factoid {
 		Modified: &FactoidStat{ts, n, c, 0},
 		Accessed: &FactoidStat{ts, n, c, 0},
 		Perms:    &FactoidPerms{false, n},
-		Id:       bson.NewObjectId(),
+		Id_:      bson.NewObjectId(),
 	}
+}
+
+func (f *Factoid) String() string {
+	return fmt.Sprintf("<%s/%d>=%q (%g%%) c=%s/m=%s/a=%s owner=%s",
+		f.Key, f.Type, f.Value, f.Chance,
+		f.Created, f.Modified, f.Accessed, f.Perms)
 }
 
 func (f *Factoid) Access(n bot.Nick, c bot.Chan) {
@@ -85,136 +106,224 @@ func (f *Factoid) Modify(n bot.Nick, c bot.Chan) {
 	f.Modified.Count++
 }
 
-// Factoids are stored in a mongo collection of Factoid structs
+func (f *Factoid) Id() bson.ObjectId {
+	return f.Id_
+}
+
+func (f *Factoid) Indexes() []db.Key {
+	// Factoids are indexed because f.Key is not unique and looking up
+	// all the factoids with a given key is a common operation.
+	// It's a bit wasteful sticking the ObjectId in the key when its
+	// also the value, but we need a unique key name inside the "key" bucket.
+	// A more optimal and less lazy solution might involve using bucket
+	// sequences to provide the keys inside the "key" bucket, but meh.
+	return []db.Key{
+		db.K{db.S{"key", f.Key}, db.S{"v", string(f.Id_)}},
+	}
+}
+
+func (f *Factoid) byId() db.K {
+	return db.K{db.S{"_id", string(f.Id_)}}
+}
+
+func byKey(key string) db.K {
+	k := db.K{}
+	if key != "" {
+		k = append(k, db.S{"key", key})
+	}
+	return k
+}
+
+type Factoids []*Factoid
+
+func (fs Factoids) Strings() []string {
+	s := make([]string, len(fs))
+	for i, f := range fs {
+		// We can't use %#v here because a Factoid struct contains pointers.
+		s[i] = f.String()
+	}
+	return s
+}
+
+type migrator struct {
+	mongo, bolt db.Collection
+}
+
+func (m migrator) Migrate() error {
+	var all Factoids
+	if err := m.mongo.All(db.K{}, &all); err != nil {
+		return err
+	}
+	if err := m.bolt.BatchPut(all); err != nil {
+		logging.Error("Migrating factoids: %v", err)
+		return err
+	}
+	logging.Info("Migrated %d factoid entries.", len(all))
+	return nil
+}
+
+func (m migrator) Diff() ([]string, []string, error) {
+	var mAll, bAll Factoids
+	if err := m.mongo.All(db.K{}, &mAll); err != nil {
+		return nil, nil, err
+	}
+	if err := m.bolt.All(db.K{}, &bAll); err != nil {
+		return nil, nil, err
+	}
+	return mAll.Strings(), bAll.Strings(), nil
+}
+
 type Collection struct {
-	// We're wrapping mgo.Collection so we can provide our own methods.
-	*mgo.Collection
+	db.Both
 
 	// cache of objectIds for PseudoRand
-	seen map[string][]bson.ObjectId
+	seen map[string]map[bson.ObjectId]bool
 }
 
 // Wrapper to get hold of a factoid collection handle
 func Init() *Collection {
 	fc := &Collection{
-		Collection: db.Mongo.C(COLLECTION).Mongo(),
-		seen:       make(map[string][]bson.ObjectId),
+		Both: db.Both{},
+		seen: make(map[string]map[bson.ObjectId]bool),
 	}
-	err := fc.EnsureIndex(mgo.Index{Key: []string{"key"}})
+	fc.Both.MongoC.Init(db.Mongo, COLLECTION, mongoIndexes)
+	fc.Both.BoltC.Init(db.Bolt, COLLECTION, nil)
+	fc.Both.Debug(true)
+	m := &migrator{
+		mongo: fc.Both.MongoC,
+		bolt:  fc.Both.BoltC,
+	}
+	fc.Both.Checker.Init(m, COLLECTION)
+	return fc
+}
+
+func mongoIndexes(c db.Collection) {
+	err := c.Mongo().EnsureIndex(mgo.Index{Key: []string{"key"}})
 	if err != nil {
 		logging.Error("Couldn't create index on sp0rkle.factoids: %v", err)
 	}
-	return fc
 }
 
 // Can't call this Count because that'd override mgo.Collection.Count()
 func (fc *Collection) GetCount(key string) int {
-	if num, err := fc.Find(lookup(key)).Count(); err == nil {
-		return num
-	}
-	return 0
+	// TODO(fluffle): less-wasteful GetCount()
+	return len(fc.GetAll(key))
 }
 
 func (fc *Collection) GetById(id bson.ObjectId) *Factoid {
-	var res Factoid
-	if err := fc.Find(bson.M{"_id": id}).One(&res); err == nil {
-		return &res
-	}
-	return nil
-}
-
-func (fc *Collection) GetAll(key string) []*Factoid {
-	// Insisting GetAll isn't used to get every key is probably a good idea
-	if key == "" {
-		return nil
-	}
-	res := make([]*Factoid, 0, 10)
-	if err := fc.Find(lookup(key)).All(&res); err == nil {
-		logging.Info("res = %#v", res)
-		return res
-	}
-	return nil
-}
-
-func (fc *Collection) GetPseudoRand(key string) *Factoid {
-	lookup := lookup(key)
-	ids, ok := fc.seen[key]
-	if ok && len(ids) > 0 {
-		logging.Debug("Seen '%s' before, %d stored id's", key, len(ids))
-		lookup["_id"] = bson.M{"$nin": ids}
-	}
-	query := fc.Find(lookup)
-	count, err := query.Count()
-	if err != nil {
-		logging.Debug("Counting for key failed: %v", err)
-		return nil
-	}
-	if count == 0 {
-		if ok {
-			// we've seen this before, but people have deleted it since.
-			delete(fc.seen, key)
-		}
-		return nil
-	}
-	var res Factoid
-	if count > 1 {
-		query = query.Skip(rand.Intn(count))
-	}
-	if err = query.One(&res); err != nil {
-		logging.Warn("Fetching factoid for key failed: %v", err)
-		return nil
-	}
-	if count != 1 {
-		if !ok {
-			// only store seen for keys that have more than one factoid
-			logging.Debug("Creating seen data for key '%s'.", key)
-			fc.seen[key] = make([]bson.ObjectId, 0, count)
-		}
-		logging.Debug("Storing id %v for key '%s'.", res.Id, key)
-		fc.seen[key] = append(fc.seen[key], res.Id)
-	} else if ok {
-		// if the count of results is 1 and we're storing seen data for key
-		// then we've exhausted the possible results and should wipe it
-		logging.Debug("Zeroing seen data for key '%s'.", key)
-		delete(fc.seen, key)
-	}
-	return &res
-}
-
-func (fc *Collection) GetKeysMatching(regex string) []string {
-	var res []string
-	query := fc.Find(bson.M{"key": bson.M{"$regex": regex}})
-	if err := query.Distinct("key", &res); err != nil {
-		logging.Warn("Distinct regex query for '%s' failed: %v\n", regex, err)
+	res := &Factoid{Id_: id}
+	if err := fc.Get(res.byId(), res); err != nil {
+		logging.Warn("Factoid GetById failed: %v", err)
 		return nil
 	}
 	return res
 }
 
-func (fc *Collection) GetLast(op, key string) *Factoid {
-	var res Factoid
-	// op == "modified", "accessed", "created"
-	op = "-" + op + ".timestamp"
-	q := fc.Find(lookup(key)).Sort(op)
-	if err := q.One(&res); err == nil {
-		return &res
+func (fc *Collection) GetAll(key string) []*Factoid {
+	res := Factoids{}
+	if err := fc.All(byKey(key), &res); err != nil {
+		logging.Warn("Factoid GetAll failed: %v", err)
+		return nil
 	}
-	return nil
+	return res
+}
+
+func (fc *Collection) GetPseudoRand(key string) *Factoid {
+	// TODO(fluffle): GetPR implementation in package db.
+	facts := fc.GetAll(key)
+	filtered := Factoids{}
+	ids, ok := fc.seen[key]
+	if ok && len(ids) > 0 {
+		logging.Debug("Seen '%s' before, %d stored id's", key, len(ids))
+		for _, fact := range facts {
+			if !ids[fact.Id()] {
+				filtered = append(filtered, fact)
+			}
+		}
+	} else {
+		filtered = facts
+	}
+
+	count := len(filtered)
+	switch count {
+	case 0:
+		if ok {
+			// we've seen this before, but people have deleted it since.
+			delete(fc.seen, key)
+		}
+		return nil
+	case 1:
+		if ok {
+			// if the count of results is 1 and we're storing seen data for key
+			// then we've exhausted the possible results and should wipe it
+			logging.Debug("Zeroing seen data for key '%s'.", key)
+			delete(fc.seen, key)
+		}
+		return filtered[0]
+	}
+	// case count > 1
+	if !ok {
+		// only store seen for keys that have more than one factoid
+		logging.Debug("Creating seen data for key '%s'.", key)
+		fc.seen[key] = make(map[bson.ObjectId]bool)
+	}
+	res := filtered[rand.Intn(count)]
+	logging.Debug("Storing id %v for key '%s'.", res.Id(), key)
+	fc.seen[key][res.Id()] = true
+	return res
+}
+
+func (fc *Collection) GetKeysMatching(regex string) []string {
+	facts := Factoids{}
+	if err := fc.Match("Key", regex, &facts); err != nil {
+		logging.Warn("Factoid GetKeyMatching failed: %v", err)
+		return nil
+	}
+	// Have to dedupe here now :-/
+	res := []string{}
+	set := map[string]bool{}
+	for _, fact := range facts {
+		if _, ok := set[fact.Key]; !ok {
+			set[fact.Key] = true
+			res = append(res, fact.Key)
+		}
+	}
+	return res
+}
+
+func (fc *Collection) GetLast(key string) (c *Factoid, m *Factoid, a *Factoid) {
+	// Waaay less efficient for MongoDB but works for both.
+	facts := fc.GetAll(key)
+	for _, fact := range facts {
+		if c == nil || c.Created.Timestamp.Before(fact.Created.Timestamp) {
+			c = fact
+		}
+		if m == nil || m.Modified.Timestamp.Before(fact.Modified.Timestamp) {
+			m = fact
+		}
+		if a == nil || a.Accessed.Timestamp.Before(fact.Accessed.Timestamp) {
+			a = fact
+		}
+	}
+	return
 }
 
 func (fc *Collection) InfoMR(key string) *FactoidInfo {
+	// MapReduce has no BoltDB equivalent and building one seems excessive.
+
+	// Mongo
 	mr := &mgo.MapReduce{
 		Map: `function() { emit("count", {
 			accessed: this.accessed.count,
 			modified: this.modified.count,
-			created: this.created.count,
+			created: this.created.count
 		})}`,
 		Reduce: `function(k,l) {
 			var sum = { accessed: 0, modified: 0, created: 0 };
-			for each (var v in l) {
-				sum.accessed += v.accessed;
-				sum.modified += v.modified;
-				sum.created  += v.created;
+			for (var i = 0; i < l.length; i++) {
+				sum.accessed += l[i].accessed;
+				sum.modified += l[i].modified;
+				sum.created  += l[i].created;
 			}
 			return sum;
 		}`,
@@ -223,15 +332,45 @@ func (fc *Collection) InfoMR(key string) *FactoidInfo {
 		Id    int `bson:"_id"`
 		Value FactoidInfo
 	}
-	info, err := fc.Find(lookup(key)).MapReduce(mr, &res)
+	k := bson.M{}
+	if key != "" {
+		k["key"] = key
+	}
+	info, err := fc.Mongo().Find(k).MapReduce(mr, &res)
+	minfo := &FactoidInfo{}
 	if err != nil || len(res) == 0 {
 		logging.Warn("Info MR for '%s' failed: %v", key, err)
-		return nil
 	} else {
 		logging.Debug("Info MR mapped %d, emitted %d, produced %d in %d ms.",
 			info.InputCount, info.EmitCount, info.OutputCount, info.Time/1e6)
+		*minfo = res[0].Value
 	}
-	return &res[0].Value
+
+	// Bolt, we have to do things manually, which is way easier even if it
+	// does involve maybe slurping all the factoids into a slice, *again*.
+	// TODO(fluffle): Add a ForEach() to boltdb wrapper once migrated.
+	facts := Factoids{}
+	if err := fc.Both.BoltC.All(byKey(key), &facts); err != nil {
+		logging.Warn("Factoid InfoMR All failed: %v", err)
+	}
+	binfo := &FactoidInfo{}
+
+	for _, fact := range facts {
+		binfo.Accessed += fact.Accessed.Count
+		binfo.Modified += fact.Modified.Count
+		binfo.Created += fact.Created.Count
+	}
+
+	// Diff.
+	if binfo.Accessed != minfo.Accessed ||
+		binfo.Modified != minfo.Modified ||
+		binfo.Created != minfo.Created {
+		logging.Warn("Factoid InfoMR: diff detected!\n\tMongo: %v\n\tBolt: %v", minfo, binfo)
+	}
+	if fc.Migrated() {
+		return binfo
+	}
+	return minfo
 }
 
 func ParseValue(v string) (ft FactoidType, fv string) {
@@ -256,13 +395,4 @@ func ParseValue(v string) (ft FactoidType, fv string) {
 		ft = F_URL
 	}
 	return
-}
-
-// Shortcut to create correct lookup struct for mgo.Collection.Find().
-// Returning an empty bson.M means key == "" can operate on all factoids.
-func lookup(key string) bson.M {
-	if key == "" {
-		return bson.M{}
-	}
-	return bson.M{"key": key}
 }

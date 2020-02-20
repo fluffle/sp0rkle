@@ -8,7 +8,6 @@ import (
 	"github.com/fluffle/sp0rkle/bot"
 	"github.com/fluffle/sp0rkle/collections/factoids"
 	"github.com/fluffle/sp0rkle/util"
-	"gopkg.in/mgo.v2/bson"
 )
 
 // Factoid add: 'key := value' or 'key :is value'
@@ -38,13 +37,13 @@ func insert(ctx *bot.Context) {
 		joy = rand.Value
 	}
 
-	if err := fc.Insert(fact); err == nil {
-		count := fc.GetCount(key)
-		LastSeen(ctx.Target(), fact.Id)
-		ctx.ReplyN("%s, I now know %d things about '%s'.", joy, count, key)
-	} else {
+	if err := fc.Put(fact); err != nil {
 		ctx.ReplyN("Error storing factoid: %s.", err)
+		return
 	}
+	count := fc.GetCount(key)
+	LastSeen(ctx.Target(), fact.Id())
+	ctx.ReplyN("%s, I now know %d things about '%s'.", joy, count, key)
 }
 
 func lookup(ctx *bot.Context) {
@@ -74,14 +73,14 @@ func lookup(ctx *bot.Context) {
 	}
 	if rand.Float64() < chance {
 		// Store this as the last seen factoid
-		LastSeen(ctx.Target(), fact.Id)
+		LastSeen(ctx.Target(), fact.Id())
 		// Update the Accessed field
 		// TODO(fluffle): fd should take care of updating Accessed internally
 		fact.Access(ctx.Storable())
 		// And store the new factoid data
-		if err := fc.Update(bson.M{"_id": fact.Id}, fact); err != nil {
+		if err := fc.Put(fact); err != nil {
 			ctx.ReplyN("I failed to update '%s' (%s): %s ",
-				fact.Key, fact.Id, err)
+				fact.Key, fact.Id(), err)
 
 		}
 		recurse(fact, map[string]bool{key: true})

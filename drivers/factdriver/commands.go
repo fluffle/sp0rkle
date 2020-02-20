@@ -9,7 +9,6 @@ import (
 	"github.com/fluffle/sp0rkle/bot"
 	"github.com/fluffle/sp0rkle/util"
 	"github.com/fluffle/sp0rkle/util/datetime"
-	"gopkg.in/mgo.v2/bson"
 )
 
 // Factoid chance: 'chance of that is' => sets chance of lastSeen[chan]
@@ -44,23 +43,23 @@ func chance(ctx *bot.Context) {
 	// Retrieve last seen ObjectId, replace with ""
 	ls := LastSeen(ctx.Target(), "")
 	// ok, we're good to update the chance.
-	if fact := fc.GetById(ls); fact != nil {
-		// Store the old chance, update with the new
-		old := fact.Chance
-		fact.Chance = chance
-		// Update the Modified field
-		fact.Modify(ctx.Storable())
-		// And store the new factoid data
-		if err := fc.Update(bson.M{"_id": ls}, fact); err == nil {
-			ctx.ReplyN("'%s' was at %.0f%% chance, now is at %.0f%%.",
-				fact.Key, old*100, chance*100)
-
-		} else {
-			ctx.ReplyN("I failed to replace '%s': %s", fact.Key, err)
-		}
-	} else {
+	fact := fc.GetById(ls)
+	if fact == nil {
 		ctx.ReplyN("Whatever that was, I've already forgotten it.")
+		return
 	}
+	// Store the old chance, update with the new
+	old := fact.Chance
+	fact.Chance = chance
+	// Update the Modified field
+	fact.Modify(ctx.Storable())
+	// And store the new factoid data
+	if err := fc.Put(fact); err != nil {
+		ctx.ReplyN("I failed to replace '%s': %s", fact.Key, err)
+		return
+	}
+	ctx.ReplyN("'%s' was at %.0f%% chance, now is at %.0f%%.",
+		fact.Key, old*100, chance*100)
 }
 
 // Pulls out regexp or replacement, allowing for escaped delimiters.
@@ -112,30 +111,29 @@ func edit(ctx *bot.Context) {
 	old := fact.Value
 	fact.Value = rx.ReplaceAllString(old, rp)
 	fact.Modify(ctx.Storable())
-	if err := fc.UpdateId(ls, fact); err == nil {
-		ctx.ReplyN("'%s' was '%s', is now '%s'.",
-			fact.Key, old, fact.Value)
-
-	} else {
+	if err := fc.Put(fact); err != nil {
 		ctx.ReplyN("I failed to replace '%s': %s", fact.Key, err)
+		return
 	}
+	ctx.ReplyN("'%s' was '%s', is now '%s'.",
+		fact.Key, old, fact.Value)
 }
 
 // Factoid delete: 'forget|delete that' => deletes lastSeen[chan]
 func forget(ctx *bot.Context) {
 	// Get fresh state on the last seen factoid.
 	ls := LastSeen(ctx.Target(), "")
-	if fact := fc.GetById(ls); fact != nil {
-		if err := fc.Remove(bson.M{"_id": ls}); err == nil {
-			ctx.ReplyN("I forgot that '%s' was '%s'.",
-				fact.Key, fact.Value)
-
-		} else {
-			ctx.ReplyN("I failed to forget '%s': %s", fact.Key, err)
-		}
-	} else {
+	fact := fc.GetById(ls)
+	if fact == nil {
 		ctx.ReplyN("Whatever that was, I've already forgotten it.")
+		return
 	}
+	if err := fc.Del(fact); err != nil {
+		ctx.ReplyN("I failed to forget '%s': %s", fact.Key, err)
+		return
+	}
+	ctx.ReplyN("I forgot that '%s' was '%s'.",
+		fact.Key, fact.Value)
 }
 
 // Factoid info: 'fact info key' => some information about key
@@ -153,7 +151,8 @@ func info(ctx *bot.Context) {
 		msgs = append(msgs, fmt.Sprintf("I know %d things about '%s'.",
 			count, key))
 	}
-	if created := fc.GetLast("created", key); created != nil {
+	created, modified, accessed := fc.GetLast(key)
+	if created != nil && modified != nil && accessed != nil {
 		c := created.Created
 		msgs = append(msgs, "A factoid")
 		if key != "" {
@@ -161,13 +160,11 @@ func info(ctx *bot.Context) {
 		}
 		msgs = append(msgs, fmt.Sprintf("was last created on %s by %s,",
 			datetime.Format(c.Timestamp), c.Nick))
-	}
-	if modified := fc.GetLast("modified", key); modified != nil {
+
 		m := modified.Modified
 		msgs = append(msgs, fmt.Sprintf("modified on %s by %s,",
 			datetime.Format(m.Timestamp), m.Nick))
-	}
-	if accessed := fc.GetLast("accessed", key); accessed != nil {
+
 		a := accessed.Accessed
 		msgs = append(msgs, fmt.Sprintf("and accessed on %s by %s.",
 			datetime.Format(a.Timestamp), a.Nick))
@@ -211,24 +208,24 @@ func literal(ctx *bot.Context) {
 // Factoid replace: 'replace that with' => updates lastSeen[chan]
 func replace(ctx *bot.Context) {
 	ls := LastSeen(ctx.Target(), "")
-	if fact := fc.GetById(ls); fact != nil {
-		// Store the old factoid value
-		old := fact.Value
-		// Replace the value with the new one
-		fact.Value = ctx.Text()
-		// Update the Modified field
-		fact.Modify(ctx.Storable())
-		// And store the new factoid data
-		if err := fc.Update(bson.M{"_id": ls}, fact); err == nil {
-			ctx.ReplyN("'%s' was '%s', now is '%s'.",
-				fact.Key, old, fact.Value)
-
-		} else {
-			ctx.ReplyN("I failed to replace '%s': %s", fact.Key, err)
-		}
-	} else {
+	fact := fc.GetById(ls)
+	if fact == nil {
 		ctx.ReplyN("Whatever that was, I've already forgotten it.")
+		return
 	}
+	// Store the old factoid value
+	old := fact.Value
+	// Replace the value with the new one
+	fact.Value = ctx.Text()
+	// Update the Modified field
+	fact.Modify(ctx.Storable())
+	// And store the new factoid data
+	if err := fc.Put(fact); err != nil {
+		ctx.ReplyN("I failed to replace '%s': %s", fact.Key, err)
+		return
+	}
+	ctx.ReplyN("'%s' was '%s', now is '%s'.",
+		fact.Key, old, fact.Value)
 }
 
 // Factoid search: 'fact search regexp' => list of possible key matches

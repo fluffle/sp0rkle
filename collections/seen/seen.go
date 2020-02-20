@@ -174,7 +174,6 @@ func Init() *Collection {
 	sc := &Collection{db.Both{}}
 	sc.Both.MongoC.Init(db.Mongo, COLLECTION, mongoIndexes)
 	sc.Both.BoltC.Init(db.Bolt, COLLECTION, nil)
-	sc.Both.Debug(true)
 	m := &migrator{
 		mongo: sc.Both.MongoC,
 		bolt:  sc.Both.BoltC,
