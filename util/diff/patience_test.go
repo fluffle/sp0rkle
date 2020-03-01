@@ -103,4 +103,9 @@ int main(int argc, char **argv)
 	if got != want {
 		t.Errorf("Did not get expected diff.\n\nGOT:\n\n%s\nWANT:\n\n%s", got, want)
 	}
+
+	_, err = Unified([]string{}, []string{})
+	if err != nil {
+		t.Errorf("Raised ErrDiff with empty slices.")
+	}
 }

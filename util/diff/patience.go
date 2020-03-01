@@ -200,13 +200,13 @@ func patienceDiff(a, b []string) []diff {
 		}
 		lastA, lastB = seq.a+seq.l, seq.b+seq.l
 	}
-	if lastA < len(a) {
+	if len(a) > 0 && lastA < len(a) {
 		if lastA == -1 {
 			lastA = 0
 		}
 		diffs = append(diffs, diff{remove, lastA, 0, len(a) - lastA})
 	}
-	if lastB < len(b) {
+	if len(b) > 0 && lastB < len(b) {
 		if lastB == -1 {
 			lastB = 0
 		}
@@ -217,8 +217,9 @@ func patienceDiff(a, b []string) []diff {
 
 func Unified(a, b []string) ([]string, error) {
 	diffs := patienceDiff(a, b)
+	println(len(diffs))
 	err := ErrDiff
-	if len(diffs) == 1 && diffs[0].op == equal {
+	if len(diffs) == 0 || len(diffs) == 1 && diffs[0].op == equal {
 		err = nil
 	}
 	unified := make([]string, 0, len(a)+len(b))

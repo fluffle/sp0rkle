@@ -212,7 +212,13 @@ func (sc *Collection) LastSeen(nick string) *Nick {
 		logging.Debug("LastSeen: %v\n%s", err, strings.Join(unified, "\n"))
 	}
 	if sc.Migrated() {
+		if len(bAll) == 0 {
+			return nil
+		}
 		return bAll[len(bAll)-1]
+	}
+	if len(mAll) == 0 {
+		return nil
 	}
 	return mAll[len(mAll)-1]
 }
