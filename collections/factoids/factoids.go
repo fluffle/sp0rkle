@@ -187,7 +187,7 @@ func Init() *Collection {
 		seen: make(map[string]map[bson.ObjectId]bool),
 	}
 	fc.Both.MongoC.Init(db.Mongo, COLLECTION, mongoIndexes)
-	fc.Both.BoltC.Init(db.Bolt, COLLECTION, nil)
+	fc.Both.BoltC.Init(db.Bolt.Indexed(), COLLECTION, nil)
 	fc.Both.Debug(true)
 	m := &migrator{
 		mongo: fc.Both.MongoC,

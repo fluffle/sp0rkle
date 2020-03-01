@@ -12,7 +12,7 @@ type migrator struct{}
 func (migrator) Migrate() error {
 	var all []Entry
 	mongo.Init(db.Mongo, COLLECTION, mongoIndexes)
-	bolt.Init(db.Bolt, COLLECTION, nil)
+	bolt.Init(db.Bolt.Keyed(), COLLECTION, nil)
 	if err := mongo.All(db.K{}, &all); err != nil {
 		return err
 	}

@@ -78,7 +78,7 @@ func addMigrator(m Migrator, coll string) Checker {
 	ms.Lock()
 	defer ms.Unlock()
 	// Store migration tracking in new db only.
-	ms.db.Init(Bolt, COLLECTION, nil)
+	ms.db.Init(Bolt.Keyed(), COLLECTION, nil)
 	checker := checkFunc(func() bool {
 		ms.RLock()
 		defer ms.RUnlock()
@@ -96,7 +96,7 @@ func addMigrator(m Migrator, coll string) Checker {
 }
 
 func Migrate() error {
-	ms.db.Init(Bolt, COLLECTION, nil)
+	ms.db.Init(Bolt.Keyed(), COLLECTION, nil)
 
 	// Holding the lock while migrating prevents the Checker returned by
 	// addMigrator from checking migration state (and thus locks up the

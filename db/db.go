@@ -19,7 +19,6 @@ const (
 )
 
 type Database interface {
-	Close()
 	C(name string) Collection
 }
 
@@ -31,7 +30,7 @@ type Collection interface {
 	Put(interface{}) error
 	BatchPut(interface{}) error
 	Del(interface{}) error
-	Next(Key, ...uint64) (int, error)
+	Next(Key, ...int) (int, error)
 	// Turn on debugging for this collection.
 	Debug(bool)
 	// So we don't have to do everything at once.
@@ -50,23 +49,6 @@ func (c *C) Init(db Database, name string, f func(Collection)) {
 			f(c)
 		}
 	})
-}
-
-// A value that is stored directly at Key in BoltDB.
-// The method is not called Key because conf.Entry has
-// a field named Key which references data in mongo
-// but still needs to implement this interface.
-// Naming is hard, but this is probably fine because
-// they will most likely be returning a db.K anyway.
-type Keyer interface {
-	K() Key
-}
-
-// A value that is stored directly at K{{"_id", ObjectId}}
-// with pointers for each Key in Indexes in BoltDB.
-type Indexer interface {
-	Id() bson.ObjectId
-	Indexes() []Key
 }
 
 type Elem interface {

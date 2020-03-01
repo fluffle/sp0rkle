@@ -179,7 +179,7 @@ func (b *Both) Del(value interface{}) error {
 	return mErr
 }
 
-func (b *Both) Next(k Key, set ...uint64) (int, error) {
+func (b *Both) Next(k Key, set ...int) (int, error) {
 	return b.BoltC.Next(k, set...)
 }
 

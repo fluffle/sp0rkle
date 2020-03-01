@@ -75,7 +75,7 @@ func (m *migrator) Migrate() error {
 	}
 	logging.Info("Migrated %d quotes.", len(all))
 	// Update sequence with current largest QID.
-	_, err := m.bolt.Next(db.K{}, uint64(all[len(all)-1].QID))
+	_, err := m.bolt.Next(db.K{}, all[len(all)-1].QID)
 	return err
 }
 
@@ -107,7 +107,7 @@ func Init() *Collection {
 		maxQID: 1,
 	}
 	qc.Both.MongoC.Init(db.Mongo, COLLECTION, mongoIndexes)
-	qc.Both.BoltC.Init(db.Bolt, COLLECTION, nil)
+	qc.Both.BoltC.Init(db.Bolt.Indexed(), COLLECTION, nil)
 	m := &migrator{
 		mongo: qc.Both.MongoC,
 		bolt:  qc.Both.BoltC,

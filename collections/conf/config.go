@@ -32,7 +32,7 @@ func Mongo(ns string) *namespace {
 var bolt db.C
 
 func Bolt(ns string) *namespace {
-	bolt.Init(db.Bolt, COLLECTION, nil)
+	bolt.Init(db.Bolt.Keyed(), COLLECTION, nil)
 	return &namespace{ns: ns, Collection: &bolt}
 }
 

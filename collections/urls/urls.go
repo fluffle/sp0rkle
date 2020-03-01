@@ -132,7 +132,7 @@ func Init() *Collection {
 		seen: make(map[string]map[bson.ObjectId]bool),
 	}
 	uc.Both.MongoC.Init(db.Mongo, COLLECTION, mongoIndexes)
-	uc.Both.BoltC.Init(db.Bolt, COLLECTION, nil)
+	uc.Both.BoltC.Init(db.Bolt.Indexed(), COLLECTION, nil)
 	m := &migrator{
 		mongo: uc.Both.MongoC,
 		bolt:  uc.Both.BoltC,

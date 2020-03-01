@@ -109,7 +109,7 @@ type Collection struct {
 func Init() *Collection {
 	kc := &Collection{db.Both{}}
 	kc.Both.MongoC.Init(db.Mongo, COLLECTION, mongoIndexes)
-	kc.Both.BoltC.Init(db.Bolt, COLLECTION, nil)
+	kc.Both.BoltC.Init(db.Bolt.Keyed(), COLLECTION, nil)
 	m := &migrator{
 		mongo: kc.Both.MongoC,
 		bolt:  kc.Both.BoltC,

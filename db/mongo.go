@@ -110,7 +110,7 @@ func (m *mongoCollection) Del(value interface{}) error {
 	return fmt.Errorf("del: don't know how to delete value %#v", value)
 }
 
-func (m *mongoCollection) Next(k Key, set ...uint64) (int, error) {
+func (m *mongoCollection) Next(k Key, set ...int) (int, error) {
 	panic("no autoincrements for you")
 }
 
