@@ -13,24 +13,11 @@ notifications:
       - "irc.pl0rt.org#sp0rklf"
     skip_join: true
 
-# NOTE: Any extra dependencies added here must be reflected in README.md
-install:
-  - go get go.etcd.io/bbolt
-  - go get github.com/fluffle/goirc/client
-  - go get github.com/fluffle/golog/logging
-  - go get github.com/google/go-github/github
-  - go get golang.org/x/oauth2
-  - go get gopkg.in/mgo.v2
-
-    # Not testing with DB, just that it builds
-    #sudo apt-get install build-essential bison mongodb
-    #sudo apt-get install mercurial git bzr
-
 script:
 #    main.go:10:2: cannot find package "github.com/fluffle/sp0rkle/bot" in any of:
 #    Work around by symlinking in
   - if [ "$TRAVIS_REPO_SLUG" != "fluffle/sp0rkle" ] ; then ln -s "$HOME/gopath/src/github.com/$TRAVIS_REPO_SLUG" /home/travis/gopath/src/github.com/fluffle/sp0rkle ; fi
   - ls -la /home/travis/gopath/src/github.com/fluffle/
   - find /home/travis/gopath/src/github.com/fluffle
-  - go test -v ./...
+  - go test -v -race ./...
 
