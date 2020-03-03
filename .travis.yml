@@ -2,9 +2,8 @@
 language: go
 
 go:
-  - 1.9.7
-  - 1.10.4
-  - 1.11
+  - 1.13.8
+  - 1.14
 
 sudo : false
 
@@ -16,7 +15,7 @@ notifications:
 
 # NOTE: Any extra dependencies added here must be reflected in README.md
 install:
-  - go get github.com/boltdb/bolt
+  - go get go.etcd.io/bbolt
   - go get github.com/fluffle/goirc/client
   - go get github.com/fluffle/golog/logging
   - go get github.com/google/go-github/github
