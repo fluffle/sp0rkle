@@ -18,3 +18,8 @@ DATE="$(date "+%Y-%m-%d.%H:%M")"
 #  - untar to persistent volume so container can see backup
 #  - docker exec -t <container> /opt/bitnami/mongodb/bin/mongorestore \
 #        --drop -d sp0rkle --dir=/bitnami/mongodb/restore/sp0rkle -v
+# To restore into "standard" mongodb 4.x docker image, with auth:
+#  - docker exec -t <container> /usr/bin/mongorestore \
+#        --drop -d sp0rkle --dir /data/db/restore/sp0rkle -v \
+#        -u root -p <root pass> --authenticationDatabase admin \
+#        mongodb://localhost:27017
