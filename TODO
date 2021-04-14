@@ -1,6 +1,8 @@
 The todo list is broken down into the following sections:
 Drivers: Specific drivers that need creating
 Core: Items that affect the main framework
+Dockerising: Things necessary for running sp0rkle in a container.
+BoltDB Migration: Things remaining for the Great Mongo->Bolt migration.
 Testability: Items surounding the test framework
 Bugs: Known problems with current implementation
 
@@ -9,16 +11,6 @@ Drivers
 // There are probably more useful web services with JSON apis to wrap,
 // these can all go in 'netdriver'
 *WebServices
-  - exchange (XE.com?)
-    command: exchange, convert
-    exchange 10 GBP to USD
-
-  - weather (weather.com?)
-    weather manchester, uk
-
-  - google?
-  - ftse or other share indexen?
-
   - soundcloud
     follow particular bands/users to announce when they post new tracks
     (would require API use since they don't expose simple RSS feeds)
@@ -33,7 +25,11 @@ Drivers
 *urlsearch
   //Keep a track of urls that are said and allow them to be searched (using regex)
   // Still TODO:
-  - get hosting and buy sp0rk.ly
+  - make consts configurable
+	- bad url strings
+	- max cache size
+	- auto shorten limit
+  - 404 checking of old URLs
 
 *Quotes
   // Still TODO: some...
@@ -58,19 +54,53 @@ Drivers
   - More unit tests
   - Pruning of 404'd F_URL factoids
 
-*Insult generator
-  - needed for many many factoids :-)
-
 Core
 ====
 
-* Persistent ignore list
 * Admin commands like join/part/ignore (and perms)
 * Push servemux-like command/handler dispatch up into a layer in goirc.
 * Help: look into godoc -> wiki.git dumping
+* Revisit the polling / async tasks stuff as it is terrible
+* context.Context propagation now goirc supports it
+* Proper dependency injection with https://github.com/google/wire
+
+Dockerising
+===========
+
+* Ensure logging to STDOUT works ok
+* Env var secrets
+* Docker-compatible signal handling (more than just sigint)
+* kill off "rebuilding"
+
+BoltDB Migration
+================
+
+### Remaining collections
+
+* reminders
+* pushes
+
+### Migration
+
+* Change migration code to have more states
+    * MONGO_ONLY -- read/write to mongo only, don't expect bolt data
+	* MONGO_PRIMARY
+	    * initial migration run complete + diffed
+		* write to both, read from both, diff, return mongo
+	* BOLT_PRIMARY
+	    * run another complete diff to validate dual writes
+	    * write to both, read from both, diff, return bolt
+	* BOLT_ONLY -- don't even open mongo connection on startup
+* Migrate as far as BOLT_PRIMARY on current server
+* Dockerise (see dockerising section)
+* Set up new Dockerised servers without mongo
+* Run BOLT_ONLY on new server
+* Nuke all the migration code!
 
 Testability
 ===========
+
+(lol)
 
 * Ensure all functions (where applicable) have unit tests
 * mock/fake the DB connection
