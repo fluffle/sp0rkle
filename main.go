@@ -60,7 +60,7 @@ func main() {
 
 	// Connect to databases
 
-	if err := db.Mongo.Init(*mongoDB); err != nil {
+	if err := db.Mongo.Init(bot.GetSecret(*mongoDB)); err != nil {
 		logging.Fatal("Unable to connect to MongoDB at %q: %v", *mongoDB, err)
 	}
 	defer db.Mongo.Close()

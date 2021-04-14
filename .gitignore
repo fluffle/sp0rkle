@@ -5,3 +5,5 @@ _test/
 *.swp
 
 sp0rkle
+sp0rkle.boltdb
+backup/
