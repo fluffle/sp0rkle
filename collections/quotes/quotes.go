@@ -63,7 +63,10 @@ type migrator struct {
 	mongo, bolt db.Collection
 }
 
-func (m *migrator) Migrate() error {
+func (m *migrator) MigrateTo(newState db.MigrationState) error {
+	if newState != db.MONGO_PRIMARY {
+		return nil
+	}
 	var all Quotes
 	// Break encapsulation to preserve quote ID ordering.
 	if err := m.mongo.Mongo().Find(bson.M{}).Sort("qid").All(&all); err != nil {
@@ -138,10 +141,23 @@ func (qc *Collection) GetByQID(qid int) *Quote {
 }
 
 func (qc *Collection) NewQID() (int, error) {
-	if qc.Migrated() {
-		return qc.Next(db.K{})
+	var mNext, bNext int
+	var err error
+	state := qc.Check()
+	if state < db.BOLT_ONLY {
+		mNext = int(atomic.AddInt32(&qc.maxQID, 1))
 	}
-	return int(atomic.AddInt32(&qc.maxQID, 1)), nil
+	if state > db.MONGO_ONLY {
+		bNext, err = qc.Next(db.K{})
+	}
+	if (state == db.MONGO_PRIMARY || state == db.BOLT_PRIMARY) &&
+		mNext != bNext {
+		logging.Warn("QID mismatch (%d vs. %d).", mNext, bNext)
+	}
+	if state >= db.BOLT_PRIMARY {
+		return bNext, err
+	}
+	return mNext, nil
 }
 
 func (qc *Collection) GetPseudoRand(regex string) *Quote {

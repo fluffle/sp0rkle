@@ -73,7 +73,12 @@ func migrate(ctx *Context) {
 	if !check_rebuilder("migrate", ctx) {
 		return
 	}
-	if err := db.Migrate(); err != nil {
+	newState := db.StateForName(strings.Fields(ctx.Text())[1])
+	if !newState.Valid() {
+		ctx.ReplyN("unrecognised migration state: %q", ctx.Text())
+		return
+	}
+	if err := db.MigrateTo(newState); err != nil {
 		ctx.ReplyN("migrate failed: %v", err)
 		return
 	}
@@ -85,7 +90,8 @@ func check_rebuilder(cmd string, ctx *Context) bool {
 	if s[0] == "" || s[0] != ctx.Nick || !strings.HasPrefix(ctx.Text(), cmd) {
 		return false
 	}
-	if len(s) > 1 && ctx.Text() != fmt.Sprintf("%s %s", cmd, s[1]) {
+	fields := strings.Fields(ctx.Text())
+	if len(s) > 1 && fields[len(fields)-1] != s[1] {
 		return false
 	}
 	return true

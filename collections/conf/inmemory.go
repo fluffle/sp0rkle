@@ -14,10 +14,10 @@ func InMem(ns string) Namespace {
 	return &inMem{ns: ns, data: make(map[string]interface{})}
 }
 
-func (ns *inMem) All() []Entry {
+func (ns *inMem) All() Entries {
 	ns.Lock()
 	defer ns.Unlock()
-	e := make([]Entry, 0, len(ns.data))
+	e := make(Entries, 0, len(ns.data))
 	for k, v := range ns.data {
 		e = append(e, Entry{ns.ns, k, v})
 	}

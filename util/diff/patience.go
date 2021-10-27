@@ -4,9 +4,15 @@
 // should be considered © Bram Cohen / Canonical Ltd.
 package diff
 
-import "errors"
+import (
+	"errors"
+	"sort"
+)
 
-var ErrDiff = errors.New("there are diffs")
+var (
+	ErrDiff        = errors.New("there are diffs")
+	ErrNotDiffable = errors.New("not diffable")
+)
 
 type commonLine struct {
 	a, b int
@@ -240,4 +246,35 @@ func Unified(a, b []string) ([]string, error) {
 		}
 	}
 	return unified, err
+}
+
+type stringSlicer interface {
+	Strings() []string
+}
+
+func stringSlices(a, b interface{}) ([]string, []string, bool) {
+	ass, aok := a.(stringSlicer)
+	bss, bok := b.(stringSlicer)
+	if !(aok && bok) {
+		return nil, nil, false
+	}
+	return ass.Strings(), bss.Strings(), true
+}
+
+func SortDiff(a, b interface{}) ([]string, error) {
+	astrs, bstrs, ok := stringSlices(a, b)
+	if !ok {
+		return nil, ErrNotDiffable
+	}
+	sort.Strings(astrs)
+	sort.Strings(bstrs)
+	return Unified(astrs, bstrs)
+}
+
+func Diff(a, b interface{}) ([]string, error) {
+	astrs, bstrs, ok := stringSlices(a, b)
+	if !ok {
+		return nil, ErrNotDiffable
+	}
+	return Unified(astrs, bstrs)
 }

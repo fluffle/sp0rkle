@@ -142,7 +142,10 @@ type migrator struct {
 	mongo, bolt db.Collection
 }
 
-func (m *migrator) Migrate() error {
+func (m *migrator) MigrateTo(newState db.MigrationState) error {
+	if newState != db.MONGO_PRIMARY {
+		return nil
+	}
 	var all Nicks
 	if err := m.mongo.All(db.K{}, &all); err != nil {
 		return err
@@ -196,22 +199,28 @@ func mongoIndexes(c db.Collection) {
 
 func (sc *Collection) LastSeen(nick string) *Nick {
 	var mAll, bAll Nicks
+	var mErr, bErr error
 	n := &Nick{Nick: bot.Nick(nick)}
+	state := sc.Check()
 
 	// Not using Both here because it's a useful test of BoltDB ordering.
-	q := sc.Mongo().Find(bson.M{"key": strings.ToLower(nick)}).Sort("timestamp")
-	mErr := q.All(&mAll)
-	bErr := sc.BoltC.All(n.byNick(), &bAll)
-	if mErr != bErr {
-		logging.Warn("LastSeen errors differ: %v != %v", mErr, bErr)
+	if state < db.BOLT_ONLY {
+		q := sc.Mongo().Find(bson.M{"key": strings.ToLower(nick)}).Sort("timestamp")
+		mErr = q.All(&mAll)
 	}
-	mStr := mAll.Strings()
-	bStr := bAll.Strings()
-	unified, err := diff.Unified(mStr, bStr)
-	if err != nil {
-		logging.Debug("LastSeen: %v\n%s", err, strings.Join(unified, "\n"))
+	if state > db.MONGO_ONLY {
+		bErr = sc.BoltC.All(n.byNick(), &bAll)
 	}
-	if sc.Migrated() {
+	if state == db.MONGO_PRIMARY || state == db.BOLT_PRIMARY {
+		if mErr != bErr {
+			logging.Warn("LastSeen errors differ: %v != %v", mErr, bErr)
+		}
+		// Note: not SortDiff here because ordering.
+		if unified, err := diff.Diff(mAll, bAll); err == diff.ErrDiff {
+			logging.Debug("LastSeen: %v\n%s", err, strings.Join(unified, "\n"))
+		}
+	}
+	if state >= db.BOLT_PRIMARY {
 		if len(bAll) == 0 {
 			return nil
 		}

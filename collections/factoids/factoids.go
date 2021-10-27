@@ -149,7 +149,10 @@ type migrator struct {
 	mongo, bolt db.Collection
 }
 
-func (m migrator) Migrate() error {
+func (m migrator) MigrateTo(newState db.MigrationState) error {
+	if newState != db.MONGO_PRIMARY {
+		return nil
+	}
 	var all Factoids
 	if err := m.mongo.All(db.K{}, &all); err != nil {
 		return err
@@ -310,64 +313,67 @@ func (fc *Collection) GetLast(key string) (c *Factoid, m *Factoid, a *Factoid) {
 
 func (fc *Collection) InfoMR(key string) *FactoidInfo {
 	// MapReduce has no BoltDB equivalent and building one seems excessive.
-
-	// Mongo
-	mr := &mgo.MapReduce{
-		Map: `function() { emit("count", {
-			accessed: this.accessed.count,
-			modified: this.modified.count,
-			created: this.created.count
-		})}`,
-		Reduce: `function(k,l) {
-			var sum = { accessed: 0, modified: 0, created: 0 };
-			for (var i = 0; i < l.length; i++) {
-				sum.accessed += l[i].accessed;
-				sum.modified += l[i].modified;
-				sum.created  += l[i].created;
-			}
-			return sum;
-		}`,
-	}
-	var res []struct {
-		Id    int `bson:"_id"`
-		Value FactoidInfo
-	}
-	k := bson.M{}
-	if key != "" {
-		k["key"] = key
-	}
-	info, err := fc.Mongo().Find(k).MapReduce(mr, &res)
 	minfo := &FactoidInfo{}
-	if err != nil || len(res) == 0 {
-		logging.Warn("Info MR for '%s' failed: %v", key, err)
-	} else {
-		logging.Debug("Info MR mapped %d, emitted %d, produced %d in %d ms.",
-			info.InputCount, info.EmitCount, info.OutputCount, info.Time/1e6)
-		*minfo = res[0].Value
-	}
-
-	// Bolt, we have to do things manually, which is way easier even if it
-	// does involve maybe slurping all the factoids into a slice, *again*.
-	// TODO(fluffle): Add a ForEach() to boltdb wrapper once migrated.
-	facts := Factoids{}
-	if err := fc.Both.BoltC.All(byKey(key), &facts); err != nil {
-		logging.Warn("Factoid InfoMR All failed: %v", err)
-	}
 	binfo := &FactoidInfo{}
+	state := fc.Check()
 
-	for _, fact := range facts {
-		binfo.Accessed += fact.Accessed.Count
-		binfo.Modified += fact.Modified.Count
-		binfo.Created += fact.Created.Count
+	if state < db.BOLT_ONLY {
+		// Mongo
+		mr := &mgo.MapReduce{
+			Map: `function() { emit("count", {
+				accessed: this.accessed.count,
+				modified: this.modified.count,
+				created: this.created.count
+			})}`,
+			Reduce: `function(k,l) {
+				var sum = { accessed: 0, modified: 0, created: 0 };
+				for (var i = 0; i < l.length; i++) {
+					sum.accessed += l[i].accessed;
+					sum.modified += l[i].modified;
+					sum.created  += l[i].created;
+				}
+				return sum;
+			}`,
+		}
+		var res []struct {
+			Id    int `bson:"_id"`
+			Value FactoidInfo
+		}
+		k := bson.M{}
+		if key != "" {
+			k["key"] = key
+		}
+		info, err := fc.Mongo().Find(k).MapReduce(mr, &res)
+		if err != nil || len(res) == 0 {
+			logging.Warn("Info MR for '%s' failed: %v", key, err)
+		} else {
+			logging.Debug("Info MR mapped %d, emitted %d, produced %d in %d ms.",
+				info.InputCount, info.EmitCount, info.OutputCount, info.Time/1e6)
+			*minfo = res[0].Value
+		}
 	}
+	if state > db.MONGO_ONLY {
+		// Bolt, we have to do things manually, which is way easier even if it
+		// does involve maybe slurping all the factoids into a slice, *again*.
+		// TODO(fluffle): Add a ForEach() to boltdb wrapper once migrated.
+		facts := Factoids{}
+		if err := fc.Both.BoltC.All(byKey(key), &facts); err != nil {
+			logging.Warn("Factoid InfoMR All failed: %v", err)
+		}
 
-	// Diff.
-	if binfo.Accessed != minfo.Accessed ||
-		binfo.Modified != minfo.Modified ||
-		binfo.Created != minfo.Created {
+		for _, fact := range facts {
+			binfo.Accessed += fact.Accessed.Count
+			binfo.Modified += fact.Modified.Count
+			binfo.Created += fact.Created.Count
+		}
+	}
+	if (state == db.MONGO_PRIMARY || state == db.BOLT_PRIMARY) &&
+		(binfo.Accessed != minfo.Accessed ||
+			binfo.Modified != minfo.Modified ||
+			binfo.Created != minfo.Created) {
 		logging.Warn("Factoid InfoMR: diff detected!\n\tMongo: %v\n\tBolt: %v", minfo, binfo)
 	}
-	if fc.Migrated() {
+	if state >= db.BOLT_PRIMARY {
 		return binfo
 	}
 	return minfo

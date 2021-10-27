@@ -3,7 +3,6 @@ package markov
 import (
 	"encoding/binary"
 	"fmt"
-	"sort"
 	"strings"
 
 	"github.com/fluffle/golog/logging"
@@ -59,6 +58,15 @@ func (ml *MarkovLink) byTagSrc() db.Key {
 	return db.K{db.S{"tag", ml.Tag}, db.S{"source", ml.Source}}
 }
 
+func (ml *MarkovLink) encodeUses() {
+	ml.uses = make([]byte, binary.MaxVarintLen64)
+	n := binary.PutUvarint(ml.uses, uint64(ml.Uses))
+	ml.uses = ml.uses[:n]
+}
+
+func (ml *MarkovLink) decodeUses() {
+}
+
 type MarkovLinks []*MarkovLink
 
 func (mls MarkovLinks) Strings() []string {
@@ -98,7 +106,10 @@ func Init() *Collection {
 	return mc
 }
 
-func (mc *Collection) Migrate() error {
+func (mc *Collection) MigrateTo(newState db.MigrationState) error {
+	if newState != db.MONGO_PRIMARY {
+		return nil
+	}
 	m := mc.mongo.Mongo()
 
 	// Migrate each tag separately.
@@ -110,14 +121,6 @@ func (mc *Collection) Migrate() error {
 		var links MarkovLinks
 		if err := m.Find(bson.M{"tag": tag}).All(&links); err != nil {
 			return err
-		}
-		// Bolt requires values to be valid for the life of the transaction,
-		// so convert int -> Uvarint stored in a private struct field.
-		// Mongo will never know!
-		for i := range links {
-			links[i].uses = make([]byte, binary.MaxVarintLen64)
-			n := binary.PutUvarint(links[i].uses, uint64(links[i].Uses))
-			links[i].uses = links[i].uses[:n]
 		}
 		err := mc.bolt.Update(func(tx *bolt.Tx) error {
 			return mc.importLinksTx(tx, []byte(tag), links)
@@ -149,6 +152,10 @@ func (mc *Collection) importLinksTx(tx *bolt.Tx, tag []byte, links MarkovLinks) 
 			return err
 		}
 		// Which contains a mapping of dest -> use count.
+		// Bolt requires values to be valid for the life of the transaction,
+		// so convert int -> Uvarint stored in a private struct field.
+		// Mongo will never know!
+		link.encodeUses()
 		if err = sb.Put([]byte(link.Dest), link.uses); err != nil {
 			return err
 		}
@@ -158,8 +165,8 @@ func (mc *Collection) importLinksTx(tx *bolt.Tx, tag []byte, links MarkovLinks) 
 	return nil
 }
 
-func (mc *Collection) Migrated() bool {
-	return mc.checker.Checker.Migrated()
+func (mc *Collection) Check() db.MigrationState {
+	return mc.checker.Checker.Check()
 }
 
 func mongoIndexes(c db.Collection) {
@@ -175,50 +182,76 @@ func (mc *Collection) incUses(source, dest, tag string) {
 		// Skip URLs entirely.
 		return
 	}
-	// Mongo.
 	mlink := New(source, dest, tag)
-	if err := mc.mongo.Get(mlink.byTagSrcDest(), mlink); err != nil {
-		mlink = New(source, dest, tag)
+	blink := New(source, dest, tag)
+	state := mc.Check()
+	// Read current value.
+	if state < db.BOLT_ONLY {
+		if err := mc.mongo.Get(mlink.byTagSrcDest(), mlink); err != nil {
+			mlink = New(source, dest, tag)
+		}
+	}
+	if state > db.MONGO_ONLY {
+		mc.bolt.View(func(tx *bolt.Tx) error {
+			return mc.getUsesTx(tx, blink)
+		})
+	}
+	// Diff if we're reading both.
+	if (state == db.MONGO_PRIMARY || state == db.BOLT_PRIMARY) &&
+		mlink.Uses != blink.Uses {
+		logging.Warn("Markov link uses mismatch (%d != %d) for %s(%q->%q)",
+			mlink.Uses, blink.Uses, tag, source, dest)
 	}
 	mlink.Uses++
-	if err := mc.mongo.Put(mlink); err != nil {
-		logging.Error("Failed to insert Mongo MarkovLink %s: %v",
-			mlink, err)
+	// Increment and write new value.
+	if state < db.BOLT_ONLY {
+		if err := mc.mongo.Put(mlink); err != nil {
+			logging.Error("Failed to insert Mongo MarkovLink %s: %v",
+				mlink, err)
+		}
 	}
-
-	// Bolt.
-	err := mc.bolt.Update(func(tx *bolt.Tx) error {
-		return mc.incUsesTx(tx, uint64(mlink.Uses), []byte(tag), []byte(source), []byte(dest))
-	})
-	if err != nil {
-		logging.Error("Failed to insert Bolt MarkovLink %s(%q->%q): %v",
-			tag, source, dest, err)
+	if state > db.MONGO_ONLY {
+		err := mc.bolt.Update(func(tx *bolt.Tx) error {
+			return mc.putUsesTx(tx, mlink)
+		})
+		if err != nil {
+			logging.Error("Failed to insert Bolt MarkovLink %s(%q->%q): %v",
+				tag, source, dest, err)
+		}
 	}
 }
 
-func (mc *Collection) incUsesTx(tx *bolt.Tx, muses uint64, tag, source, dest []byte) error {
+func (mc *Collection) getUsesTx(tx *bolt.Tx, link *MarkovLink) error {
 	mb := tx.Bucket([]byte(COLLECTION))
-	tb, err := mb.CreateBucketIfNotExists(tag)
+	tb := mb.Bucket([]byte(link.Tag))
+	if tb == nil {
+		return fmt.Errorf("couldn't find bucket representing tag %q", link.Tag)
+	}
+	sb := tb.Bucket([]byte(link.Source))
+	if sb == nil {
+		return fmt.Errorf("couldn't find bucket representing source %q", link.Source)
+	}
+	v := sb.Get([]byte(link.Dest))
+	if v == nil {
+		return fmt.Errorf("couldn't find key representing dest %q", link.Dest)
+	}
+	uses, _ := binary.Uvarint(v)
+	link.Uses = int(uses)
+	return nil
+}
+
+func (mc *Collection) putUsesTx(tx *bolt.Tx, link *MarkovLink) error {
+	mb := tx.Bucket([]byte(COLLECTION))
+	tb, err := mb.CreateBucketIfNotExists([]byte(link.Tag))
 	if err != nil {
 		return err
 	}
-	sb, err := tb.CreateBucketIfNotExists(source)
+	sb, err := tb.CreateBucketIfNotExists([]byte(link.Source))
 	if err != nil {
 		return err
 	}
-	b, n := make([]byte, binary.MaxVarintLen64), 0
-	if mc.Migrated() {
-		uses, _ := binary.Uvarint(sb.Get(dest))
-		uses++
-		if muses != uses {
-			logging.Warn("Markov mismatch (%d != %d) for %s(%q->%q)",
-				uses, muses, tag, source, dest)
-		}
-		n = binary.PutUvarint(b, uses)
-	} else {
-		n = binary.PutUvarint(b, muses)
-	}
-	return sb.Put(dest, b[:n])
+	link.encodeUses()
+	return sb.Put([]byte(link.Dest), link.uses)
 }
 
 func (mc *Collection) AddAction(action, tag string) {
@@ -238,15 +271,20 @@ func (mc *Collection) Add(source, data, tag string) {
 }
 
 func (mc *Collection) ClearTag(tag string) error {
-	_, merr := mc.mongo.Mongo().RemoveAll(bson.M{"tag": tag})
-	berr := mc.bolt.Update(func(tx *bolt.Tx) error {
-		mb := tx.Bucket([]byte(COLLECTION))
-		return mb.DeleteBucket([]byte(tag))
-	})
-	if merr == nil && berr == nil {
+	var mErr, bErr error
+	if mc.Check() < db.BOLT_ONLY {
+		_, mErr = mc.mongo.Mongo().RemoveAll(bson.M{"tag": tag})
+	}
+	if mc.Check() > db.MONGO_ONLY {
+		bErr = mc.bolt.Update(func(tx *bolt.Tx) error {
+			mb := tx.Bucket([]byte(COLLECTION))
+			return mb.DeleteBucket([]byte(tag))
+		})
+	}
+	if mErr == nil && bErr == nil {
 		return nil
 	}
-	return fmt.Errorf("clearing markov tag %q: merr=%v berr=%v", tag, merr, berr)
+	return fmt.Errorf("clearing markov tag %q: mongo=%v bolt=%v", tag, mErr, bErr)
 }
 
 type MarkovSource struct {
@@ -259,43 +297,45 @@ func (mc *Collection) Source(tag string) markov.Source {
 }
 
 func (ms *MarkovSource) GetLinks(source string) (markov.Links, error) {
-	// Mongo.
-	key := &MarkovLink{
-		Source: source,
-		Tag:    ms.tag,
-	}
-	var mall MarkovLinks
-	merr := ms.mongo.All(key.byTagSrc(), &mall)
-	mlinks := make(markov.Links, 0, len(mall))
-	for _, link := range mall {
-		if util.LooksURLish(link.Source) || util.LooksURLish(link.Dest) {
-			// Avoid diffs due to URLs skipped during migration.
-			continue
+	mLinks, bLinks := markov.Links{}, markov.Links{}
+	var mErr, bErr error
+	state := ms.Check()
+	if state < db.BOLT_ONLY {
+		// Read from mongo.
+		key := &MarkovLink{
+			Source: source,
+			Tag:    ms.tag,
 		}
-		mlinks = append(mlinks, markov.Link{link.Dest, link.Uses})
+		var mAll MarkovLinks
+		mErr = ms.mongo.All(key.byTagSrc(), &mAll)
+		for _, link := range mAll {
+			if util.LooksURLish(link.Source) || util.LooksURLish(link.Dest) {
+				// Avoid diffs due to URLs skipped during migration.
+				continue
+			}
+			mLinks = append(mLinks, markov.Link{link.Dest, link.Uses})
+		}
 	}
-
-	// Bolt.
-	blinks := markov.Links{}
-	berr := ms.bolt.View(func(tx *bolt.Tx) error {
-		return ms.getLinksTx(tx, []byte(ms.tag), []byte(source), &blinks)
-	})
-
-	// Diff.
-	if merr != nil || berr != nil {
-		return nil, fmt.Errorf("markov getlinks(%q, %q): merr=%v berr=%v", ms.tag, source, merr, berr)
+	if state > db.MONGO_ONLY {
+		// Read from bolt.
+		bErr = ms.bolt.View(func(tx *bolt.Tx) error {
+			return ms.getLinksTx(tx, []byte(ms.tag), []byte(source), &bLinks)
+		})
 	}
-	mstr := mlinks.Strings()
-	bstr := blinks.Strings()
-	sort.Strings(mstr)
-	sort.Strings(bstr)
-	if d, err := diff.Unified(mstr, bstr); err != nil {
-		logging.Warn("markov getlinks(%q, %q): %v\n\n%s\n", ms.tag, source, err, strings.Join(d, "\n"))
+	// If either failed, bail out!
+	if mErr != nil || bErr != nil {
+		return nil, fmt.Errorf("markov getlinks(%q, %q): merr=%v berr=%v", ms.tag, source, mErr, bErr)
 	}
-	if ms.Migrated() {
-		return blinks, nil
+	// Diff if we're reading from both.
+	if state == db.MONGO_PRIMARY || state == db.BOLT_PRIMARY {
+		if unified, err := diff.SortDiff(mLinks, bLinks); err == diff.ErrDiff {
+			logging.Warn("markov getlinks(%q, %q): %v\n\n%s\n", ms.tag, source, err, strings.Join(unified, "\n"))
+		}
 	}
-	return mlinks, nil
+	if state >= db.BOLT_PRIMARY {
+		return bLinks, nil
+	}
+	return mLinks, nil
 }
 
 func (ms *MarkovSource) getLinksTx(tx *bolt.Tx, tag, source []byte, blinks *markov.Links) error {

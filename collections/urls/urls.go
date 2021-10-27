@@ -95,7 +95,10 @@ type migrator struct {
 	mongo, bolt db.Collection
 }
 
-func (m *migrator) Migrate() error {
+func (m *migrator) MigrateTo(newState db.MigrationState) error {
+	if newState != db.MONGO_PRIMARY {
+		return nil
+	}
 	var all []*Url
 	if err := m.mongo.All(db.K{}, &all); err != nil {
 		return err

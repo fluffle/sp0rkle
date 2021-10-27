@@ -8,7 +8,7 @@ import (
 )
 
 type Namespace interface {
-	All() []Entry
+	All() Entries
 	String(key string, value ...string) string
 	Int(key string, value ...int) int
 	Float(key string, value ...float64) float64
@@ -43,12 +43,12 @@ func (ns *namespace) get(key string) interface{} {
 	return e.Value
 }
 
-func (ns *namespace) All() []Entry {
-	var e []Entry
+func (ns *namespace) All() Entries {
+	var e Entries
 	if err := ns.Collection.All(ns.K(), &e); err == nil {
 		return e
 	}
-	return []Entry{}
+	return Entries{}
 }
 
 func (ns *namespace) String(key string, value ...string) string {
