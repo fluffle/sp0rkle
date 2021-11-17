@@ -2,8 +2,8 @@
 language: go
 
 go:
-  - 1.13.8
-  - 1.14
+  - 1.17.2
+  - 1.16.9
 
 sudo : false
 

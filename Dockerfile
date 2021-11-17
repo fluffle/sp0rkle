@@ -1,4 +1,4 @@
-FROM golang:1.16 as build-env
+FROM golang:1.17 as build-env
 
 WORKDIR /go/src/github.com/fluffle/sp0rkle
 ADD . /go/src/github.com/fluffle/sp0rkle
@@ -18,5 +18,5 @@ STOPSIGNAL SIGINT
 ENTRYPOINT [\
 	"/srv/sp0rkle",\
 	"--url_cache_dir=/srv/vol/cache",\
-    "--boltdb=/srv/vol/sp0rkle.boltdb",\
+	"--boltdb=/srv/vol/sp0rkle.boltdb",\
 	"--backup_dir=/srv/vol/backup"]
