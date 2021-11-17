@@ -33,7 +33,7 @@ func pushDeviceURL(state string) string {
 // a confirmation notification to the chosen device with a 6
 // digit pin and require that they msg that to us via IRC.
 func pushEnable(ctx *bot.Context) {
-	if s := pc.GetByNick(ctx.Nick); s != nil {
+	if s := pc.GetByNick(ctx.Nick, true); s != nil {
 		if s.HasAlias(ctx.Nick) {
 			ctx.ReplyN("Your nick is already used as an alias for %s.", s.Nick)
 			return
@@ -43,7 +43,9 @@ func pushEnable(ctx *bot.Context) {
 			return
 		}
 		ctx.Privmsg(ctx.Nick, "Hmm. Deleting partially-complete state...")
-		pc.DelState(s)
+		if err := pc.Del(s); err != nil {
+			logging.Error("Deleting state with id=%q: %v", s.Id_, err)
+		}
 	}
 	s, err := pc.NewState(ctx.Nick)
 	if err != nil {
@@ -64,7 +66,7 @@ func pushDisable(ctx *bot.Context) {
 		ctx.ReplyN("Pushes not enabled.")
 		return
 	}
-	if err := pc.DelState(s); err != nil {
+	if err := pc.Del(s); err != nil {
 		ctx.ReplyN("Error deleting push state: %v", err)
 		return
 	}
@@ -86,7 +88,7 @@ func pushConfirm(ctx *bot.Context) {
 		return
 	}
 	s.Done = true
-	if err := pc.SetState(s); err != nil {
+	if err := pc.Put(s); err != nil {
 		ctx.ReplyN("Error setting push state: %v", err)
 		return
 	}
@@ -104,12 +106,12 @@ func pushAddAlias(ctx *bot.Context) {
 		ctx.ReplyN("Alias %q already exists.", alias)
 		return
 	}
-	if a := pc.GetByNick(alias); a != nil {
+	if a := pc.GetByNick(alias, true); a != nil {
 		ctx.ReplyN("Alias %q already exists for nick %s.", alias, a.Nick)
 		return
 	}
 	s.AddAlias(alias)
-	if err := pc.SetState(s); err != nil {
+	if err := pc.Put(s); err != nil {
 		ctx.ReplyN("Error setting push state: %v", err)
 		return
 	}
@@ -128,7 +130,7 @@ func pushDelAlias(ctx *bot.Context) {
 		return
 	}
 	s.DelAlias(alias)
-	if err := pc.SetState(s); err != nil {
+	if err := pc.Put(s); err != nil {
 		ctx.ReplyN("Error setting push state: %v", err)
 		return
 	}
@@ -163,7 +165,11 @@ func pushAuthHTTP(rw http.ResponseWriter, req *http.Request) {
 	}
 
 	s.Token = tok
-	pc.SetState(s)
+	if err := pc.Put(s); err != nil {
+		logging.Error("Failed to write state to db: %v", err)
+		http.Redirect(rw, req, pushFailureURL("writestate"), 302)
+		return
+	}
 	http.Redirect(rw, req, pushDeviceURL(id), 302)
 }
 
@@ -189,7 +195,10 @@ func pushDeviceHTTP(rw http.ResponseWriter, req *http.Request) {
 			http.Redirect(rw, req, pushFailureURL("push"), 302)
 			return
 		}
-		pc.SetState(s)
+		if err := pc.Put(s); err != nil {
+			logging.Error("Failed to write state to db: %v", err)
+			http.Redirect(rw, req, pushFailureURL("writestate"), 302)
+		}
 		http.Redirect(rw, req, pushSuccessURL(), 302)
 		return
 	}

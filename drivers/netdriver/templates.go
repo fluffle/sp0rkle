@@ -55,15 +55,16 @@ var pushSuccessHTML = `<html>
 </html>`
 
 var pushFailures = map[string]string{
-	"parse":    "Parsing HTTP form values failed.",
-	"denied":   "Authorization denied by user.",
-	"exchange": "Could not exchange response for token.",
-	"device":   "Could not get list of devices.",
-	"push":     "Could not push confirmation message.",
-	"notoken":  "No authorization token found.",
-	"nostate":  "Bad or missing oauth state.",
-	"noiden":   "Bad or missing device iden.",
-	"nofail":   "No failure reason provided, suckah.",
+	"parse":      "Parsing HTTP form values failed.",
+	"denied":     "Authorization denied by user.",
+	"exchange":   "Could not exchange response for token.",
+	"device":     "Could not get list of devices.",
+	"push":       "Could not push confirmation message.",
+	"notoken":    "No authorization token found.",
+	"nostate":    "Bad or missing oauth state.",
+	"noiden":     "Bad or missing device iden.",
+	"nofail":     "No failure reason provided, suckah.",
+	"writestate": "Writing state to database failed.",
 }
 
 type pushFailure struct {

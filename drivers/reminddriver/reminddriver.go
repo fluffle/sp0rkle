@@ -72,7 +72,7 @@ func Remind(r *reminders.Reminder, ctx *bot.Context) {
 			// This is used in snooze to reinstate reminders.
 			finished[strings.ToLower(string(r.Target))] = r
 			if pc != nil {
-				if s := pc.GetByNick(string(r.Target)); s.CanPush() {
+				if s := pc.GetByNick(string(r.Target), true); s.CanPush() {
 					push.Push(s, "Reminder from sp0rkle!", r.Reply())
 				}
 			}

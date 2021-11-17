@@ -176,7 +176,7 @@ func tell(ctx *bot.Context) {
 		ctx.ReplyN("Error saving tell: %v", err)
 		return
 	}
-	if s := pc.GetByNick(txt[:idx]); s.CanPush() {
+	if s := pc.GetByNick(txt[:idx], true); s.CanPush() {
 		push.Push(s, fmt.Sprintf("%s in %s asked me to tell you:",
 			ctx.Nick, ctx.Target()), tell)
 	}
