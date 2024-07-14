@@ -105,7 +105,7 @@ func (m *mongoCollection) Del(value interface{}) error {
 	case Keyer:
 		return m.Collection.Remove(value.K().M())
 	case Indexer:
-		return m.Collection.RemoveId(string(value.Id()))
+		return m.Collection.RemoveId(value.Id())
 	}
 	return fmt.Errorf("del: don't know how to delete value %#v", value)
 }

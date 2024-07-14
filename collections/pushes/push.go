@@ -45,7 +45,7 @@ func (s *State) Indexes() []db.Key {
 }
 
 func (s *State) byId() db.K {
-	return db.K{db.S{"_id", string(s.Id_)}}
+	return db.K{db.ID{s.Id_}}
 }
 
 func byNick(nick string) db.K {

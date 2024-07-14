@@ -123,7 +123,7 @@ func (f *Factoid) Indexes() []db.Key {
 }
 
 func (f *Factoid) byId() db.K {
-	return db.K{db.S{"_id", string(f.Id_)}}
+	return db.K{db.ID{f.Id_}}
 }
 
 func byKey(key string) db.K {

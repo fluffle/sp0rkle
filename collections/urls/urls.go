@@ -66,7 +66,7 @@ func (u *Url) Exists() bool {
 }
 
 func (u *Url) byId() db.K {
-	return db.K{db.S{"_id", string(u.Id_)}}
+	return db.K{db.ID{u.Id_}}
 }
 
 func (u *Url) byUrl() db.K {

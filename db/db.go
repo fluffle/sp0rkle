@@ -132,6 +132,28 @@ func (e T) String() string {
 	return fmt.Sprintf("%s: %t", e.Name, e.Value)
 }
 
+// ObjectId key element, because aaargh of course casting it to a string
+// fucks it up, even though bson.ObjectId is just a string type.
+type ID struct {
+	Value bson.ObjectId
+}
+
+func (e ID) Pair() (string, interface{}) {
+	return "_id", e.Value
+}
+
+func (e ID) Bytes() []byte {
+	b := bytes.NewBuffer(make([]byte, 0, len(e.Value)+4))
+	b.WriteString("_id")
+	b.WriteByte(USEP)
+	b.WriteString(string(e.Value))
+	return b.Bytes()
+}
+
+func (e ID) String() string {
+	return fmt.Sprintf("_id: %s", e.Value)
+}
+
 type Key interface {
 	String() string
 	// MongoDB repr
