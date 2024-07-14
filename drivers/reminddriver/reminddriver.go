@@ -1,6 +1,8 @@
 package reminddriver
 
 import (
+	"context"
+	"errors"
 	"strings"
 	"time"
 
@@ -18,7 +20,7 @@ var rc *reminders.Collection
 var pc *pushes.Collection
 
 // We need to be able to kill reminder goroutines
-var running = map[bson.ObjectId]chan struct{}{}
+var running = map[bson.ObjectId]context.CancelFunc{}
 
 // It's also nice for people to be able to snooze them
 var finished = map[string]*reminders.Reminder{}
@@ -61,11 +63,11 @@ func Remind(r *reminders.Reminder, ctx *bot.Context) {
 	if delta < 0 {
 		return
 	}
-	c := make(chan struct{})
-	running[r.Id] = c
+	c, cancel := context.WithDeadline(bot.Ctx(), r.RemindAt)
+	running[r.Id()] = cancel
 	go func() {
-		select {
-		case <-time.After(delta):
+		<-c.Done()
+		if errors.Is(c.Err(), context.DeadlineExceeded) {
 			ctx.Privmsg(string(r.Chan), r.Reply())
 			// TODO(fluffle): Tie this into state tracking properly.
 			ctx.Privmsg(string(r.Target), r.Reply())
@@ -76,23 +78,25 @@ func Remind(r *reminders.Reminder, ctx *bot.Context) {
 					push.Push(s, "Reminder from sp0rkle!", r.Reply())
 				}
 			}
-			Forget(r.Id, false)
-		case <-c:
-			return
+			Forget(r.Id(), false)
 		}
 	}()
 }
 
 func Forget(id bson.ObjectId, stop bool) {
-	c, ok := running[id]
+	cancel, ok := running[id]
 	if ok {
 		// If it's *not* in running, it's probably a Tell.
 		delete(running, id)
 		if stop {
-			c <- struct{}{}
+			cancel()
 		}
 	}
-	if err := rc.RemoveId(id); err != nil {
+	r := rc.GetById(id)
+	if r == nil {
+		return
+	}
+	if err := rc.Del(r); err != nil {
 		logging.Error("Failure removing reminder %s: %v", id, err)
 	}
 }

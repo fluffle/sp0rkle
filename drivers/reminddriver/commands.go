@@ -20,7 +20,6 @@ func del(ctx *bot.Context) {
 	if !ok {
 		ctx.ReplyN("Please use 'remind list' first, " +
 			"to be sure of what you're deleting.")
-
 		return
 	}
 	idx, err := strconv.Atoi(ctx.Text())
@@ -51,7 +50,7 @@ func list(ctx *bot.Context) {
 	list := make([]bson.ObjectId, c)
 	for i := range r {
 		ctx.Reply("%d: %s", i+1, r[i].List(ctx.Nick))
-		list[i] = r[i].Id
+		list[i] = r[i].Id()
 	}
 	listed[ctx.Nick] = list
 }
@@ -110,7 +109,7 @@ func set(ctx *bot.Context) {
 		t = n
 	}
 	r := reminders.NewReminder(reminder, at, t, n, c)
-	if err := rc.Insert(r); err != nil {
+	if err := rc.Put(r); err != nil {
 		ctx.ReplyN("Error saving reminder: %v", err)
 		return
 	}
@@ -145,7 +144,7 @@ func snooze(ctx *bot.Context) {
 	}
 	r.Created = now
 	r.RemindAt = at
-	if _, err := rc.UpsertId(r.Id, r); err != nil {
+	if err := rc.Put(r); err != nil {
 		ctx.ReplyN("Error saving reminder: %v", err)
 		return
 	}
@@ -172,13 +171,15 @@ func tell(ctx *bot.Context) {
 		return
 	}
 	r := reminders.NewTell(tell, t, n, c)
-	if err := rc.Insert(r); err != nil {
+	if err := rc.Put(r); err != nil {
 		ctx.ReplyN("Error saving tell: %v", err)
 		return
 	}
-	if s := pc.GetByNick(txt[:idx], true); s.CanPush() {
-		push.Push(s, fmt.Sprintf("%s in %s asked me to tell you:",
-			ctx.Nick, ctx.Target()), tell)
+	if pc != nil {
+		if s := pc.GetByNick(txt[:idx], true); s.CanPush() {
+			push.Push(s, fmt.Sprintf("%s in %s asked me to tell you:",
+				ctx.Nick, ctx.Target()), tell)
+		}
 	}
 	// Any previously-generated list of reminders is now obsolete.
 	delete(listed, ctx.Nick)

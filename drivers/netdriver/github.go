@@ -112,7 +112,7 @@ func githubWatcher(ctx *bot.Context) {
 		if len(kv) == 2 && kv[0] == "nick" {
 			logging.Debug("Recording tell for %s about issue %d.", kv[1], issue)
 			r := reminders.NewTell("that "+text, bot.Nick(kv[1]), "github", "")
-			if err := rc.Insert(r); err != nil {
+			if err := rc.Put(r); err != nil {
 				logging.Error("Error inserting github tell: %v", err)
 			}
 		}
