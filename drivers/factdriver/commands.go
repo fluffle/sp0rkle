@@ -44,7 +44,7 @@ func chance(ctx *bot.Context) {
 	ls := LastSeen(ctx.Target(), "")
 	// ok, we're good to update the chance.
 	fact := fc.GetById(ls)
-	if fact == nil {
+	if !fact.Exists() {
 		ctx.ReplyN("Whatever that was, I've already forgotten it.")
 		return
 	}
@@ -104,7 +104,7 @@ func edit(ctx *bot.Context) {
 	// Retrieve last seen ObjectId, replace with ""
 	ls := LastSeen(ctx.Target(), "")
 	fact := fc.GetById(ls)
-	if fact == nil {
+	if !fact.Exists() {
 		ctx.ReplyN("I've forgotten what we were talking about, sorry!")
 		return
 	}
@@ -124,7 +124,7 @@ func forget(ctx *bot.Context) {
 	// Get fresh state on the last seen factoid.
 	ls := LastSeen(ctx.Target(), "")
 	fact := fc.GetById(ls)
-	if fact == nil {
+	if !fact.Exists() {
 		ctx.ReplyN("Whatever that was, I've already forgotten it.")
 		return
 	}

@@ -86,6 +86,10 @@ func NewFactoid(key, value string, n bot.Nick, c bot.Chan) *Factoid {
 	}
 }
 
+func (f *Factoid) Exists() bool {
+	return f != nil && f.Created != nil && f.Modified != nil && f.Accessed != nil && f.Perms != nil && len(f.Id_) > 0
+}
+
 func (f *Factoid) String() string {
 	return fmt.Sprintf("<%s/%d>=%q (%g%%) c=%s/m=%s/a=%s owner=%s",
 		f.Key, f.Type, f.Value, f.Chance,
@@ -191,7 +195,6 @@ func Init() *Collection {
 	}
 	fc.Both.MongoC.Init(db.Mongo, COLLECTION, mongoIndexes)
 	fc.Both.BoltC.Init(db.Bolt.Indexed(), COLLECTION, nil)
-	fc.Both.Debug(true)
 	m := &migrator{
 		mongo: fc.Both.MongoC,
 		bolt:  fc.Both.BoltC,
