@@ -120,12 +120,15 @@ func (bucket *indexedBucket) Get(key Key, value interface{}) error {
 	}
 
 	return bucket.db.View(func(tx *bbolt.Tx) error {
-		if len(elems) >= 0 || !isPointer(last) {
+		bucket.debug("Get(%s) looking up bucket key %q", key, last)
+		if len(elems) > 0 || !isPointer(last) {
 			b := bucket.find(tx, elems)
+			bucket.debug("Find(%v) got bucket %v", elems, b)
 			if b == nil {
 				return nil
 			}
 			last = b.Get(last)
+			bucket.debug("Get() new last = %q", last)
 			if last == nil {
 				return nil
 			}
@@ -269,7 +272,7 @@ func (bucket *indexedBucket) putTx(tx *bbolt.Tx, value Indexer, data []byte) err
 			return err
 		}
 	}
-	bucket.debug("Put(%s) = %q", value.Id(), data)
+	bucket.debug("Put(%s, %s) = %q", value.Id(), ptr, data)
 	if err := bucket.values(tx).Put(ptr, data); err != nil {
 		return err
 	}
@@ -287,7 +290,7 @@ func (bucket *indexedBucket) putIndex(tx *bbolt.Tx, value Indexer) error {
 		if err = b.Put(last, ptr); err != nil {
 			return err
 		}
-		bucket.debug("putIndex(%s) = %q", key, ptr)
+		bucket.debug("putIndex(%s) to (%s) = %q", key, last, ptr)
 	}
 	return nil
 }

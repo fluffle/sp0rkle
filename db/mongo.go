@@ -64,15 +64,23 @@ func (m *mongoDatabase) C(name string) Collection {
 
 type mongoCollection struct {
 	*mgo.Collection
-	debug bool
+	debug_ bool
 }
 
 func (m *mongoCollection) Debug(on bool) {
-	m.debug = on
+	m.debug_ = on
+}
+
+func (m *mongoCollection) debug(f string, args ...interface{}) {
+	if m.debug_ {
+		logging.Debug("MONGO: "+f, args...)
+	}
 }
 
 func (m *mongoCollection) Get(key Key, value interface{}) error {
-	return m.Collection.Find(key.M()).One(value)
+	k := key.M()
+	m.debug("Get(%v)", k)
+	return m.Collection.Find(k).One(value)
 }
 
 func (m *mongoCollection) Match(key, regex string, value interface{}) error {
