@@ -16,6 +16,9 @@ const (
 	RSEP = '\x1e'
 	// USEP is the ascii unit separator non-printable character.
 	USEP = '\x1f'
+	// TRUE and FALSE are used in constructing keys from booleans.
+	TRUE  = '\xff'
+	FALSE = '\x00'
 )
 
 type Database interface {
@@ -101,6 +104,32 @@ func (e I) Bytes() []byte {
 
 func (e I) String() string {
 	return fmt.Sprintf("%s: %d", e.Name, e.Value)
+}
+
+// Boolean key element.
+type T struct {
+	Name  string
+	Value bool
+}
+
+func (e T) Pair() (string, interface{}) {
+	return e.Name, e.Value
+}
+
+func (e T) Bytes() []byte {
+	b := bytes.NewBuffer(make([]byte, 0, len(e.Name)+2))
+	b.WriteString(e.Name)
+	b.WriteByte(USEP)
+	if e.Value {
+		b.WriteByte(TRUE)
+	} else {
+		b.WriteByte(FALSE)
+	}
+	return b.Bytes()
+}
+
+func (e T) String() string {
+	return fmt.Sprintf("%s: %t", e.Name, e.Value)
 }
 
 type Key interface {
