@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/fluffle/golog/logging"
 	"gopkg.in/mgo.v2"
@@ -35,6 +36,10 @@ func (m *mongoDatabase) Init(db string) error {
 	}
 	// Let's be explicit about requiring journaling, ehh?
 	s.EnsureSafe(&mgo.Safe{J: true})
+	// The markov db is large and we get timeouts querying it
+	// on the shitty f1 micro sp0rkle lives on.
+	s.SetSocketTimeout(10 * time.Minute)
+	s.SetSyncTimeout(10 * time.Minute)
 	m.sessions = []*mgo.Session{s}
 	return nil
 }
@@ -58,6 +63,8 @@ func (m *mongoDatabase) C(name string) Collection {
 		logging.Fatal("Tried to create MongoDB collection %q when disconnected.", name)
 	}
 	s := m.sessions[0].Copy()
+	s.SetSocketTimeout(10 * time.Minute)
+	s.SetSyncTimeout(10 * time.Minute)
 	m.sessions = append(m.sessions, s)
 	return &mongoCollection{Collection: s.DB(DATABASE).C(name)}
 }
