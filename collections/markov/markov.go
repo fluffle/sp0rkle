@@ -4,6 +4,7 @@ import (
 	"encoding/binary"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/fluffle/golog/logging"
 	"github.com/fluffle/sp0rkle/db"
@@ -114,17 +115,23 @@ func (mc *Collection) MigrateTo(newState db.MigrationState) error {
 
 	// Migrate each tag separately.
 	tags := make([]string, 0)
+	start := time.Now()
 	if err := m.Find(bson.M{}).Distinct("tag", &tags); err != nil {
 		return err
 	}
+	logging.Info("Querying tags took %s", time.Now().Sub(start))
 	for _, tag := range tags {
 		var links MarkovLinks
+		start = time.Now()
 		if err := m.Find(bson.M{"tag": tag}).All(&links); err != nil {
 			return err
 		}
+		logging.Info("Reading markov tag %q took %s", tag, time.Now().Sub(start))
+		start = time.Now()
 		err := mc.bolt.Update(func(tx *bolt.Tx) error {
 			return mc.importLinksTx(tx, []byte(tag), links)
 		})
+		logging.Info("Writing markov tag %q took %s", tag, time.Now().Sub(start))
 		if err != nil {
 			return err
 		}
