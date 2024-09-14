@@ -8,6 +8,7 @@ import (
 
 	"github.com/fluffle/goirc/logging"
 	"github.com/fluffle/sp0rkle/db"
+	"github.com/fluffle/sp0rkle/util/datetime"
 	"golang.org/x/oauth2"
 	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
@@ -27,6 +28,11 @@ type State struct {
 }
 
 var _ db.Indexer = (*State)(nil)
+
+func (s *State) String() string {
+	return fmt.Sprintf("Push for %q (%d aliases); done=%t at %s; iden=%q pin=%q tok=%q",
+		s.Nick, len(s.Aliases), s.Done, datetime.Format(s.Time), s.Iden, s.Pin, s.Token)
+}
 
 func (s *State) Id() bson.ObjectId {
 	return s.Id_
@@ -105,13 +111,7 @@ type States []*State
 func (ss States) Strings() []string {
 	strs := make([]string, len(ss))
 	for i, s := range ss {
-		// Bolt / bson.Unmarshal returns an empty slice.
-		// Mongo returns a nil slice.
-		// These differ when compared with %#v.
-		if len(s.Aliases) == 0 {
-			s.Aliases = nil
-		}
-		strs[i] = fmt.Sprintf("%#v", s)
+		strs[i] = s.String()
 	}
 	return strs
 }
