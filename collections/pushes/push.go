@@ -105,6 +105,12 @@ type States []*State
 func (ss States) Strings() []string {
 	strs := make([]string, len(ss))
 	for i, s := range ss {
+		// Bolt / bson.Unmarshal returns an empty slice.
+		// Mongo returns a nil slice.
+		// These differ when compared with %#v.
+		if len(s.Aliases) == 0 {
+			s.Aliases = nil
+		}
 		strs[i] = fmt.Sprintf("%#v", s)
 	}
 	return strs

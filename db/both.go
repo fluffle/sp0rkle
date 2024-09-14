@@ -1,6 +1,7 @@
 package db
 
 import (
+	"errors"
 	"fmt"
 	"reflect"
 	"strings"
@@ -64,6 +65,10 @@ func (b *Both) compareErr(method string, mErr, bErr error) error {
 }
 
 func (b *Both) compare(method, key string, mValue, bValue interface{}, mErr, bErr error) error {
+	// Mongo returns ErrNotFound, Bolt returns nil, nil.
+	if errors.Is(mErr, mgo.ErrNotFound) && bErr == nil && bValue == nil {
+		return nil
+	}
 	// If we can diff, compare by diffing, otherwise just do a DeepEqual.
 	unified, err := diff.SortDiff(mValue, bValue)
 	if err == diff.ErrDiff {
