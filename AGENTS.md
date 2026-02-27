@@ -28,28 +28,31 @@ This project uses Go 1.22 and follows some non-standard patterns that you must r
 
 sp0rkle uses an event-based system built on top of `goirc`.
 
+- **Handler Signature**: `type HandlerFunc func(*bot.Context)`
 - **`bot.Handle(fn, events...)`**: Registers a `HandlerFunc` for specific IRC events (e.g., `client.PRIVMSG`, `client.JOIN`).
 - **`bot.HandleBG(fn, events...)`**: Same as `Handle`, but runs the handler in its own goroutine. Useful for long-running tasks like migrations.
-- **`bot.Context`**: The primary object passed to handlers. It encapsulates the IRC line, the connection, and provides helper methods like `ReplyN` and `Storable`.
+- **`bot.Context`**: The primary object passed to handlers. It encapsulates the IRC line, the connection, and provides helper methods:
+    - `ctx.Text()`: Message body with bot name/command prefix stripped.
+    - `ctx.ReplyN(format, args...)`: Reply with "Nick: " prefix.
+    - `ctx.Storable()`: Returns sender nick and channel.
 
 ## 4. Plugins
 
-The Factoid driver supports "plugins" which allow other drivers to perform transformations on factoid values before they are sent.
-- **Registration**: Drivers register plugins during `Init`.
-- **Factoid Syntax**: Users can trigger these in factoids using `<plugin=name args>`.
-- **Implementation**: See `drivers/factdriver/plugins.go` and other drivers for implementation examples.
+The Factoid driver supports "plugins" which allow other drivers to perform transformations on factoid values.
+- **Implementation**: A driver provides a `RegisterPlugins` method (if using the older pattern) or simply registers functions that the factoid driver calls.
+- **Factoid Syntax**: Triggered via `<plugin=name args>` in a factoid value.
+- **Identifier Replacement**: Common identifiers like `$nick`, `$chan`, `$date`, and `$time` are handled by a standard replacer in `factdriver/plugins.go`.
 
 ## 5. The "Long Slog" Migration (Mongo to BoltDB)
 
 We are in the middle of a migration from MongoDB to BoltDB.
 
-- **`db.Both`**: Most collections use `db.Both`, which writes to both databases simultaneously.
-- **`db.K`**: Keys are constructed using a custom key builder to ensure compatibility across both storage engines.
+- **`db.Both`**: Most collections use `db.Both`, which writes to both databases simultaneously and compares reads.
+- **`db.K`**: Keys are constructed using a custom key builder:
   ```go
   key := db.K{db.S{"nick", "fluffle"}, db.I{"count", 42}}
   ```
-- **Dual Writing**: When adding new data-handling logic, ensure it supports the `db.Collection` interface and works with the dual-writing system if applicable.
-- **BoltDB as Future**: New features should prioritize BoltDB compatibility.
+- **BoltDB Structure**: Successive key elements create nested BoltDB buckets, with the final element as the key.
 
 ## 6. Extending the Bot
 
@@ -66,25 +69,18 @@ func Init() {
 ```
 
 ### Pollers
-If a feature needs to perform periodic background tasks:
-1. Implement the `bot.Poller` interface (`Start()`, `Stop()`, `Poll()`, `Tick()`).
-2. Register it using `bot.Poll(myPoller)`.
-Pollers are automatically started/stopped based on IRC connection status.
-
-### Rewriters
-Rewriters allow you to modify outgoing text before it is sent to IRC. Register them with `bot.Rewrite(myRewriter)`.
+For periodic tasks, implement `bot.Poller` (`Start`, `Stop`, `Poll`, `Tick`) and register with `bot.Poll(myPoller)`.
 
 ## 7. Testing
 
-- Tests live in `_test.go` files alongside the source.
-- **Mocking**: You can often test handler logic by creating a mock `bot.Context` with a manual `client.Line`.
-- **Data Tests**: Use the `collections/` package tests as a reference for testing database interactions.
+- Tests live in `_test.go` files.
+- Use `bot.Context` mocking for handler tests.
+- Reference `collections/` tests for database interaction testing.
 
 ## 8. Tips for AI Agents
 
-- **Trace to Source**: If you see a file in `util/` that looks generated (like `util/datetime/y.go`), look for its source (e.g., `util/datetime/datetime.y`).
-- **Check `main.go`**: If your new driver isn't responding, ensure it was added to the `Init` calls in `main.go`.
+- **Trace to Source**: Many files in `util/` (like `datetime/y.go`) are generated from `.y` or `.rl` files.
+- **Check `main.go`**: Manual registration is required for all drivers.
 - **Logging**: Use `github.com/fluffle/golog/logging`.
-- **Database Keys**: Be extremely careful with `db.K` composition; changing a key structure can make existing data unreachable.
 
 Happy Hacking!
