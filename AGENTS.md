@@ -24,7 +24,22 @@ This project uses Go 1.22 and follows some non-standard patterns that you must r
 - **Go 1.22 Conventions**: Use `interface{}` (not `any`), `math/rand` (seeded in `main.go`), and `io/ioutil` (though `os` is preferred where applicable).
 - **Tabs for Indentation**: Use standard `gofmt` with tabs.
 
-## 3. The "Long Slog" Migration (Mongo to BoltDB)
+## 3. Events and Handlers
+
+sp0rkle uses an event-based system built on top of `goirc`.
+
+- **`bot.Handle(fn, events...)`**: Registers a `HandlerFunc` for specific IRC events (e.g., `client.PRIVMSG`, `client.JOIN`).
+- **`bot.HandleBG(fn, events...)`**: Same as `Handle`, but runs the handler in its own goroutine. Useful for long-running tasks like migrations.
+- **`bot.Context`**: The primary object passed to handlers. It encapsulates the IRC line, the connection, and provides helper methods like `ReplyN` and `Storable`.
+
+## 4. Plugins
+
+The Factoid driver supports "plugins" which allow other drivers to perform transformations on factoid values before they are sent.
+- **Registration**: Drivers register plugins during `Init`.
+- **Factoid Syntax**: Users can trigger these in factoids using `<plugin=name args>`.
+- **Implementation**: See `drivers/factdriver/plugins.go` and other drivers for implementation examples.
+
+## 5. The "Long Slog" Migration (Mongo to BoltDB)
 
 We are in the middle of a migration from MongoDB to BoltDB.
 
@@ -36,7 +51,7 @@ We are in the middle of a migration from MongoDB to BoltDB.
 - **Dual Writing**: When adding new data-handling logic, ensure it supports the `db.Collection` interface and works with the dual-writing system if applicable.
 - **BoltDB as Future**: New features should prioritize BoltDB compatibility.
 
-## 4. Extending the Bot
+## 6. Extending the Bot
 
 ### Drivers
 To add a new feature, create a new package in `drivers/`. It must have an `Init()` function:
@@ -59,20 +74,13 @@ Pollers are automatically started/stopped based on IRC connection status.
 ### Rewriters
 Rewriters allow you to modify outgoing text before it is sent to IRC. Register them with `bot.Rewrite(myRewriter)`.
 
-### Handlers and Context
-Handlers receive a `*bot.Context`, which provides:
-- `ctx.Text()`: The message body (prefix/name stripped).
-- `ctx.ReplyN("format %s", arg)`: Replies to the user with a "Nick: " prefix.
-- `ctx.Reply("format %s", arg)`: Replies without the nick prefix.
-- `ctx.Line`: The underlying `*client.Line` from `goirc`.
-
-## 5. Testing
+## 7. Testing
 
 - Tests live in `_test.go` files alongside the source.
 - **Mocking**: You can often test handler logic by creating a mock `bot.Context` with a manual `client.Line`.
 - **Data Tests**: Use the `collections/` package tests as a reference for testing database interactions.
 
-## 6. Tips for AI Agents
+## 8. Tips for AI Agents
 
 - **Trace to Source**: If you see a file in `util/` that looks generated (like `util/datetime/y.go`), look for its source (e.g., `util/datetime/datetime.y`).
 - **Check `main.go`**: If your new driver isn't responding, ensure it was added to the `Init` calls in `main.go`.
