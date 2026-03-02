@@ -79,14 +79,14 @@ func (bucket *indexedBucket) Debug(on bool) {
 	bucket.debug_ = on
 }
 
-func (bucket *indexedBucket) debug(f string, args ...interface{}) {
+func (bucket *indexedBucket) debug(f string, args ...any) {
 	if bucket.debug_ {
-		logging.Debug("%s."+f, append([]interface{}{bucket.name}, args...)...)
+		logging.Debug("%s."+f, append([]any{bucket.name}, args...)...)
 	}
 }
 
-func (bucket *indexedBucket) error(f string, args ...interface{}) error {
-	return fmt.Errorf("%s."+f, append([]interface{}{bucket.name}, args...)...)
+func (bucket *indexedBucket) error(f string, args ...any) error {
+	return fmt.Errorf("%s."+f, append([]any{bucket.name}, args...)...)
 }
 
 func (bucket *indexedBucket) values(tx *bbolt.Tx) *bbolt.Bucket {
@@ -115,7 +115,7 @@ func (bucket *indexedBucket) create(tx *bbolt.Tx, elems [][]byte) (*bbolt.Bucket
 	return b, nil
 }
 
-func (bucket *indexedBucket) Get(key Key, value interface{}) error {
+func (bucket *indexedBucket) Get(key Key, value any) error {
 	elems, last := key.B()
 	if len(last) == 0 {
 		return bucket.error("Get(): zero length key")
@@ -143,7 +143,7 @@ func (bucket *indexedBucket) Get(key Key, value interface{}) error {
 	})
 }
 
-func (bucket *indexedBucket) All(key Key, value interface{}) error {
+func (bucket *indexedBucket) All(key Key, value any) error {
 	elems, last := key.B()
 	if len(last) == 0 {
 		// A zero-length key will perform a scan over the vals bucket directly,
@@ -198,7 +198,7 @@ func (bucket *indexedBucket) Fsck(value any) error {
 	})
 }
 
-func (bucket *indexedBucket) Match(field, re string, value interface{}) error {
+func (bucket *indexedBucket) Match(field, re string, value any) error {
 	if re == "" {
 		return bucket.error("Match(): zero-length regex match")
 	}
@@ -228,7 +228,7 @@ func (bucket *indexedBucket) Match(field, re string, value interface{}) error {
 	})
 }
 
-func (bucket *indexedBucket) Put(value interface{}) error {
+func (bucket *indexedBucket) Put(value any) error {
 	indexer, ok := value.(Indexer)
 	if !ok {
 		return bucket.error("Put(): don't know how to put value %#v", value)
@@ -242,7 +242,7 @@ func (bucket *indexedBucket) Put(value interface{}) error {
 	})
 }
 
-func (bucket *indexedBucket) BatchPut(value interface{}) error {
+func (bucket *indexedBucket) BatchPut(value any) error {
 	// vv == value Value
 	vv := reflect.ValueOf(value)
 	if vv.Kind() != reflect.Slice || !vv.Type().Elem().Implements(indexerType) {
@@ -335,7 +335,7 @@ func (bucket *indexedBucket) delIndex(tx *bbolt.Tx, value Indexer) error {
 	return nil
 }
 
-func (bucket *indexedBucket) Del(value interface{}) error {
+func (bucket *indexedBucket) Del(value any) error {
 	indexer, ok := value.(Indexer)
 	if !ok {
 		return bucket.error("Del(): don't know how to delete value %#v", value)

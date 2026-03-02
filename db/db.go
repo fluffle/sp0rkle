@@ -28,13 +28,13 @@ type Database interface {
 }
 
 type Collection interface {
-	Get(Key, interface{}) error
+	Get(Key, any) error
 	// GetPR(Key, interface{}) error ?
-	Match(string, string, interface{}) error
-	All(Key, interface{}) error
-	Put(interface{}) error
-	BatchPut(interface{}) error
-	Del(interface{}) error
+	Match(string, string, any) error
+	All(Key, any) error
+	Put(any) error
+	BatchPut(any) error
+	Del(any) error
 	Next(Key, ...int) (int, error)
 	// Referential integrity checks are a thing
 	Fsck(any) error
@@ -102,7 +102,7 @@ func (c *C) Init(db Database, name string, f func(Collection)) {
 }
 
 type Elem interface {
-	Pair() (string, interface{})
+	Pair() (string, any)
 	Bytes() []byte
 	String() string
 }
@@ -112,7 +112,7 @@ type S struct {
 	Name, Value string
 }
 
-func (e S) Pair() (string, interface{}) {
+func (e S) Pair() (string, any) {
 	return e.Name, e.Value
 }
 
@@ -134,7 +134,7 @@ type I struct {
 	Value uint64
 }
 
-func (e I) Pair() (string, interface{}) {
+func (e I) Pair() (string, any) {
 	return e.Name, e.Value
 }
 
@@ -159,7 +159,7 @@ type T struct {
 	Value bool
 }
 
-func (e T) Pair() (string, interface{}) {
+func (e T) Pair() (string, any) {
 	return e.Name, e.Value
 }
 
@@ -185,7 +185,7 @@ type ID struct {
 	Value bson.ObjectId
 }
 
-func (e ID) Pair() (string, interface{}) {
+func (e ID) Pair() (string, any) {
 	return "_id", e.Value
 }
 

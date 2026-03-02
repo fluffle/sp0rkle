@@ -12,7 +12,7 @@ type Namespace interface {
 	String(key string, value ...string) string
 	Int(key string, value ...int) int
 	Float(key string, value ...float64) float64
-	Value(key string, value ...interface{}) interface{}
+	Value(key string, value ...any) any
 	Delete(key string)
 }
 
@@ -27,14 +27,14 @@ func (ns *namespace) K() db.Key {
 
 var _ db.Keyer = (*namespace)(nil)
 
-func (ns *namespace) set(key string, value interface{}) {
+func (ns *namespace) set(key string, value any) {
 	e := &Entry{Ns: ns.ns, Key: key, Value: value}
 	if err := ns.Put(e); err != nil {
 		logging.Error("Couldn't set config entry %q: %v", e, err)
 	}
 }
 
-func (ns *namespace) get(key string) interface{} {
+func (ns *namespace) get(key string) any {
 	e := &Entry{Ns: ns.ns, Key: key}
 	if err := ns.Get(e.K(), e); err != nil && err != mgo.ErrNotFound && err != bbolt.ErrTxNotWritable {
 		logging.Error("Couldn't get config entry for ns=%q key=%q: %v", ns.ns, key, err)
@@ -84,7 +84,7 @@ func (ns *namespace) Float(key string, value ...float64) float64 {
 	return 0
 }
 
-func (ns *namespace) Value(key string, value ...interface{}) interface{} {
+func (ns *namespace) Value(key string, value ...any) any {
 	if len(value) > 0 {
 		ns.set(key, value[0])
 		return value[0]

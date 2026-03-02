@@ -54,7 +54,7 @@ func Zone(nick string, tz ...string) string {
 
 type Entry struct {
 	Ns, Key string
-	Value   interface{}
+	Value   any
 }
 
 func (e Entry) K() db.Key {

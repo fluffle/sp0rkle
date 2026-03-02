@@ -12,7 +12,7 @@ type slicePtr struct {
 	et reflect.Type
 }
 
-func newSlicePtr(value interface{}) *slicePtr {
+func newSlicePtr(value any) *slicePtr {
 	pv := reflect.ValueOf(value)
 	if pv.Kind() != reflect.Ptr || pv.Elem().Kind() != reflect.Slice {
 		panic("provided value is not a pointer-to-slice")
@@ -43,7 +43,7 @@ func (sp *slicePtr) appendElem(ev reflect.Value) {
 }
 
 // ... I want a pony and this might just give me one.
-func (sp *slicePtr) ponyElem() interface{} {
+func (sp *slicePtr) ponyElem() any {
 	ev := sp.newElem()
 	sp.appendElem(ev)
 	return sp.sv.Index(sp.len() - 1).Addr().Interface()
