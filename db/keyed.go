@@ -203,7 +203,7 @@ func (bucket *keyedBucket) BatchPut(value any) error {
 	}
 	tuples := make([]kvTuple, vv.Len())
 
-	for i := 0; i < vv.Len(); i++ {
+	for i := range vv.Len() {
 		keyer, _ := vv.Index(i).Interface().(Keyer)
 		elems, last := keyer.K().B()
 		if len(last) == 0 {

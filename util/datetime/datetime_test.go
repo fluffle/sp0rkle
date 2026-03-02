@@ -183,7 +183,7 @@ func TestParseAllTimezonesInZoneinfo(t *testing.T) {
 	}
 	tests := make(timeTests, 0, n)
 
-	for i := 0; i < n; i++ {
+	for range n {
 		if get4(buf) != 0x02014b50 {
 			break
 		}
