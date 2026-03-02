@@ -5,7 +5,7 @@ package decisiondriver
 import (
 	"errors"
 	"fmt"
-	"math/rand"
+	"math/rand/v2"
 	"strconv"
 	"strings"
 	"unicode"

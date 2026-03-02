@@ -2,7 +2,7 @@ package urls
 
 import (
 	"fmt"
-	"math/rand"
+	"math/rand/v2"
 	"time"
 
 	"github.com/fluffle/golog/logging"
@@ -225,7 +225,7 @@ func (uc *Collection) GetRand(regex string) *Url {
 		logging.Debug("Creating seen data for regex %q.", regex)
 		uc.seen[regex] = map[bson.ObjectId]bool{}
 	}
-	url := filtered[rand.Intn(count)]
+	url := filtered[rand.IntN(count)]
 	logging.Debug("Storing id %v for regex %q.", url.Id_, regex)
 	uc.seen[regex][url.Id_] = true
 	return url

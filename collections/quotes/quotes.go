@@ -2,7 +2,7 @@ package quotes
 
 import (
 	"fmt"
-	"math/rand"
+	"math/rand/v2"
 	"sync/atomic"
 	"time"
 
@@ -219,7 +219,7 @@ func (qc *Collection) GetPseudoRand(regex string) *Quote {
 		logging.Debug("Creating seen data for regex %q.", regex)
 		qc.seen[regex] = map[bson.ObjectId]bool{}
 	}
-	res := filtered[rand.Intn(count)]
+	res := filtered[rand.IntN(count)]
 	logging.Debug("Storing id %v for regex %q.", res.Id_, regex)
 	qc.seen[regex][res.Id_] = true
 	return res

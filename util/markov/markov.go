@@ -2,7 +2,7 @@ package markov
 
 import (
 	"errors"
-	"math/rand"
+	"math/rand/v2"
 	"strconv"
 	"strings"
 
@@ -69,7 +69,7 @@ func generate(data Source, start string, length int) ([]string, error) {
 			return output, NOT_ENOUGH_DATA
 		}
 
-		r := rand.Intn(sum)
+		r := rand.IntN(sum)
 
 		for _, child := range children {
 			r -= child.Uses

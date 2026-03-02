@@ -3,7 +3,8 @@ package db
 import (
 	"errors"
 	"fmt"
-	"sort"
+	"maps"
+	"slices"
 	"strings"
 	"sync"
 
@@ -154,15 +155,12 @@ func MigrateTo(newState MigrationState) error {
 	// Holding the lock while migrating prevents the Checker returned by
 	// addMigrator from checking migration state (and thus locks up the
 	// bot) while migration is running in the background.
-	migrators := map[string]*migrator{}
 	ms.RLock()
-	for coll, m := range ms.migrators {
-		migrators[coll] = m
-	}
+	migrators := maps.Clone(ms.migrators)
 	logging.Debug("Migrating %d collections to %s.", len(migrators), newState)
 	ms.RUnlock()
 
-	failed := []string{}
+	var errs error
 	for coll, m := range migrators {
 		if m.state >= newState {
 			logging.Debug("Skipping %s as it is in %s already.", coll, m.state)
@@ -171,22 +169,22 @@ func MigrateTo(newState MigrationState) error {
 		logging.Debug("Migrating %q to state %s.", coll, newState)
 		if err := m.MigrateTo(newState); err != nil {
 			logging.Error("Migrating %q failed: %v", coll, err)
-			failed = append(failed, coll)
+			errs = errors.Join(errs, fmt.Errorf("migrating %q: %w", coll, err))
 			continue
 		}
 		if differ, ok := m.Migrator.(Differ); ok {
 			before, after, err := differ.Diff()
 			if err != nil {
 				logging.Error("Diffing %q failed: %v", coll, err)
-				failed = append(failed, coll)
+				errs = errors.Join(errs, fmt.Errorf("diffing %q: %w", coll, err))
 				continue
 			}
-			sort.Strings(before)
-			sort.Strings(after)
+			slices.Sort(before)
+			slices.Sort(after)
 			unified, err := diff.Unified(before, after)
 			if err != nil {
 				logging.Error("Migration diff: %v\n%s", err, strings.Join(unified, "\n"))
-				failed = append(failed, coll)
+				errs = errors.Join(errs, fmt.Errorf("diffing %q: %w", coll, err))
 				continue
 			}
 		}
@@ -198,9 +196,5 @@ func MigrateTo(newState MigrationState) error {
 		m.state = newState
 		ms.Unlock()
 	}
-	if len(failed) > 0 {
-		return fmt.Errorf("migration failed for: \"%s\"",
-			strings.Join(failed, "\", \""))
-	}
-	return nil
+	return errs
 }

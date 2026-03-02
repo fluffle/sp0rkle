@@ -6,7 +6,7 @@ package diff
 
 import (
 	"errors"
-	"sort"
+	"slices"
 )
 
 var (
@@ -223,7 +223,6 @@ func patienceDiff(a, b []string) []diff {
 
 func Unified(a, b []string) ([]string, error) {
 	diffs := patienceDiff(a, b)
-	println(len(diffs))
 	err := ErrDiff
 	if len(diffs) == 0 || len(diffs) == 1 && diffs[0].op == equal {
 		err = nil
@@ -266,8 +265,8 @@ func SortDiff(a, b any) ([]string, error) {
 	if !ok {
 		return nil, ErrNotDiffable
 	}
-	sort.Strings(astrs)
-	sort.Strings(bstrs)
+	slices.Sort(astrs)
+	slices.Sort(bstrs)
 	return Unified(astrs, bstrs)
 }
 

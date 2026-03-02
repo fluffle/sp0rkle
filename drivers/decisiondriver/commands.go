@@ -1,7 +1,7 @@
 package decisiondriver
 
 import (
-	"math/rand"
+	"math/rand/v2"
 	"strings"
 
 	"github.com/fluffle/sp0rkle/bot"
@@ -13,7 +13,7 @@ func decideCmd(ctx *bot.Context) {
 		ctx.ReplyN("I can't decide: %v", err)
 		return
 	}
-	chosen := strings.TrimSpace(opts[rand.Intn(len(opts))])
+	chosen := strings.TrimSpace(opts[rand.IntN(len(opts))])
 	ctx.ReplyN("%s", chosen)
 }
 

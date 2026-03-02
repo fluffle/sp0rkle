@@ -2,7 +2,7 @@ package seen
 
 import (
 	"fmt"
-	"sort"
+	"slices"
 	"strings"
 	"time"
 
@@ -133,11 +133,6 @@ func (ns Nicks) Strings() []string {
 	}
 	return s
 }
-
-// Implement sort.Interface to sort by descending timestamp.
-func (ns Nicks) Len() int           { return len(ns) }
-func (ns Nicks) Swap(i, j int)      { ns[i], ns[j] = ns[j], ns[i] }
-func (ns Nicks) Less(i, j int) bool { return ns[i].Timestamp.After(ns[j].Timestamp) }
 
 type migrator struct {
 	mongo, bolt db.Collection
@@ -311,7 +306,9 @@ func (sc *Collection) SeenAnyMatching(rx string) []string {
 	if err := sc.Match("Nick", rx, &ns); err != nil {
 		return nil
 	}
-	sort.Sort(ns)
+	slices.SortFunc(ns, func(a, b *Nick) int {
+		return b.Timestamp.Compare(a.Timestamp)
+	})
 	seen := make(map[string]bool)
 	res := make([]string, 0, len(ns))
 	for _, n := range ns {

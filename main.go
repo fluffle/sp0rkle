@@ -6,7 +6,6 @@ import (
 	"context"
 	_ "expvar"
 	"flag"
-	"math/rand"
 	"net/http"
 	"os"
 	"os/exec"
@@ -53,7 +52,6 @@ func main() {
 	}
 
 	// Slightly more random than 1.
-	rand.Seed(time.Now().UnixNano() * int64(os.Getpid()))
 
 	// Initialise bot state
 	ctx := context.Background()
@@ -95,7 +93,7 @@ func main() {
 	go func() {
 		called := new(int32)
 		sigint := make(chan os.Signal, 1)
-		signal.Notify(sigint, syscall.SIGINT)
+		signal.Notify(sigint, syscall.SIGINT, syscall.SIGTERM)
 		for _ = range sigint {
 			if atomic.AddInt32(called, 1) > 1 {
 				logging.Fatal("Recieved multiple interrupts, dying.")

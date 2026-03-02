@@ -1,7 +1,7 @@
 package factdriver
 
 import (
-	"math/rand"
+	"math/rand/v2"
 	"strings"
 
 	"github.com/fluffle/goirc/client"
@@ -33,8 +33,8 @@ func insert(ctx *bot.Context) {
 
 	// The "randomwoot" factoid contains random positive phrases for success.
 	joy := "Woo"
-	if rand := fc.GetPseudoRand("randomwoot"); rand != nil {
-		joy = rand.Value
+	if f := fc.GetPseudoRand("randomwoot"); f != nil {
+		joy = f.Value
 	}
 
 	if err := fc.Put(fact); err != nil {

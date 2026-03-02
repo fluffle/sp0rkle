@@ -2,7 +2,7 @@ package netdriver
 
 import (
 	"fmt"
-	"math/rand"
+	"math/rand/v2"
 	"net/http"
 	"strings"
 
@@ -189,7 +189,7 @@ func pushDeviceHTTP(rw http.ResponseWriter, req *http.Request) {
 			http.Redirect(rw, req, pushFailureURL("noiden"), 302)
 			return
 		}
-		s.Pin = fmt.Sprintf("%06x", rand.Intn(1e6))
+		s.Pin = fmt.Sprintf("%06x", rand.IntN(1e6))
 		if err := push.Confirm(s); err != nil {
 			logging.Error("Failed to send confirmation push for %s: %v", s.Nick, err)
 			http.Redirect(rw, req, pushFailureURL("push"), 302)

@@ -2,7 +2,7 @@ package factoids
 
 import (
 	"fmt"
-	"math/rand"
+	"math/rand/v2"
 	"strings"
 	"time"
 
@@ -273,7 +273,7 @@ func (fc *Collection) GetPseudoRand(key string) *Factoid {
 		logging.Debug("Creating seen data for key '%s'.", key)
 		fc.seen[key] = make(map[bson.ObjectId]bool)
 	}
-	res := filtered[rand.Intn(count)]
+	res := filtered[rand.IntN(count)]
 	logging.Debug("Storing id %v for key '%s'.", res.Id(), key)
 	fc.seen[key][res.Id()] = true
 	return res

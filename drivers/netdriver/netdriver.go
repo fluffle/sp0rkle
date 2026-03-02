@@ -1,7 +1,7 @@
 package netdriver
 
 import (
-	"io/ioutil"
+	"io"
 	"net/http"
 
 	"github.com/fluffle/goirc/client"
@@ -24,7 +24,7 @@ func get(req string) ([]byte, error) {
 		return nil, err
 	}
 	defer res.Body.Close()
-	return ioutil.ReadAll(res.Body)
+	return io.ReadAll(res.Body)
 }
 
 func Init() {

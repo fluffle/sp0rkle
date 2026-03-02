@@ -71,7 +71,9 @@ func functionise1(f func(float64) float64) function {
 }
 
 // But a lot of the operators are f(x,y) -> z, and so we need two curries.
-//     ...
+//
+//	...
+//
 // MMMmmmmmm. Curry.
 func functionise2(f func(float64, float64) float64) function {
 	return function{2, func(ts *tokenStack) error {
@@ -316,7 +318,9 @@ func (ts *tokenStack) pop() (t *token, e error) {
 
 // getNums() pops n T_NUM tokens from the stack and returns them in a slice.
 // It's a "helper" function for the functioniseX duo above.
-//    ...
+//
+//	...
+//
 // OK, this is kind of horrific and probably comes from bad design decisions
 // I APOLOGISE FOR NOTHING
 func (ts *tokenStack) getNums(n int) ([]*token, error) {
@@ -334,7 +338,8 @@ func (ts *tokenStack) getNums(n int) ([]*token, error) {
 }
 
 // shunt() implements a version of Dijkstra's Shunting-Yard algorithm:
-//     http://en.wikipedia.org/wiki/Shunting-yard_algorithm
+//
+//	http://en.wikipedia.org/wiki/Shunting-yard_algorithm
 func shunt(input *tokenStack) (*tokenStack, error) {
 	stack := ts(len(*input))
 	output := ts(len(*input))

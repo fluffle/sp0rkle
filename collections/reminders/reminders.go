@@ -2,7 +2,7 @@ package reminders
 
 import (
 	"fmt"
-	"sort"
+	"slices"
 	"strings"
 	"time"
 
@@ -167,8 +167,8 @@ func (rs Reminders) Strings() []string {
 }
 
 func (rs Reminders) sortByRemindAt() {
-	sort.Slice(rs, func(i, j int) bool {
-		return rs[i].RemindAt.Before(rs[j].RemindAt)
+	slices.SortFunc(rs, func(a, b *Reminder) int {
+		return a.RemindAt.Compare(b.RemindAt)
 	})
 }
 

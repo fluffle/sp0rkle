@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"hash/crc32"
 	"io"
-	"math/rand"
+	"math/rand/v2"
 	"net/http"
 	"os"
 	"strconv"
@@ -98,7 +98,7 @@ func Encode(url string) string {
 		if !(cached.Exists() || shortened.Exists()) {
 			return s
 		}
-		crcb[rand.Intn(4)]++
+		crcb[rand.IntN(4)]++
 	}
 	logging.Warn("Collided ten times while encoding URL.")
 	return ""
