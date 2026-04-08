@@ -104,6 +104,10 @@ func (m *mongoCollection) All(key Key, value interface{}) error {
 	return m.Collection.Find(key.M()).All(value)
 }
 
+func (m *mongoCollection) Fsck(value any) error {
+	panic("srsly dude")
+}
+
 func (m *mongoCollection) Put(value interface{}) (err error) {
 	switch value := value.(type) {
 	case Keyer:

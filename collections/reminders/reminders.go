@@ -64,9 +64,12 @@ func (r *Reminder) Indexes() []db.Key {
 	// From and To are not unique so we use a nanosecond timestamp from
 	// the reminder to differentiate and sort. Tells don't set RemindAt,
 	// so we use the create timestamp instead.
-	ts := uint64(r.RemindAt.UnixNano())
+	//
+	// bson serialization truncates to millisecond so when timestamps
+	// roundtrip they will invalidate the indexes unless we do too.
+	ts := uint64(r.RemindAt.UnixMilli())
 	if r.Tell {
-		ts = uint64(r.Created.UnixNano())
+		ts = uint64(r.Created.UnixMilli())
 	}
 	return []db.Key{
 		db.K{db.T{"tell", r.Tell}, db.S{"from", r.From}, db.I{"ts", ts}},
@@ -213,6 +216,9 @@ func Init() *Collection {
 		bolt:  rc.Both.BoltC,
 	}
 	rc.Both.Checker.Init(m, COLLECTION)
+	if err := rc.Both.BoltC.Fsck(&Reminder{}); err != nil {
+		logging.Fatal("remind fsck: %v", err)
+	}
 	return rc
 }
 

@@ -1,6 +1,7 @@
 package db
 
 import (
+	"errors"
 	"fmt"
 	"reflect"
 	"regexp"
@@ -131,6 +132,10 @@ func (bucket *keyedBucket) All(key Key, value interface{}) error {
 		}
 		return nil
 	})
+}
+
+func (bucket *keyedBucket) Fsck(value any) error {
+	return errors.New("keyed fsck unimplemented")
 }
 
 func (bucket *keyedBucket) Match(field, re string, value interface{}) error {

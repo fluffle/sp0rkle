@@ -36,6 +36,8 @@ type Collection interface {
 	BatchPut(interface{}) error
 	Del(interface{}) error
 	Next(Key, ...int) (int, error)
+	// Referential integrity checks are a thing
+	Fsck(any) error
 	// Turn on debugging for this collection.
 	Debug(bool)
 	// So we don't have to do everything at once.
@@ -74,6 +76,8 @@ func (unimplementedCollection) Next(Key, ...int) (int, error) {
 }
 
 func (unimplementedCollection) Debug(bool) {}
+
+func (unimplementedCollection) Fsck(any) error { return nil }
 
 func (unimplementedCollection) Mongo() *mgo.Collection {
 	panic("holy shit you are bad at this")
