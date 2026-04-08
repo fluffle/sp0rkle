@@ -47,6 +47,8 @@ type indexedDatabase struct {
 	db *bbolt.DB
 }
 
+func (i *indexedDatabase) Live() bool { return true }
+
 func (i *indexedDatabase) C(name string) Collection {
 	vals := append([]byte(name), []byte("_vals")...)
 	idxs := append([]byte(name), []byte("_idxs")...)

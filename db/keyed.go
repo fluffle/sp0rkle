@@ -37,6 +37,8 @@ type keyedDatabase struct {
 	db *bbolt.DB
 }
 
+func (k *keyedDatabase) Live() bool { return true }
+
 func (k *keyedDatabase) C(name string) Collection {
 	n := []byte(name)
 	err := k.db.Update(func(tx *bbolt.Tx) error {

@@ -118,9 +118,11 @@ func Init() *Collection {
 	qc.Both.Checker.Init(m, COLLECTION)
 
 	// QID incrementing is not in mongodb so we break out here.
-	var res Quote
-	if err := qc.Mongo().Find(bson.M{}).Sort("-qid").One(&res); err == nil {
-		qc.maxQID = int32(res.QID)
+	if qc.Check() < db.BOLT_ONLY {
+		var res Quote
+		if err := qc.Mongo().Find(bson.M{}).Sort("-qid").One(&res); err == nil {
+			qc.maxQID = int32(res.QID)
+		}
 	}
 	return qc
 }

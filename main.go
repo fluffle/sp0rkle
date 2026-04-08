@@ -35,6 +35,7 @@ import (
 
 var (
 	httpPort = flag.String("http", ":6666", "Port to serve HTTP requests on.")
+	boltOnly = flag.Bool("bolt_only", false, "Die, mongo, die.")
 	boltDB   = flag.String("boltdb", "sp0rkle.boltdb", "Path to boltdb file.")
 	mongoDB  = flag.String("mongodb", "localhost",
 		"Address of MongoDB server to connect to, defaults to localhost.")
@@ -59,11 +60,15 @@ func main() {
 	bot.Init(ctx)
 
 	// Connect to databases
-
-	if err := db.Mongo.Init(bot.GetSecret(*mongoDB)); err != nil {
-		logging.Fatal("Unable to connect to MongoDB at %q: %v", *mongoDB, err)
+	db.BoltOnly = *boltOnly
+	if *boltOnly {
+		logging.Info("Not connecting to mongodb.")
+	} else {
+		if err := db.Mongo.Init(bot.GetSecret(*mongoDB)); err != nil {
+			logging.Fatal("Unable to connect to MongoDB at %q: %v", *mongoDB, err)
+		}
+		defer db.Mongo.Close()
 	}
-	defer db.Mongo.Close()
 	if err := db.Bolt.Init(*boltDB, *backupDir, *backupEvery); err != nil {
 		logging.Fatal("Unable to open BoltDB file %q: %v", *boltDB, err)
 	}
