@@ -71,8 +71,9 @@ func (cs *commandSet) match(txt string) (final Runner, prefixlen int) {
 	cs.RLock()
 	defer cs.RUnlock()
 
+	lowertxt := strings.ToLower(txt)
 	for prefix, r := range cs.set {
-		if !strings.HasPrefix(txt, prefix) {
+		if !strings.HasPrefix(lowertxt, strings.ToLower(prefix)) {
 			continue
 		}
 		if final == nil || len(prefix) > prefixlen {
@@ -88,10 +89,11 @@ func (cs *commandSet) possible(txt string) []string {
 	defer cs.RUnlock()
 
 	poss := []string{}
-	words := strings.Fields(txt)
+	words := strings.Fields(strings.ToLower(txt))
 	for prefix := range cs.set {
+		lowerPrefix := strings.ToLower(prefix)
 		for _, w := range words {
-			if strings.Contains(prefix, w) {
+			if strings.Contains(lowerPrefix, w) {
 				poss = append(poss, prefix)
 				break
 			}
