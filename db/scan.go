@@ -213,7 +213,7 @@ func scanTx(b *bbolt.Bucket, scanner rowScanner) error {
 				}
 				logging.Warn("deleting key %q", k)
 				if delErr := c.Delete(); delErr != nil {
-					return fmt.Errorf("delete key %q: %w", delErr)
+					return fmt.Errorf("delete key %q: %w", k, delErr)
 				}
 			case isBson(v):
 				if err := scanner.scan(k, suffix(v)); err != nil {
