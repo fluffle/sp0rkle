@@ -3,7 +3,6 @@ package db
 import (
 	"bytes"
 	"encoding/binary"
-	"errors"
 	"fmt"
 	"strings"
 	"sync"
@@ -24,7 +23,6 @@ const (
 
 type Database interface {
 	C(name string) Collection
-	Live() bool
 }
 
 type Collection interface {
@@ -36,51 +34,10 @@ type Collection interface {
 	BatchPut(any) error
 	Del(any) error
 	Next(Key, ...int) (int, error)
-	// Referential integrity checks are a thing
-	Fsck(any) error
 	// Turn on debugging for this collection.
 	Debug(bool)
 	// So we don't have to do everything at once.
 	Mongo() *mgo.Collection
-}
-
-type unimplementedCollection struct {}
-var UnimplementedErr = errors.New("unimplemented")
-
-func (unimplementedCollection) Get(Key, any) error {
-	return UnimplementedErr
-}
-
-func (unimplementedCollection) Match(string, string, any) error {
-	return UnimplementedErr
-}
-
-func (unimplementedCollection) All(Key, any) error {
-	return UnimplementedErr
-}
-
-func (unimplementedCollection) Put(any) error {
-	return UnimplementedErr
-}
-
-func (unimplementedCollection) BatchPut(any) error {
-	return UnimplementedErr
-}
-
-func (unimplementedCollection) Del(any) error {
-	return UnimplementedErr
-}
-
-func (unimplementedCollection) Next(Key, ...int) (int, error) {
-	return 0, UnimplementedErr
-}
-
-func (unimplementedCollection) Debug(bool) {}
-
-func (unimplementedCollection) Fsck(any) error { return nil }
-
-func (unimplementedCollection) Mongo() *mgo.Collection {
-	panic("holy shit you are bad at this")
 }
 
 type C struct {
@@ -89,10 +46,6 @@ type C struct {
 }
 
 func (c *C) Init(db Database, name string, f func(Collection)) {
-	if !db.Live() {
-		c.Collection = unimplementedCollection{}
-		return
-	}
 	c.Do(func() {
 		c.Collection = db.C(name)
 		if f != nil {

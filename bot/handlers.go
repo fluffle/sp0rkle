@@ -87,7 +87,7 @@ func migrate(ctx *Context) {
 
 func check_rebuilder(cmd string, ctx *Context) bool {
 	s := strings.Split(GetSecret(*rebuilder), ":")
-	if s[0] == "" || s[0] != ctx.Nick || !strings.HasPrefix(strings.ToLower(ctx.Text()), cmd) {
+	if s[0] == "" || s[0] != ctx.Nick || !strings.HasPrefix(ctx.Text(), cmd) {
 		return false
 	}
 	fields := strings.Fields(ctx.Text())

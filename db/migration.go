@@ -71,25 +71,14 @@ func (cf checkFunc) Check() MigrationState {
 	return cf()
 }
 
-func boltOnlyChecker() MigrationState {
-	return BOLT_ONLY
-}
-
 type M struct {
 	Checker
 	sync.Once
 }
 
-// Sue me ;-D
-var BoltOnly = false
-
 func (m *M) Init(mig Migrator, coll string) {
 	m.Do(func() {
-		if BoltOnly {
-			m.Checker = checkFunc(boltOnlyChecker)
-		} else {
-			m.Checker = addMigrator(mig, coll)
-		}
+		m.Checker = addMigrator(mig, coll)
 	})
 }
 

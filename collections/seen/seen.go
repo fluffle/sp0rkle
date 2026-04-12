@@ -102,8 +102,7 @@ func (n *Nick) Indexes() []db.Key {
 	// This means the results of All() would still be in timestamp order.
 	return []db.Key{
 		db.K{db.S{"nick", n.Nick.Lower()}, db.S{"action", n.Action}},
-		// NOTE: bson serialization truncates to millisecond precision!
-		db.K{db.S{"key", n.Nick.Lower()}, db.I{"ts", uint64(n.Timestamp.UnixMilli())}},
+		db.K{db.S{"key", n.Nick.Lower()}, db.I{"ts", uint64(n.Timestamp.UnixNano())}},
 	}
 }
 
@@ -173,17 +172,6 @@ func Init() *Collection {
 	sc := &Collection{db.Both{}}
 	sc.Both.MongoC.Init(db.Mongo, COLLECTION, mongoIndexes)
 	sc.Both.BoltC.Init(db.Bolt.Indexed(), COLLECTION, nil)
-	// Between July 14 and September 14 the live sp0rkle instance was not
-	// correctly cleaning up/replacing seen Nick instances, instead adding
-	// new ones. This has left a bunch of detritus in boltdb, which we can
-	// clear up by enforcing some invariants. Some of this has to happen
-	// within the db layer, some is dependent on invariants inherent to
-	// seen behaviour.
-	// This problem was magnified by bson truncating timestamps to ms
-	// precision, invalidating indexes.
-	if err := sc.Fsck(); err != nil {
-		logging.Fatal("seen fsck failed: %v", err)
-	}
 	m := &migrator{
 		mongo: sc.Both.MongoC,
 		bolt:  sc.Both.BoltC,
@@ -202,60 +190,6 @@ func mongoIndexes(c db.Collection) {
 			logging.Error("Couldn't create %v index on sp0rkle.seen: %v", key, err)
 		}
 	}
-}
-
-// actMap keys are Actions
-type actMap map[string]*Nick
-
-type refCheck struct {
-	del []*Nick
-	// seen is a two-level map that tracks the hierarchy in boltdb
-	// the invariant we want to enforce is that a given IRC nick must only
-	// have one stored *Nick per action type, and that this is the newest
-	// of the available ones.
-	seen map[bot.Nick]actMap
-}
-
-func (rc *refCheck) Add(n *Nick) {
-	if rc.seen == nil {
-		rc.seen = map[bot.Nick]actMap{}
-	}
-	am, ok := rc.seen[n.Nick]
-	if !ok {
-		am = actMap{}
-		rc.seen[n.Nick] = am
-	}
-	prev, ok := am[n.Action]
-	if !ok {
-		am[n.Action] = n
-		return
-	}
-	if prev.Timestamp.Before(n.Timestamp) {
-		am[n.Action] = n
-		rc.del = append(rc.del, prev)
-	} else {
-		rc.del = append(rc.del, n)
-	}
-	return
-}
-
-func (sc *Collection) Fsck() error {
-	// First, enforce seen-specific invariants on the stored values.
-	var all Nicks
-	if err := sc.Both.BoltC.All(db.K{}, &all); err != nil {
-		return fmt.Errorf("seen fsck: fetching all: %w", err)
-	}
-	rc := &refCheck{}
-	for _, n := range all {
-		rc.Add(n)
-	}
-	logging.Warn("seen fsck: removing %d of %d nick values", len(rc.del), len(all))
-	for _, n := range rc.del {
-		logging.Debug("seen fsck: deleting %#v", n)
-		sc.Both.BoltC.Del(n)
-	}
-	// Once the values are tidied up, ask db to groom indexes.
-	return sc.Both.BoltC.Fsck(&Nick{})
 }
 
 func (sc *Collection) LastSeen(nick string) *Nick {

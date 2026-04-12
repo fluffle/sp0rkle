@@ -47,8 +47,6 @@ type indexedDatabase struct {
 	db *bbolt.DB
 }
 
-func (i *indexedDatabase) Live() bool { return true }
-
 func (i *indexedDatabase) C(name string) Collection {
 	vals := append([]byte(name), []byte("_vals")...)
 	idxs := append([]byte(name), []byte("_idxs")...)
@@ -125,11 +123,12 @@ func (bucket *indexedBucket) Get(key Key, value any) error {
 		bucket.debug("Get(%s) looking up bucket key %q", key, last)
 		if len(elems) > 0 || !isPointer(last) {
 			b := bucket.find(tx, elems)
+			bucket.debug("Find(%v) got bucket %v", elems, b)
 			if b == nil {
 				return nil
 			}
 			last = b.Get(last)
-			bucket.debug("Get(%s) pointer = %q", key, last)
+			bucket.debug("Get() new last = %q", last)
 			if last == nil {
 				return nil
 			}
@@ -172,29 +171,6 @@ func (bucket *indexedBucket) All(key Key, value any) error {
 		err := scanTx(b, scanner)
 		bucket.debug("%s: found %d keys", scanner, scanner.sp.len())
 		return err
-	})
-}
-
-func (bucket *indexedBucket) Fsck(value any) error {
-	return bucket.db.Update(func(tx *bbolt.Tx) error {
-		vals := bucket.values(tx)
-		idxs := tx.Bucket(bucket.idxs)
-		// First, idxScanner will prune all live indexes
-		// that should not exist for values...
-		idxScanner := fsckIndex{
-			et: reflect.TypeOf(value).Elem(),
-			vals: vals,
-		}
-		if err := scanTx(idxs, idxScanner); err != nil {
-			return err
-		}
-		// Then, valScanner will create all missing indexes
-		// that *should* exist for values...
-		valScanner := fsckValues{
-			et: reflect.TypeOf(value).Elem(),
-			idxs: idxs,
-		}
-		return scanTx(vals, valScanner)
 	})
 }
 

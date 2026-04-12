@@ -20,7 +20,6 @@ const DATABASE string = "sp0rkle"
 type mongoDatabase struct {
 	sync.Mutex
 	sessions []*mgo.Session
-	live bool
 }
 
 var Mongo = &mongoDatabase{}
@@ -42,11 +41,8 @@ func (m *mongoDatabase) Init(db string) error {
 	s.SetSocketTimeout(10 * time.Minute)
 	s.SetSyncTimeout(10 * time.Minute)
 	m.sessions = []*mgo.Session{s}
-	m.live = true
 	return nil
 }
-
-func (m *mongoDatabase) Live() bool { return m.live }
 
 func (m *mongoDatabase) Close() {
 	m.Lock()
@@ -58,13 +54,12 @@ func (m *mongoDatabase) Close() {
 		s.Close()
 	}
 	m.sessions = nil
-	m.live = false
 }
 
 func (m *mongoDatabase) C(name string) Collection {
 	m.Lock()
 	defer m.Unlock()
-	if !m.live || m.sessions == nil {
+	if m.sessions == nil {
 		logging.Fatal("Tried to create MongoDB collection %q when disconnected.", name)
 	}
 	s := m.sessions[0].Copy()
@@ -102,10 +97,6 @@ func (m *mongoCollection) Match(key, regex string, value any) error {
 
 func (m *mongoCollection) All(key Key, value any) error {
 	return m.Collection.Find(key.M()).All(value)
-}
-
-func (m *mongoCollection) Fsck(value any) error {
-	panic("srsly dude")
 }
 
 func (m *mongoCollection) Put(value any) (err error) {

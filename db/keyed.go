@@ -1,7 +1,6 @@
 package db
 
 import (
-	"errors"
 	"fmt"
 	"reflect"
 	"regexp"
@@ -37,8 +36,6 @@ func (b *boltDatabase) Keyed() Database {
 type keyedDatabase struct {
 	db *bbolt.DB
 }
-
-func (k *keyedDatabase) Live() bool { return true }
 
 func (k *keyedDatabase) C(name string) Collection {
 	n := []byte(name)
@@ -132,10 +129,6 @@ func (bucket *keyedBucket) All(key Key, value any) error {
 		}
 		return nil
 	})
-}
-
-func (bucket *keyedBucket) Fsck(value any) error {
-	return errors.New("keyed fsck unimplemented")
 }
 
 func (bucket *keyedBucket) Match(field, re string, value any) error {
