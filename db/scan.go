@@ -21,7 +21,7 @@ type allScanner struct {
 	sp *slicePtr
 }
 
-func (allScanner) String() string        { return "All()" }
+func (allScanner) String() string           { return "All()" }
 func (s allScanner) scan(_, v []byte) error { return bson.Unmarshal(v, s.sp.ponyElem()) }
 
 type matchScanner struct {
@@ -56,8 +56,8 @@ const (
 )
 
 type badPointerErr struct {
-	k, v []byte
-	data any
+	k, v   []byte
+	data   any
 	reason badPointerReason
 }
 

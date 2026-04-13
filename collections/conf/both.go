@@ -123,7 +123,7 @@ func (b both) Float(key string, value ...float64) float64 {
 	return mongo
 }
 
-func (b both) Value(key string, value ...interface{}) interface{} {
+func (b both) Value(key string, value ...any) any {
 	switch b.Check() {
 	case db.MONGO_ONLY:
 		return b.mongo.Value(key, value...)

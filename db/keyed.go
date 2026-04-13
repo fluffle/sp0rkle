@@ -62,14 +62,14 @@ func (bucket *keyedBucket) Debug(on bool) {
 	bucket.debug_ = on
 }
 
-func (bucket *keyedBucket) debug(f string, args ...interface{}) {
+func (bucket *keyedBucket) debug(f string, args ...any) {
 	if bucket.debug_ {
-		logging.Debug("%s."+f, append([]interface{}{bucket.name}, args...)...)
+		logging.Debug("%s."+f, append([]any{bucket.name}, args...)...)
 	}
 }
 
-func (bucket *keyedBucket) error(f string, args ...interface{}) error {
-	return fmt.Errorf("%s."+f, append([]interface{}{bucket.name}, args...)...)
+func (bucket *keyedBucket) error(f string, args ...any) error {
+	return fmt.Errorf("%s."+f, append([]any{bucket.name}, args...)...)
 }
 
 func (bucket *keyedBucket) find(tx *bbolt.Tx, elems [][]byte) *bbolt.Bucket {
@@ -94,7 +94,7 @@ func (bucket *keyedBucket) create(tx *bbolt.Tx, elems [][]byte) (*bbolt.Bucket, 
 	return b, nil
 }
 
-func (bucket *keyedBucket) Get(key Key, value interface{}) error {
+func (bucket *keyedBucket) Get(key Key, value any) error {
 	elems, last := key.B()
 	if len(last) == 0 {
 		return bucket.error("Get(): zero length key")
@@ -113,7 +113,7 @@ func (bucket *keyedBucket) Get(key Key, value interface{}) error {
 	})
 }
 
-func (bucket *keyedBucket) All(key Key, value interface{}) error {
+func (bucket *keyedBucket) All(key Key, value any) error {
 	elems, last := key.B()
 	// All implies that the last key elem is also a bucket.
 	// We support a zero-length key to perform a scan over the root bucket.
@@ -138,7 +138,7 @@ func (bucket *keyedBucket) Fsck(value any) error {
 	return errors.New("keyed fsck unimplemented")
 }
 
-func (bucket *keyedBucket) Match(field, re string, value interface{}) error {
+func (bucket *keyedBucket) Match(field, re string, value any) error {
 	if re == "" {
 		return bucket.error("Match(): zero-length regex match")
 	}
@@ -170,7 +170,7 @@ func (bucket *keyedBucket) Match(field, re string, value interface{}) error {
 	})
 }
 
-func (bucket *keyedBucket) Put(value interface{}) error {
+func (bucket *keyedBucket) Put(value any) error {
 	keyer, ok := value.(Keyer)
 	if !ok {
 		return bucket.error("Put(): don't know how to put value %#v", value)
@@ -189,7 +189,7 @@ func (bucket *keyedBucket) Put(value interface{}) error {
 	})
 }
 
-func (bucket *keyedBucket) BatchPut(value interface{}) error {
+func (bucket *keyedBucket) BatchPut(value any) error {
 	// vv == value Value
 	vv := reflect.ValueOf(value)
 	if vv.Kind() != reflect.Slice || !vv.Type().Elem().Implements(keyerType) {
@@ -236,7 +236,7 @@ func (bucket *keyedBucket) putTx(tx *bbolt.Tx, elems [][]byte, key, value []byte
 	return b.Put(key, value)
 }
 
-func (bucket *keyedBucket) Del(value interface{}) error {
+func (bucket *keyedBucket) Del(value any) error {
 	keyer, ok := value.(Keyer)
 	if !ok {
 		return bucket.error("Del(): don't know how to delete value %#v", value)

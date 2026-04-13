@@ -80,7 +80,7 @@ func TestCasingPreservation(t *testing.T) {
 	if r == nil {
 		t.Fatalf("Failed to match")
 	}
-	
+
 	// Simulate the logic in Handle:
 	// ctx.Args[1] = strings.Join(strings.Fields(ctx.Args[1][ln:]), " ")
 	result := strings.Join(strings.Fields(input[ln:]), " ")

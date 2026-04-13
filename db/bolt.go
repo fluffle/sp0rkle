@@ -35,7 +35,7 @@ func isBson(data []byte) bool {
 	return bytes.Equal(data[:prefixLen], bsonPrefix)
 }
 
-func toBson(value interface{}) ([]byte, error) {
+func toBson(value any) ([]byte, error) {
 	marshalled, err := bson.Marshal(value)
 	if err != nil {
 		return nil, fmt.Errorf("bson marshal: %w", err)

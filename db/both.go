@@ -50,7 +50,7 @@ func dupeR(vt reflect.Type, vv reflect.Value) reflect.Value {
 
 // This function rigourously tested for all of 15 minutes
 // at https://play.golang.org/p/IrEWIxm_PEH ;-)
-func dupe(in interface{}) interface{} {
+func dupe(in any) any {
 	return dupeR(reflect.TypeOf(in), reflect.ValueOf(in)).Interface()
 }
 
@@ -64,7 +64,7 @@ func (b *Both) compareErr(method string, mErr, bErr error) error {
 	return bErr
 }
 
-func (b *Both) compare(method, key string, mValue, bValue interface{}, mErr, bErr error) error {
+func (b *Both) compare(method, key string, mValue, bValue any, mErr, bErr error) error {
 	// Mongo returns ErrNotFound, Bolt returns nil, nil.
 	if errors.Is(mErr, mgo.ErrNotFound) && bErr == nil && bValue == nil {
 		return nil
@@ -82,7 +82,7 @@ func (b *Both) compare(method, key string, mValue, bValue interface{}, mErr, bEr
 	return b.compareErr(method, mErr, bErr)
 }
 
-func (b *Both) Get(key Key, value interface{}) error {
+func (b *Both) Get(key Key, value any) error {
 	other := dupe(value)
 	switch b.Check() {
 	case MONGO_ONLY:
@@ -99,7 +99,7 @@ func (b *Both) Get(key Key, value interface{}) error {
 	return ErrInvalidState
 }
 
-func (b *Both) Match(key, re string, value interface{}) error {
+func (b *Both) Match(key, re string, value any) error {
 	other := dupe(value)
 	switch b.Check() {
 	case MONGO_ONLY:
@@ -116,7 +116,7 @@ func (b *Both) Match(key, re string, value interface{}) error {
 	return ErrInvalidState
 }
 
-func (b *Both) All(key Key, value interface{}) error {
+func (b *Both) All(key Key, value any) error {
 	other := dupe(value)
 	switch b.Check() {
 	case MONGO_ONLY:
@@ -133,7 +133,7 @@ func (b *Both) All(key Key, value interface{}) error {
 	return ErrInvalidState
 }
 
-func (b *Both) Put(value interface{}) error {
+func (b *Both) Put(value any) error {
 	switch b.Check() {
 	case MONGO_ONLY:
 		return b.MongoC.Put(value)
@@ -145,7 +145,7 @@ func (b *Both) Put(value interface{}) error {
 	return ErrInvalidState
 }
 
-func (b *Both) BatchPut(value interface{}) error {
+func (b *Both) BatchPut(value any) error {
 	switch b.Check() {
 	case MONGO_ONLY:
 		// BatchPut is a bolt thing, fail before migration
@@ -156,7 +156,7 @@ func (b *Both) BatchPut(value interface{}) error {
 	return ErrInvalidState
 }
 
-func (b *Both) Del(value interface{}) error {
+func (b *Both) Del(value any) error {
 	switch b.Check() {
 	case MONGO_ONLY:
 		return b.MongoC.Del(value)
