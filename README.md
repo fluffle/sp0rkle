@@ -1,5 +1,3 @@
-[![Build Status](https://api.travis-ci.org/fluffle/sp0rkle.svg)](https://travis-ci.org/fluffle/sp0rkle)
-
 Getting started, from scratch:
 
 1.  Install some dependencies.
