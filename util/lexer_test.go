@@ -33,7 +33,7 @@ func TestLexerLowLevelFuncs(t *testing.T) {
 	}
 
 	// For the next three chars, make sure peek() and next() are in sync
-	for i := 0; i < 3; i++ {
+	for range 3 {
 		if string(l.Peek()) != l.Next() {
 			t.Errorf("Peek and next don't agree")
 		}
