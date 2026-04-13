@@ -116,6 +116,9 @@ func Init() *Collection {
 		bolt:  qc.Both.BoltC,
 	}
 	qc.Both.Checker.Init(m, COLLECTION)
+	if err := qc.Both.BoltC.Fsck(&Quote{}); err != nil {
+		logging.Fatal("quotes fsck failed: %v", err)
+	}
 
 	// QID incrementing is not in mongodb so we break out here.
 	if qc.Check() < db.BOLT_ONLY {

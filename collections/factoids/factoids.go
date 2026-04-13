@@ -200,6 +200,9 @@ func Init() *Collection {
 		bolt:  fc.Both.BoltC,
 	}
 	fc.Both.Checker.Init(m, COLLECTION)
+	if err := fc.Both.BoltC.Fsck(&Factoid{}); err != nil {
+		logging.Fatal("factoid fsck failed: %v", err)
+	}
 	return fc
 }
 

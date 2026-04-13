@@ -6,7 +6,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/fluffle/goirc/logging"
+	"github.com/fluffle/golog/logging"
 	"github.com/fluffle/sp0rkle/db"
 	"github.com/fluffle/sp0rkle/util/datetime"
 	"golang.org/x/oauth2"
@@ -160,6 +160,9 @@ func Init() *Collection {
 		bolt:  pc.Both.BoltC,
 	}
 	pc.Both.Checker.Init(m, COLLECTION)
+	if err := pc.Both.BoltC.Fsck(&State{}); err != nil {
+		logging.Fatal("pushes fsck failed: %v", err)
+	}
 	return pc
 }
 

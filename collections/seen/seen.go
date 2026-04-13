@@ -178,7 +178,7 @@ func Init() *Collection {
 	sc := &Collection{db.Both{}}
 	sc.Both.MongoC.Init(db.Mongo, COLLECTION, mongoIndexes)
 	sc.Both.BoltC.Init(db.Bolt.Indexed(), COLLECTION, nil)
-	// Between July 14 and September 14 the live sp0rkle instance was not
+	// Between July 14-September 14 2024 the live sp0rkle instance was not
 	// correctly cleaning up/replacing seen Nick instances, instead adding
 	// new ones. This has left a bunch of detritus in boltdb, which we can
 	// clear up by enforcing some invariants. Some of this has to happen
@@ -254,10 +254,12 @@ func (sc *Collection) Fsck() error {
 	for _, n := range all {
 		rc.Add(n)
 	}
-	logging.Warn("seen fsck: removing %d of %d nick values", len(rc.del), len(all))
-	for _, n := range rc.del {
-		logging.Debug("seen fsck: deleting %#v", n)
-		sc.Both.BoltC.Del(n)
+	if len(rc.del) > 0 {
+		logging.Warn("seen fsck: removing %d of %d nick values", len(rc.del), len(all))
+		for _, n := range rc.del {
+			logging.Debug("seen fsck: deleting %#v", n)
+			sc.Both.BoltC.Del(n)
+		}
 	}
 	// Once the values are tidied up, ask db to groom indexes.
 	return sc.Both.BoltC.Fsck(&Nick{})

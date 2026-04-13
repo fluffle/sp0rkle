@@ -74,6 +74,11 @@ func (ns *NickStat) String() string {
 func (ns *NickStat) Indexes() []db.Key {
 	return []db.Key{
 		db.K{db.S{"chan", string(ns.Chan)}, db.S{"key", ns.Key}},
+		// TODO: This index causes fsck churn, because it's entirely possible
+		// for many users in a channel to have said the same number of lines.
+		// As the fsckValues iterator finds each one of them it repoints the
+		// lines index for that line to that value, so the last-iterated
+		// NickStat with a non-unique line count wins.
 		db.K{db.S{"lines", string(ns.Chan)}, db.I{"lines", uint64(ns.Lines)}},
 	}
 }
@@ -142,6 +147,11 @@ func Init() *Collection {
 		bolt:  sc.Both.BoltC,
 	}
 	sc.Both.Checker.Init(m, COLLECTION)
+	/* Can't enable this yet, see comment for lines index above.
+	if err := sc.Both.BoltC.Fsck(&NickStat{}); err != nil {
+		logging.Fatal("stats fsck: %v", err)
+	}
+	*/
 	return sc
 }
 

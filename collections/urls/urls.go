@@ -50,11 +50,15 @@ func (u *Url) String() string {
 }
 
 func (u *Url) Indexes() []db.Key {
-	return []db.Key{
-		db.K{db.S{"url", u.Url}},
-		db.K{db.S{"cachedas", u.CachedAs}},
-		db.K{db.S{"shortened", u.Shortened}},
+	idxs := []db.Key{db.K{db.S{"url", u.Url}}}
+	// Only add cachedas and shortened keys when the fields have values.
+	if u.CachedAs != "" {
+		idxs = append(idxs, db.K{db.S{"cachedas", u.CachedAs}})
 	}
+	if u.Shortened != "" {
+		idxs = append(idxs, db.K{db.S{"shortened", u.Shortened}})
+	}
+	return idxs
 }
 
 func (u *Url) Id() bson.ObjectId {
@@ -141,6 +145,9 @@ func Init() *Collection {
 		bolt:  uc.Both.BoltC,
 	}
 	uc.Both.Checker.Init(m, COLLECTION)
+	if err := uc.Both.BoltC.Fsck(&Url{}); err != nil {
+		logging.Fatal("urls fsck: %v", err)
+	}
 	return uc
 }
 
