@@ -12,7 +12,7 @@ import (
 	"github.com/fluffle/sp0rkle/util"
 )
 
-func DPrintf(f string, args ...interface{}) {
+func DPrintf(f string, args ...any) {
 	if yyDebug > 0 {
 		fmt.Printf(f, args...)
 	}

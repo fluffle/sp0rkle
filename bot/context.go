@@ -57,18 +57,18 @@ func (ctx *Context) Storable() (Nick, Chan) {
 }
 
 // ReplyN() adds a prefix of "nick: " to the reply text,
-func (ctx *Context) ReplyN(fm string, args ...interface{}) {
-	args = append([]interface{}{ctx.Nick}, args...)
+func (ctx *Context) ReplyN(fm string, args ...any) {
+	args = append([]any{ctx.Nick}, args...)
 	ctx.Reply("%s: "+fm, args...)
 }
 
 // whereas Reply() does not.
-func (ctx *Context) Reply(fm string, args ...interface{}) {
+func (ctx *Context) Reply(fm string, args ...any) {
 	ctx.conn.Privmsg(ctx.Target(),
 		ctx.rws.Rewrite(fmt.Sprintf(fm, args...), ctx))
 }
 
-func (ctx *Context) Do(fm string, args ...interface{}) {
+func (ctx *Context) Do(fm string, args ...any) {
 	ctx.conn.Action(ctx.Target(),
 		ctx.rws.Rewrite(fmt.Sprintf(fm, args...), ctx))
 }

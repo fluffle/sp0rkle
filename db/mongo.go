@@ -20,7 +20,7 @@ const DATABASE string = "sp0rkle"
 type mongoDatabase struct {
 	sync.Mutex
 	sessions []*mgo.Session
-	live bool
+	live     bool
 }
 
 var Mongo = &mongoDatabase{}
@@ -83,24 +83,24 @@ func (m *mongoCollection) Debug(on bool) {
 	m.debug_ = on
 }
 
-func (m *mongoCollection) debug(f string, args ...interface{}) {
+func (m *mongoCollection) debug(f string, args ...any) {
 	if m.debug_ {
 		logging.Debug("MONGO: "+f, args...)
 	}
 }
 
-func (m *mongoCollection) Get(key Key, value interface{}) error {
+func (m *mongoCollection) Get(key Key, value any) error {
 	k := key.M()
 	m.debug("Get(%v)", k)
 	return m.Collection.Find(k).One(value)
 }
 
-func (m *mongoCollection) Match(key, regex string, value interface{}) error {
+func (m *mongoCollection) Match(key, regex string, value any) error {
 	q := bson.M{strings.ToLower(key): bson.M{"$regex": regex, "$options": "i"}}
 	return m.Collection.Find(q).All(value)
 }
 
-func (m *mongoCollection) All(key Key, value interface{}) error {
+func (m *mongoCollection) All(key Key, value any) error {
 	return m.Collection.Find(key.M()).All(value)
 }
 
@@ -108,7 +108,7 @@ func (m *mongoCollection) Fsck(value any) error {
 	panic("srsly dude")
 }
 
-func (m *mongoCollection) Put(value interface{}) (err error) {
+func (m *mongoCollection) Put(value any) (err error) {
 	switch value := value.(type) {
 	case Keyer:
 		_, err = m.Collection.Upsert(value.K().M(), value)
@@ -120,11 +120,11 @@ func (m *mongoCollection) Put(value interface{}) (err error) {
 	return err
 }
 
-func (m *mongoCollection) BatchPut(value interface{}) error {
+func (m *mongoCollection) BatchPut(value any) error {
 	panic("no batch puts for you")
 }
 
-func (m *mongoCollection) Del(value interface{}) error {
+func (m *mongoCollection) Del(value any) error {
 	switch value := value.(type) {
 	case Keyer:
 		return m.Collection.Remove(value.K().M())

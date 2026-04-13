@@ -252,7 +252,7 @@ type stringSlicer interface {
 	Strings() []string
 }
 
-func stringSlices(a, b interface{}) ([]string, []string, bool) {
+func stringSlices(a, b any) ([]string, []string, bool) {
 	ass, aok := a.(stringSlicer)
 	bss, bok := b.(stringSlicer)
 	if !(aok && bok) {
@@ -261,7 +261,7 @@ func stringSlices(a, b interface{}) ([]string, []string, bool) {
 	return ass.Strings(), bss.Strings(), true
 }
 
-func SortDiff(a, b interface{}) ([]string, error) {
+func SortDiff(a, b any) ([]string, error) {
 	astrs, bstrs, ok := stringSlices(a, b)
 	if !ok {
 		return nil, ErrNotDiffable
@@ -271,7 +271,7 @@ func SortDiff(a, b interface{}) ([]string, error) {
 	return Unified(astrs, bstrs)
 }
 
-func Diff(a, b interface{}) ([]string, error) {
+func Diff(a, b any) ([]string, error) {
 	astrs, bstrs, ok := stringSlices(a, b)
 	if !ok {
 		return nil, ErrNotDiffable

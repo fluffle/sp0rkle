@@ -7,11 +7,11 @@ import (
 type inMem struct {
 	sync.Mutex
 	ns   string
-	data map[string]interface{}
+	data map[string]any
 }
 
 func InMem(ns string) Namespace {
-	return &inMem{ns: ns, data: make(map[string]interface{})}
+	return &inMem{ns: ns, data: make(map[string]any)}
 }
 
 func (ns *inMem) All() Entries {
@@ -63,7 +63,7 @@ func (ns *inMem) Float(key string, value ...float64) float64 {
 	return 0
 }
 
-func (ns *inMem) Value(key string, value ...interface{}) interface{} {
+func (ns *inMem) Value(key string, value ...any) any {
 	ns.Lock()
 	defer ns.Unlock()
 	if len(value) > 0 {
