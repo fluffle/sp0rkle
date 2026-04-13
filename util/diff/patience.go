@@ -150,7 +150,7 @@ func recurseMatches(a, b []string, matches []commonLine, alo, ahi, blo, bhi int)
 		for ahi, bhi = ahi-1, bhi-1; ahi > alo && bhi > blo && a[ahi-1] == b[bhi-1]; ahi, bhi = ahi-1, bhi-1 {
 		}
 		matches = recurseMatches(a, b, matches, lastA+1, ahi, lastB+1, bhi)
-		for i := 0; i < (atop - ahi); i++ {
+		for i := range atop - ahi {
 			matches = append(matches, commonLine{ahi + i, bhi + i})
 		}
 	}

@@ -84,11 +84,11 @@ func Encode(url string) string {
 	// We shorten/cache a url with it's base-64 encoded CRC32 hash
 	crc := crc32.ChecksumIEEE([]byte(url))
 	crcb := make([]byte, 4)
-	for i := 0; i < 4; i++ {
+	for i := range 4 {
 		crcb[i] = byte((crc >> uint32(i)) & 0xff)
 	}
 	// Avoid collisions in shortened URLs
-	for i := 0; i < 10; i++ {
+	for range 10 {
 		// Since we're always encoding exactly 4 bytes (32 bits)
 		// resulting in 5 1/3 bytes of encoded data, we can drop
 		// the two padding equals signs for brevity.

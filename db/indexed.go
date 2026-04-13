@@ -255,7 +255,7 @@ func (bucket *indexedBucket) BatchPut(value interface{}) error {
 	}
 	tuples := make([]kvTuple, vv.Len())
 
-	for i := 0; i < vv.Len(); i++ {
+	for i := range vv.Len() {
 		indexer, _ := vv.Index(i).Interface().(Indexer)
 		data, err := toBson(vv.Index(i).Interface())
 		if err != nil {
