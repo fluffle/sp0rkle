@@ -10,7 +10,6 @@ import (
 	"github.com/fluffle/sp0rkle/db"
 	"github.com/fluffle/sp0rkle/util/datetime"
 	"golang.org/x/oauth2"
-	"gopkg.in/mgo.v2"
 	"github.com/fluffle/sp0rkle/util/bson"
 )
 
@@ -106,73 +105,17 @@ func (s *State) aliasIndex(alias string) int {
 	return -1
 }
 
-type States []*State
-
-func (ss States) Strings() []string {
-	strs := make([]string, len(ss))
-	for i, s := range ss {
-		strs[i] = s.String()
-	}
-	return strs
-}
-
-type migrator struct {
-	mongo, bolt db.Collection
-}
-
-func (m *migrator) MigrateTo(newState db.MigrationState) error {
-	if newState != db.MONGO_PRIMARY {
-		return nil
-	}
-	var all States
-	if err := m.mongo.All(db.K{}, &all); err != nil {
-		return err
-	}
-	if err := m.bolt.BatchPut(all); err != nil {
-		logging.Error("Migrating push states: %v", err)
-		return err
-	}
-	logging.Debug("Migrated %d push states.", len(all))
-	return nil
-}
-
-func (m *migrator) Diff() ([]string, []string, error) {
-	var mAll, bAll States
-	if err := m.mongo.All(db.K{}, &mAll); err != nil {
-		return nil, nil, err
-	}
-	if err := m.bolt.All(db.K{}, &bAll); err != nil {
-		return nil, nil, err
-	}
-	return mAll.Strings(), bAll.Strings(), nil
-}
-
 type Collection struct {
-	db.Both
+	db.C
 }
 
 func Init() *Collection {
-	pc := &Collection{db.Both{}}
-	pc.Both.MongoC.Init(db.Mongo, COLLECTION, mongoIndexes)
-	pc.Both.BoltC.Init(db.Bolt.Indexed(), COLLECTION, nil)
-	m := &migrator{
-		mongo: pc.Both.MongoC,
-		bolt:  pc.Both.BoltC,
-	}
-	pc.Both.Checker.Init(m, COLLECTION)
-	if err := pc.Both.BoltC.Fsck(&State{}); err != nil {
+	pc := &Collection{}
+	pc.Init(db.Bolt.Indexed(), COLLECTION, nil)
+	if err := pc.Fsck(&State{}); err != nil {
 		logging.Fatal("pushes fsck failed: %v", err)
 	}
 	return pc
-}
-
-func mongoIndexes(c db.Collection) {
-	if err := c.Mongo().EnsureIndex(mgo.Index{
-		Key:    []string{"nick"},
-		Unique: true,
-	}); err != nil {
-		logging.Error("Couldn't create an index on push: %s", err)
-	}
 }
 
 func (pc *Collection) NewState(nick string) (*State, error) {
