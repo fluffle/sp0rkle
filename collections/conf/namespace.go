@@ -4,7 +4,6 @@ import (
 	"github.com/fluffle/goirc/logging"
 	"github.com/fluffle/sp0rkle/db"
 	"go.etcd.io/bbolt"
-	"gopkg.in/mgo.v2"
 )
 
 type Namespace interface {
@@ -36,8 +35,7 @@ func (ns *namespace) set(key string, value any) {
 
 func (ns *namespace) get(key string) any {
 	e := &Entry{Ns: ns.ns, Key: key}
-	if err := ns.Get(e.K(), e); err != nil && err != mgo.ErrNotFound && err != bbolt.ErrTxNotWritable {
-		logging.Error("Couldn't get config entry for ns=%q key=%q: %v", ns.ns, key, err)
+	if err := ns.Get(e.K(), e); err != nil && err != bbolt.ErrTxNotWritable {
 		return nil
 	}
 	return e.Value

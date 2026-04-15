@@ -4,9 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/fluffle/goirc/logging"
 	"github.com/fluffle/sp0rkle/db"
-	"gopkg.in/mgo.v2"
 )
 
 const (
@@ -15,20 +13,6 @@ const (
 	zoneNs = "timezones"
 )
 
-var mongo db.C
-
-func mongoIndexes(c db.Collection) {
-	err := c.Mongo().EnsureIndex(mgo.Index{Key: []string{"ns", "key"}, Unique: true})
-	if err != nil {
-		logging.Error("Couldn't create index on sp0rkle.conf: %s", err)
-	}
-}
-
-func Mongo(ns string) *namespace {
-	mongo.Init(db.Mongo, COLLECTION, mongoIndexes)
-	return &namespace{ns: ns, Collection: &mongo}
-}
-
 var bolt db.C
 
 func Bolt(ns string) *namespace {
@@ -36,11 +20,8 @@ func Bolt(ns string) *namespace {
 	return &namespace{ns: ns, Collection: &bolt}
 }
 
-var checker db.M
-
-func Ns(ns string) *both {
-	checker.Init(migrator{}, COLLECTION)
-	return &both{bolt: Bolt(ns), mongo: Mongo(ns), Checker: checker}
+func Ns(ns string) Namespace {
+	return Bolt(ns)
 }
 
 // Lazy, I shouldn't really do this ;-)
