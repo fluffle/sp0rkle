@@ -7,7 +7,6 @@ import (
 	"strings"
 
 	"github.com/fluffle/golog/logging"
-	"github.com/fluffle/sp0rkle/db"
 )
 
 var (
@@ -67,22 +66,6 @@ func shutdown(ctx *Context) {
 	if check_rebuilder("shutdown", ctx) {
 		bot.servers.Shutdown(false)
 	}
-}
-
-func migrate(ctx *Context) {
-	if !check_rebuilder("migrate", ctx) {
-		return
-	}
-	newState := db.StateForName(strings.Fields(ctx.Text())[1])
-	if !newState.Valid() {
-		ctx.ReplyN("unrecognised migration state: %q", ctx.Text())
-		return
-	}
-	if err := db.MigrateTo(newState); err != nil {
-		ctx.ReplyN("migrate failed: %v", err)
-		return
-	}
-	ctx.ReplyN("Migrated!")
 }
 
 func check_rebuilder(cmd string, ctx *Context) bool {

@@ -64,10 +64,6 @@ func Init(ctx context.Context) {
 		"make the bot ignore <nick> completely.")
 	Command(unignore, "unignore", "unignore <nick>  -- "+
 		"make the bot unignore <nick> again.")
-
-	// Mongo -> Bolt migration. Run in background goroutine
-	// because some migrations can take a looong time.
-	HandleBG(migrate, client.NOTICE)
 }
 
 func Connect() chan bool {
