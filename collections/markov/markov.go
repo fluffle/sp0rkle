@@ -13,7 +13,7 @@ import (
 	"github.com/fluffle/sp0rkle/util/markov"
 	bolt "go.etcd.io/bbolt"
 	"gopkg.in/mgo.v2"
-	"gopkg.in/mgo.v2/bson"
+	"github.com/fluffle/sp0rkle/util/bson"
 )
 
 const COLLECTION = "markov"

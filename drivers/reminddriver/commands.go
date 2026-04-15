@@ -11,7 +11,7 @@ import (
 	"github.com/fluffle/sp0rkle/collections/reminders"
 	"github.com/fluffle/sp0rkle/util/datetime"
 	"github.com/fluffle/sp0rkle/util/push"
-	"gopkg.in/mgo.v2/bson"
+	"github.com/fluffle/sp0rkle/util/bson"
 )
 
 // remind del

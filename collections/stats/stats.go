@@ -10,7 +10,7 @@ import (
 	"github.com/fluffle/sp0rkle/db"
 	"github.com/fluffle/sp0rkle/util/diff"
 	"gopkg.in/mgo.v2"
-	"gopkg.in/mgo.v2/bson"
+	"github.com/fluffle/sp0rkle/util/bson"
 )
 
 const COLLECTION string = "stats"

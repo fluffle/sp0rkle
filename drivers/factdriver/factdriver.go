@@ -7,7 +7,7 @@ import (
 	"github.com/fluffle/sp0rkle/bot"
 	"github.com/fluffle/sp0rkle/collections/factoids"
 	"github.com/fluffle/sp0rkle/util"
-	"gopkg.in/mgo.v2/bson"
+	"github.com/fluffle/sp0rkle/util/bson"
 )
 
 // We talk to the factoids collection

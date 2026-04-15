@@ -9,7 +9,7 @@ import (
 
 	"github.com/fluffle/golog/logging"
 	"go.etcd.io/bbolt"
-	"gopkg.in/mgo.v2/bson"
+	"github.com/fluffle/sp0rkle/util/bson"
 )
 
 type rowScanner interface {

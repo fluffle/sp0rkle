@@ -9,7 +9,7 @@ import (
 	"github.com/fluffle/golog/logging"
 	"go.etcd.io/bbolt"
 	"gopkg.in/mgo.v2"
-	"gopkg.in/mgo.v2/bson"
+	"github.com/fluffle/sp0rkle/util/bson"
 )
 
 // A value that is stored directly at K{{"_id", ObjectId}}

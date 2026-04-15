@@ -12,7 +12,7 @@ import (
 	"github.com/fluffle/sp0rkle/collections/pushes"
 	"github.com/fluffle/sp0rkle/collections/reminders"
 	"github.com/fluffle/sp0rkle/util/push"
-	"gopkg.in/mgo.v2/bson"
+	"github.com/fluffle/sp0rkle/util/bson"
 )
 
 // We use the reminders collection

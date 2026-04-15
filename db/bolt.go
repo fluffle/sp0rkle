@@ -12,7 +12,7 @@ import (
 
 	"github.com/fluffle/golog/logging"
 	bolt "go.etcd.io/bbolt"
-	"gopkg.in/mgo.v2/bson"
+	"github.com/fluffle/sp0rkle/util/bson"
 )
 
 const (
