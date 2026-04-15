@@ -5,11 +5,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/fluffle/golog/logging"
 	"github.com/fluffle/sp0rkle/bot"
 	"github.com/fluffle/sp0rkle/db"
 	"github.com/fluffle/sp0rkle/util/datetime"
-	"gopkg.in/mgo.v2"
 )
 
 const COLLECTION = "karma"
@@ -64,75 +62,14 @@ func (k *Karma) K() db.Key {
 
 var _ db.Keyer = (*Karma)(nil)
 
-type Karmas []*Karma
-
-func (ks Karmas) Strings() []string {
-	s := make([]string, len(ks))
-	for i, k := range ks {
-		s[i] = fmt.Sprintf("%#v", k)
-	}
-	return s
-}
-
-type migrator struct {
-	mongo, bolt db.Collection
-}
-
-func (m *migrator) MigrateTo(newState db.MigrationState) error {
-	if newState != db.MONGO_PRIMARY {
-		return nil
-	}
-	var all []*Karma
-	if err := m.mongo.All(db.K{}, &all); err != nil {
-		return err
-	}
-	if err := m.bolt.BatchPut(all); err != nil {
-		logging.Error("Migrating karma entries: %v", err)
-		return err
-	}
-	logging.Info("Migrated %d karma entries.", len(all))
-	return nil
-}
-
-func (m *migrator) Diff() ([]string, []string, error) {
-	var mAll, bAll Karmas
-	if err := m.mongo.All(db.K{}, &mAll); err != nil {
-		return nil, nil, err
-	}
-	if err := m.bolt.All(db.K{}, &bAll); err != nil {
-		return nil, nil, err
-	}
-	return mAll.Strings(), bAll.Strings(), nil
-}
-
 type Collection struct {
-	db.Both
+	db.C
 }
 
 func Init() *Collection {
-	kc := &Collection{db.Both{}}
-	kc.Both.MongoC.Init(db.Mongo, COLLECTION, mongoIndexes)
-	kc.Both.BoltC.Init(db.Bolt.Keyed(), COLLECTION, nil)
-	m := &migrator{
-		mongo: kc.Both.MongoC,
-		bolt:  kc.Both.BoltC,
-	}
-	kc.Both.Checker.Init(m, COLLECTION)
+	kc := &Collection{}
+	kc.Init(db.Bolt.Keyed(), COLLECTION, nil)
 	return kc
-}
-
-func mongoIndexes(c db.Collection) {
-	if err := c.Mongo().EnsureIndex(mgo.Index{
-		Key:    []string{"key"},
-		Unique: true,
-	}); err != nil {
-		logging.Error("Couldn't create index on karma.key: %s", err)
-	}
-	for _, key := range []string{"score", "votes"} {
-		if err := c.Mongo().EnsureIndexKey(key); err != nil {
-			logging.Error("Couldn't create index on karma.%s: %s", key, err)
-		}
-	}
 }
 
 func (kc *Collection) KarmaFor(sub string) *Karma {
