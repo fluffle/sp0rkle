@@ -8,7 +8,6 @@ import (
 	"github.com/fluffle/golog/logging"
 	"github.com/fluffle/sp0rkle/bot"
 	"github.com/fluffle/sp0rkle/db"
-	"gopkg.in/mgo.v2"
 	"github.com/fluffle/sp0rkle/util/bson"
 )
 
@@ -87,81 +86,20 @@ func (u *Url) byShortened() db.K {
 
 type Urls []*Url
 
-func (us Urls) Strings() []string {
-	s := make([]string, len(us))
-	for i, u := range us {
-		s[i] = fmt.Sprintf("%#v", u)
-	}
-	return s
-}
-
-type migrator struct {
-	mongo, bolt db.Collection
-}
-
-func (m *migrator) MigrateTo(newState db.MigrationState) error {
-	if newState != db.MONGO_PRIMARY {
-		return nil
-	}
-	var all []*Url
-	if err := m.mongo.All(db.K{}, &all); err != nil {
-		return err
-	}
-	if err := m.bolt.BatchPut(all); err != nil {
-		logging.Error("Migrating urls: %v", err)
-		return err
-	}
-	logging.Debug("Migrated %d urls.", len(all))
-	return nil
-}
-
-func (m *migrator) Diff() ([]string, []string, error) {
-	var mAll, bAll Urls
-	if err := m.mongo.All(db.K{}, &mAll); err != nil {
-		return nil, nil, err
-	}
-	if err := m.bolt.All(db.K{}, &bAll); err != nil {
-		return nil, nil, err
-	}
-	return mAll.Strings(), bAll.Strings(), nil
-}
-
 type Collection struct {
-	db.Both
-
-	// Cache of ObjectId's for GetRand.
+	db.C
 	seen map[string]map[bson.ObjectId]bool
 }
 
 func Init() *Collection {
 	uc := &Collection{
-		Both: db.Both{},
 		seen: make(map[string]map[bson.ObjectId]bool),
 	}
-	uc.Both.MongoC.Init(db.Mongo, COLLECTION, mongoIndexes)
-	uc.Both.BoltC.Init(db.Bolt.Indexed(), COLLECTION, nil)
-	m := &migrator{
-		mongo: uc.Both.MongoC,
-		bolt:  uc.Both.BoltC,
-	}
-	uc.Both.Checker.Init(m, COLLECTION)
-	if err := uc.Both.BoltC.Fsck(&Url{}); err != nil {
+	uc.Init(db.Bolt.Indexed(), COLLECTION, nil)
+	if err := uc.Fsck(&Url{}); err != nil {
 		logging.Fatal("urls fsck: %v", err)
 	}
 	return uc
-}
-
-func mongoIndexes(c db.Collection) {
-	err := c.Mongo().EnsureIndex(mgo.Index{Key: []string{"url"}, Unique: true})
-	if err != nil {
-		logging.Error("Couldn't create url index on sp0rkle.urls: %s", err)
-	}
-	for _, idx := range []string{"cachedas", "shortened"} {
-		err := c.Mongo().EnsureIndex(mgo.Index{Key: []string{idx}})
-		if err != nil {
-			logging.Error("Couldn't create %s index on sp0rkle.urls: %s", idx, err)
-		}
-	}
 }
 
 func (uc *Collection) GetById(id bson.ObjectId) *Url {
@@ -221,15 +159,13 @@ func (uc *Collection) GetRand(regex string) *Url {
 		if ok {
 			// if the count of results is 1 and we're storing seen data for regex
 			// then we've exhausted the possible results and should wipe it
-			logging.Debug("Zeroing seen data for regex %q.", regex)
 			delete(uc.seen, regex)
 		}
 		return filtered[0]
 	}
-	// case count > 1:
+	// case count > 1, effectively
+	// only store seen for regex that match more than one quote
 	if !ok {
-		// only store seen for regex that match more than one quote
-		logging.Debug("Creating seen data for regex %q.", regex)
 		uc.seen[regex] = map[bson.ObjectId]bool{}
 	}
 	url := filtered[rand.Intn(count)]
