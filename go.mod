@@ -6,7 +6,6 @@ require (
 	github.com/google/go-github v17.0.0+incompatible
 	go.etcd.io/bbolt v1.4.3
 	golang.org/x/oauth2 v0.0.0-20180821212333-d2e6202438be
-	gopkg.in/mgo.v2 v2.0.0-20190816093944-a6b53ec6cb22
 	gopkg.in/check.v1 v1.0.0-20200227125254-8fa46927fb4f
 	gopkg.in/yaml.v2 v2.2.8
 )

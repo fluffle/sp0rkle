@@ -8,7 +8,6 @@ import (
 
 	"github.com/fluffle/golog/logging"
 	"go.etcd.io/bbolt"
-	"gopkg.in/mgo.v2"
 	"github.com/fluffle/sp0rkle/util/bson"
 )
 
@@ -32,6 +31,26 @@ func isPointer(data []byte) bool {
 func toPointer(value Indexer) []byte {
 	e := S{idTag, string(value.Id())}
 	return e.Bytes()
+}
+
+// This function rigourously tested for all of 15 minutes
+// at https://play.golang.org/p/IrEWIxm_PEH ;-)
+func dupe(in any) any {
+	return dupeR(reflect.TypeOf(in), reflect.ValueOf(in)).Interface()
+}
+
+func dupeR(vt reflect.Type, vv reflect.Value) reflect.Value {
+	switch vv.Kind() {
+	case reflect.Ptr:
+		duped := dupeR(vv.Elem().Type(), vv.Elem())
+		ptr := reflect.New(vv.Elem().Type())
+		ptr.Elem().Set(duped)
+		return ptr
+	case reflect.Slice:
+		return reflect.MakeSlice(vt, 0, vv.Cap())
+	default:
+		return reflect.New(vt).Elem()
+	}
 }
 
 func (b *boltDatabase) Indexed() Database {
@@ -378,6 +397,3 @@ func (bucket *indexedBucket) Next(k Key, set ...int) (int, error) {
 	return int(i), err
 }
 
-func (bucket *indexedBucket) Mongo() *mgo.Collection {
-	panic("you are bad at migrations")
-}

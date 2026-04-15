@@ -8,7 +8,6 @@ import (
 
 	"github.com/fluffle/golog/logging"
 	"go.etcd.io/bbolt"
-	"gopkg.in/mgo.v2"
 	"github.com/fluffle/sp0rkle/util/bson"
 )
 
@@ -283,6 +282,3 @@ func (bucket *keyedBucket) Next(k Key, set ...int) (int, error) {
 	return int(i), err
 }
 
-func (bucket *keyedBucket) Mongo() *mgo.Collection {
-	panic("you are bad at migrations")
-}

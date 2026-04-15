@@ -8,7 +8,6 @@ import (
 	"strings"
 	"sync"
 
-	"gopkg.in/mgo.v2"
 	"github.com/fluffle/sp0rkle/util/bson"
 )
 
@@ -40,8 +39,6 @@ type Collection interface {
 	Fsck(any) error
 	// Turn on debugging for this collection.
 	Debug(bool)
-	// So we don't have to do everything at once.
-	Mongo() *mgo.Collection
 }
 
 type unimplementedCollection struct{}
@@ -79,10 +76,6 @@ func (unimplementedCollection) Next(Key, ...int) (int, error) {
 func (unimplementedCollection) Debug(bool) {}
 
 func (unimplementedCollection) Fsck(any) error { return nil }
-
-func (unimplementedCollection) Mongo() *mgo.Collection {
-	panic("holy shit you are bad at this")
-}
 
 type C struct {
 	Collection
@@ -204,23 +197,11 @@ func (e ID) String() string {
 
 type Key interface {
 	String() string
-	// MongoDB repr
-	M() bson.M
 	// BoltDB repr
 	B() ([][]byte, []byte)
 }
 
 type K []Elem
-
-// This is one-way, loses ordering.
-func (k K) M() bson.M {
-	m := bson.M{}
-	for _, e := range k {
-		n, v := e.Pair()
-		m[n] = v
-	}
-	return m
-}
 
 // Successive key elements create nested BoltDB buckets.
 // The final key element is used as the bucket key.
