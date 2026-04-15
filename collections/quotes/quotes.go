@@ -1,16 +1,12 @@
 package quotes
 
 import (
-	"fmt"
 	"math/rand"
-	"sync/atomic"
 	"time"
 
 	"github.com/fluffle/golog/logging"
 	"github.com/fluffle/sp0rkle/bot"
 	"github.com/fluffle/sp0rkle/db"
-	"github.com/fluffle/sp0rkle/util/datetime"
-	"gopkg.in/mgo.v2"
 	"github.com/fluffle/sp0rkle/util/bson"
 )
 
@@ -48,93 +44,21 @@ func (q *Quote) byQID() db.K {
 
 type Quotes []*Quote
 
-func (qs Quotes) Strings() []string {
-	s := make([]string, len(qs))
-	for i, q := range qs {
-		// Explicitly omit QID here since QIDs in Bolt will come from
-		// the bucket sequence and probably be != Mongo.
-		s[i] = fmt.Sprintf("%s <%s:%s> %s (%d)", datetime.Format(q.Timestamp),
-			q.Nick, q.Chan, q.Quote, q.Accessed)
-	}
-	return s
-}
-
-type migrator struct {
-	mongo, bolt db.Collection
-}
-
-func (m *migrator) MigrateTo(newState db.MigrationState) error {
-	if newState != db.MONGO_PRIMARY {
-		return nil
-	}
-	var all Quotes
-	// Break encapsulation to preserve quote ID ordering.
-	if err := m.mongo.Mongo().Find(bson.M{}).Sort("qid").All(&all); err != nil {
-		return err
-	}
-	if err := m.bolt.BatchPut(all); err != nil {
-		logging.Error("Migrating quotes: %v", err)
-		return err
-	}
-	logging.Info("Migrated %d quotes.", len(all))
-	// Update sequence with current largest QID.
-	_, err := m.bolt.Next(db.K{}, all[len(all)-1].QID)
-	return err
-}
-
-func (m *migrator) Diff() ([]string, []string, error) {
-	var mAll, bAll Quotes
-	if err := m.mongo.All(db.K{}, &mAll); err != nil {
-		return nil, nil, err
-	}
-	if err := m.bolt.All(db.K{}, &bAll); err != nil {
-		return nil, nil, err
-	}
-	return mAll.Strings(), bAll.Strings(), nil
-}
-
 type Collection struct {
-	db.Both
+	db.C
 
-	// Cache of ObjectId's for PseudoRand
 	seen map[string]map[bson.ObjectId]bool
-
-	// This is a bit of a gratuitous hack to allow for easier numeric quote IDs.
-	maxQID int32
 }
 
 func Init() *Collection {
 	qc := &Collection{
-		Both:   db.Both{},
-		seen:   make(map[string]map[bson.ObjectId]bool),
-		maxQID: 1,
+		seen: make(map[string]map[bson.ObjectId]bool),
 	}
-	qc.Both.MongoC.Init(db.Mongo, COLLECTION, mongoIndexes)
-	qc.Both.BoltC.Init(db.Bolt.Indexed(), COLLECTION, nil)
-	m := &migrator{
-		mongo: qc.Both.MongoC,
-		bolt:  qc.Both.BoltC,
-	}
-	qc.Both.Checker.Init(m, COLLECTION)
-	if err := qc.Both.BoltC.Fsck(&Quote{}); err != nil {
+	qc.Init(db.Bolt.Indexed(), COLLECTION, nil)
+	if err := qc.Fsck(&Quote{}); err != nil {
 		logging.Fatal("quotes fsck failed: %v", err)
 	}
-
-	// QID incrementing is not in mongodb so we break out here.
-	if qc.Check() < db.BOLT_ONLY {
-		var res Quote
-		if err := qc.Mongo().Find(bson.M{}).Sort("-qid").One(&res); err == nil {
-			qc.maxQID = int32(res.QID)
-		}
-	}
 	return qc
-}
-
-func mongoIndexes(c db.Collection) {
-	err := c.Mongo().EnsureIndex(mgo.Index{Key: []string{"qid"}, Unique: true})
-	if err != nil {
-		logging.Error("Couldn't create index on sp0rkle.quotes: %v", err)
-	}
 }
 
 func (qc *Collection) GetByQID(qid int) *Quote {
@@ -146,32 +70,10 @@ func (qc *Collection) GetByQID(qid int) *Quote {
 }
 
 func (qc *Collection) NewQID() (int, error) {
-	var mNext, bNext int
-	var err error
-	state := qc.Check()
-	if state < db.BOLT_ONLY {
-		mNext = int(atomic.AddInt32(&qc.maxQID, 1))
-	}
-	if state > db.MONGO_ONLY {
-		bNext, err = qc.Next(db.K{})
-	}
-	if (state == db.MONGO_PRIMARY || state == db.BOLT_PRIMARY) &&
-		mNext != bNext {
-		logging.Warn("QID mismatch (%d vs. %d).", mNext, bNext)
-	}
-	if state >= db.BOLT_PRIMARY {
-		return bNext, err
-	}
-	return mNext, nil
+	return qc.Next(db.K{})
 }
 
 func (qc *Collection) GetPseudoRand(regex string) *Quote {
-	// TODO(fluffle): This implementation of GetPseudoRand is inefficient
-	// for either Bolt or Mongo on their own. It's a lowest-common-denominator
-	// that should work for both. There are 3 steps: fetch all quotes matching
-	// the regex, filter out already-seen ObjectIds, and return a result while
-	// updating the ObjectId filters.
-
 	quotes := Quotes{}
 	if regex == "" {
 		if err := qc.All(db.K{}, &quotes); err != nil {
@@ -211,15 +113,13 @@ func (qc *Collection) GetPseudoRand(regex string) *Quote {
 		if ok {
 			// if the count of results is 1 and we're storing seen data for regex
 			// then we've exhausted the possible results and should wipe it
-			logging.Debug("Zeroing seen data for regex %q.", regex)
 			delete(qc.seen, regex)
 		}
 		return filtered[0]
 	}
-	// case count > 1:
+	// case count > 1, effectively
+	// only store seen for regex that match more than one quote
 	if !ok {
-		// only store seen for regex that match more than one quote
-		logging.Debug("Creating seen data for regex %q.", regex)
 		qc.seen[regex] = map[bson.ObjectId]bool{}
 	}
 	res := filtered[rand.Intn(count)]
