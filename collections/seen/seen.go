@@ -3,7 +3,6 @@ package seen
 import (
 	"fmt"
 	"sort"
-	"strings"
 	"time"
 
 	"github.com/fluffle/golog/logging"
@@ -11,8 +10,6 @@ import (
 	"github.com/fluffle/sp0rkle/db"
 	"github.com/fluffle/sp0rkle/util"
 	"github.com/fluffle/sp0rkle/util/datetime"
-	"github.com/fluffle/sp0rkle/util/diff"
-	"gopkg.in/mgo.v2"
 	"github.com/fluffle/sp0rkle/util/bson"
 )
 
@@ -139,45 +136,14 @@ func (ns Nicks) Len() int           { return len(ns) }
 func (ns Nicks) Swap(i, j int)      { ns[i], ns[j] = ns[j], ns[i] }
 func (ns Nicks) Less(i, j int) bool { return ns[i].Timestamp.After(ns[j].Timestamp) }
 
-type migrator struct {
-	mongo, bolt db.Collection
-}
-
-func (m *migrator) MigrateTo(newState db.MigrationState) error {
-	if newState != db.MONGO_PRIMARY {
-		return nil
-	}
-	var all Nicks
-	if err := m.mongo.All(db.K{}, &all); err != nil {
-		return err
-	}
-	if err := m.bolt.BatchPut(all); err != nil {
-		logging.Error("Migrating seen: %v", err)
-		return err
-	}
-	logging.Info("Migrated %d seen entries.", len(all))
-	return nil
-}
-
-func (m *migrator) Diff() ([]string, []string, error) {
-	var mAll, bAll Nicks
-	if err := m.mongo.All(db.K{}, &mAll); err != nil {
-		return nil, nil, err
-	}
-	if err := m.bolt.All(db.K{}, &bAll); err != nil {
-		return nil, nil, err
-	}
-	return mAll.Strings(), bAll.Strings(), nil
-}
-
 type Collection struct {
-	db.Both
+	db.C
 }
 
 func Init() *Collection {
-	sc := &Collection{db.Both{}}
-	sc.Both.MongoC.Init(db.Mongo, COLLECTION, mongoIndexes)
-	sc.Both.BoltC.Init(db.Bolt.Indexed(), COLLECTION, nil)
+	sc := &Collection{}
+	sc.Init(db.Bolt.Indexed(), COLLECTION, nil)
+
 	// Between July 14-September 14 2024 the live sp0rkle instance was not
 	// correctly cleaning up/replacing seen Nick instances, instead adding
 	// new ones. This has left a bunch of detritus in boltdb, which we can
@@ -189,24 +155,7 @@ func Init() *Collection {
 	if err := sc.Fsck(); err != nil {
 		logging.Fatal("seen fsck failed: %v", err)
 	}
-	m := &migrator{
-		mongo: sc.Both.MongoC,
-		bolt:  sc.Both.BoltC,
-	}
-	sc.Both.Checker.Init(m, COLLECTION)
 	return sc
-}
-
-func mongoIndexes(c db.Collection) {
-	indexes := [][]string{
-		{"key", "action"}, // For searching ...
-		{"timestamp"},     // ... and ordering seen entries.
-	}
-	for _, key := range indexes {
-		if err := c.Mongo().EnsureIndex(mgo.Index{Key: key}); err != nil {
-			logging.Error("Couldn't create %v index on sp0rkle.seen: %v", key, err)
-		}
-	}
 }
 
 // actMap keys are Actions
@@ -247,7 +196,7 @@ func (rc *refCheck) Add(n *Nick) {
 func (sc *Collection) Fsck() error {
 	// First, enforce seen-specific invariants on the stored values.
 	var all Nicks
-	if err := sc.Both.BoltC.All(db.K{}, &all); err != nil {
+	if err := sc.All(db.K{}, &all); err != nil {
 		return fmt.Errorf("seen fsck: fetching all: %w", err)
 	}
 	rc := &refCheck{}
@@ -258,46 +207,24 @@ func (sc *Collection) Fsck() error {
 		logging.Warn("seen fsck: removing %d of %d nick values", len(rc.del), len(all))
 		for _, n := range rc.del {
 			logging.Debug("seen fsck: deleting %#v", n)
-			sc.Both.BoltC.Del(n)
+			sc.Del(n)
 		}
 	}
 	// Once the values are tidied up, ask db to groom indexes.
-	return sc.Both.BoltC.Fsck(&Nick{})
+	return sc.Collection.Fsck(&Nick{})
 }
 
 func (sc *Collection) LastSeen(nick string) *Nick {
-	var mAll, bAll Nicks
-	var mErr, bErr error
+	var bAll Nicks
 	n := &Nick{Nick: bot.Nick(nick)}
-	state := sc.Check()
-
-	// Not using Both here because it's a useful test of BoltDB ordering.
-	if state < db.BOLT_ONLY {
-		q := sc.Mongo().Find(bson.M{"key": strings.ToLower(nick)}).Sort("timestamp")
-		mErr = q.All(&mAll)
-	}
-	if state > db.MONGO_ONLY {
-		bErr = sc.BoltC.All(n.byNick(), &bAll)
-	}
-	if state == db.MONGO_PRIMARY || state == db.BOLT_PRIMARY {
-		if mErr != bErr {
-			logging.Warn("LastSeen errors differ: %v != %v", mErr, bErr)
-		}
-		// Note: not SortDiff here because ordering.
-		if unified, err := diff.Diff(mAll, bAll); err == diff.ErrDiff {
-			logging.Debug("LastSeen: %v\n%s", err, strings.Join(unified, "\n"))
-		}
-	}
-	if state >= db.BOLT_PRIMARY {
-		if len(bAll) == 0 {
-			return nil
-		}
-		return bAll[len(bAll)-1]
-	}
-	if len(mAll) == 0 {
+	if err := sc.All(n.byNick(), &bAll); err != nil {
+		logging.Error("LastSeen error: %v", err)
 		return nil
 	}
-	return mAll[len(mAll)-1]
+	if len(bAll) == 0 {
+		return nil
+	}
+	return bAll[len(bAll)-1]
 }
 
 func (sc *Collection) LastSeenDoing(nick, act string) *Nick {
