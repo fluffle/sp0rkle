@@ -11,8 +11,8 @@ import (
 	"time"
 
 	"github.com/fluffle/golog/logging"
-	bolt "go.etcd.io/bbolt"
 	"github.com/fluffle/sp0rkle/util/bson"
+	bolt "go.etcd.io/bbolt"
 )
 
 const (
@@ -125,6 +125,7 @@ func (b *boltDatabase) doBackup() error {
 	if err != nil {
 		return fmt.Errorf("could not create %q: %v", fn, err)
 	}
+	defer fh.Close()
 	fz := gzip.NewWriter(fh)
 	defer fz.Close()
 	err = b.db.View(func(tx *bolt.Tx) error {
