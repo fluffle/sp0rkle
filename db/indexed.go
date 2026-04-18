@@ -7,8 +7,8 @@ import (
 	"regexp"
 
 	"github.com/fluffle/golog/logging"
-	"go.etcd.io/bbolt"
 	"github.com/fluffle/sp0rkle/util/bson"
+	"go.etcd.io/bbolt"
 )
 
 // A value that is stored directly at K{{"_id", ObjectId}}
@@ -81,7 +81,7 @@ func (i *indexedDatabase) C(name string) Collection {
 		return err
 	})
 	if err != nil {
-		logging.Fatal("Creating BoltDB bucket failed: %v")
+		logging.Fatal("Creating BoltDB bucket failed: %v", err)
 	}
 	return &indexedBucket{name: name, vals: vals, idxs: idxs, db: i.db}
 }
@@ -396,4 +396,3 @@ func (bucket *indexedBucket) Next(k Key, set ...int) (int, error) {
 	})
 	return int(i), err
 }
-
