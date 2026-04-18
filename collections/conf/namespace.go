@@ -3,7 +3,6 @@ package conf
 import (
 	"github.com/fluffle/goirc/logging"
 	"github.com/fluffle/sp0rkle/db"
-	"go.etcd.io/bbolt"
 )
 
 type Namespace interface {
@@ -35,7 +34,7 @@ func (ns *namespace) set(key string, value any) {
 
 func (ns *namespace) get(key string) any {
 	e := &Entry{Ns: ns.ns, Key: key}
-	if err := ns.Get(e.K(), e); err != nil && err != bbolt.ErrTxNotWritable {
+	if err := ns.Get(e.K(), e); err != nil {
 		return nil
 	}
 	return e.Value
