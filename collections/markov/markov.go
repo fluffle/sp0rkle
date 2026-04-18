@@ -9,60 +9,10 @@ import (
 	"github.com/fluffle/sp0rkle/db"
 	"github.com/fluffle/sp0rkle/util"
 	"github.com/fluffle/sp0rkle/util/markov"
-	"github.com/fluffle/sp0rkle/util/bson"
 	"go.etcd.io/bbolt"
 )
 
 const COLLECTION = "markov"
-
-type MarkovLink struct {
-	Source, Dest string
-	Uses         int
-	uses         []byte
-	Tag          string
-	Id_          bson.ObjectId `bson:"_id,omitempty"`
-}
-
-var _ db.Indexer = (*MarkovLink)(nil)
-
-func New(source, dest, tag string) *MarkovLink {
-	return &MarkovLink{
-		Source: source,
-		Dest:   dest,
-		Tag:    strings.ToLower(tag),
-		Id_:    bson.NewObjectId(),
-	}
-}
-
-func (ml *MarkovLink) String() string {
-	return fmt.Sprintf("%s(%q->%q):%d", ml.Tag, ml.Source, ml.Dest, ml.Uses)
-}
-
-func (ml *MarkovLink) Indexes() []db.Key {
-	return []db.Key{
-		db.K{db.S{"tag", ml.Tag}, db.S{"source", ml.Source}, db.S{"dest", ml.Dest}},
-	}
-}
-
-func (ml *MarkovLink) Id() bson.ObjectId {
-	return ml.Id_
-}
-
-func (ml *MarkovLink) encodeUses() {
-	ml.uses = make([]byte, binary.MaxVarintLen64)
-	n := binary.PutUvarint(ml.uses, uint64(ml.Uses))
-	ml.uses = ml.uses[:n]
-}
-
-type MarkovLinks []*MarkovLink
-
-func (mls MarkovLinks) Strings() []string {
-	s := make([]string, len(mls))
-	for i, ml := range mls {
-		s[i] = ml.String()
-	}
-	return s
-}
 
 type Collection struct {
 	// Markov is a bit special. Because of the quantity of data
@@ -94,37 +44,32 @@ func (mc *Collection) incUses(source, dest, tag string) {
 		// Skip URLs entirely.
 		return
 	}
-	link := New(source, dest, tag)
 	err := mc.bolt.Update(func(tx *bbolt.Tx) error {
-		return mc.putUsesTx(tx, link)
+		mb := tx.Bucket([]byte(COLLECTION))
+		tb, err := mb.CreateBucketIfNotExists([]byte(tag))
+		if err != nil {
+			return err
+		}
+		sb, err := tb.CreateBucketIfNotExists([]byte(source))
+		if err != nil {
+			return err
+		}
+
+		v := sb.Get([]byte(dest))
+		var uses uint64
+		if v != nil {
+			uses, _ = binary.Uvarint(v)
+		}
+		uses++
+
+		newV := make([]byte, binary.MaxVarintLen64)
+		n := binary.PutUvarint(newV, uses)
+		return sb.Put([]byte(dest), newV[:n])
 	})
 	if err != nil {
-		logging.Error("Failed to insert Bolt MarkovLink %s(%q->%q): %v",
+		logging.Error("Failed to increment uses for %s(%q->%q): %v",
 			tag, source, dest, err)
 	}
-}
-
-func (mc *Collection) putUsesTx(tx *bbolt.Tx, link *MarkovLink) error {
-	mb := tx.Bucket([]byte(COLLECTION))
-	tb, err := mb.CreateBucketIfNotExists([]byte(link.Tag))
-	if err != nil {
-		return err
-	}
-	sb, err := tb.CreateBucketIfNotExists([]byte(link.Source))
-	if err != nil {
-		return err
-	}
-
-	// Read current value if it exists.
-	v := sb.Get([]byte(link.Dest))
-	if v != nil {
-		uses, _ := binary.Uvarint(v)
-		link.Uses = int(uses)
-	}
-
-	link.Uses++
-	link.encodeUses()
-	return sb.Put([]byte(link.Dest), link.uses)
 }
 
 func (mc *Collection) AddAction(action, tag string) {
