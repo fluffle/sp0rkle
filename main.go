@@ -22,6 +22,7 @@ import (
 	"github.com/fluffle/sp0rkle/drivers/calcdriver"
 	"github.com/fluffle/sp0rkle/drivers/decisiondriver"
 	"github.com/fluffle/sp0rkle/drivers/factdriver"
+	"github.com/fluffle/sp0rkle/drivers/flightdriver"
 	"github.com/fluffle/sp0rkle/drivers/karmadriver"
 	"github.com/fluffle/sp0rkle/drivers/markovdriver"
 	"github.com/fluffle/sp0rkle/drivers/netdriver"
@@ -65,6 +66,7 @@ func main() {
 	// Add drivers
 	calcdriver.Init()
 	decisiondriver.Init()
+	flightdriver.Init()
 	factdriver.Init()
 	karmadriver.Init()
 	markovdriver.Init()
