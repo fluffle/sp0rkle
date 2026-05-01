@@ -1,4 +1,4 @@
-FROM golang:1.22 as build-env
+FROM golang:1.25 as build-env
 
 WORKDIR /go/src/github.com/fluffle/sp0rkle
 ADD . /go/src/github.com/fluffle/sp0rkle
