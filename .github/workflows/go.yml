@@ -21,10 +21,21 @@ jobs:
       run: go build -v ./...
 
     - name: Test
-      run: go test -v -race -coverprofile=coverage.txt -covermode=atomic ./...
+      run: |
+        go install github.com/jstemmer/go-junit-report/v2@latest
+        go test -v -race -coverprofile=coverage.txt -covermode=atomic ./... 2>&1 | go-junit-report -set-exit-code > junit.xml
 
     - name: Upload coverage reports to Codecov
+      if: ${{ !cancelled() }}
       uses: codecov/codecov-action@v6
       with:
         token: ${{ secrets.CODECOV_TOKEN }}
         files: ./coverage.txt
+
+    - name: Upload test results to Codecov
+      if: ${{ !cancelled() }}
+      uses: codecov/codecov-action@v6
+      with:
+        token: ${{ secrets.CODECOV_TOKEN }}
+        files: ./junit.xml
+        report-type: test_results
