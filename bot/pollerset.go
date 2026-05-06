@@ -40,7 +40,10 @@ func newPollerSet() *pollerSet {
 func (ps *pollerSet) Add(p Poller) {
 	ps.Lock()
 	defer ps.Unlock()
-	ps.set[p] = ps.startOne(p)
+	quit := ps.startOne(p)
+	if quit != nil {
+		ps.set[p] = quit
+	}
 	logging.Debug("Add: # conns: %d, # pollers: %d", len(ps.conns), len(ps.set))
 }
 
@@ -62,7 +65,9 @@ func (ps *pollerSet) Handle(conn *client.Conn, line *client.Line) {
 		logging.Debug("Disc: # conns: %d, # pollers: %d", len(ps.conns), len(ps.set))
 		if len(ps.conns) == 0 {
 			for p, quit := range ps.set {
-				close(quit)
+				if quit != nil {
+					close(quit)
+				}
 				ps.set[p] = nil
 			}
 		}
