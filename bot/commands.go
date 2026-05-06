@@ -9,19 +9,21 @@ import (
 const ignoreNs = "ignore"
 
 func ignore(ctx *Context) {
-	nick := strings.ToLower(strings.Fields(ctx.Text())[0])
-	if nick == "" {
+	fields := strings.Fields(ctx.Text())
+	if len(fields) == 0 {
 		return
 	}
+	nick := strings.ToLower(fields[0])
 	conf.Ns(ignoreNs).String(nick, "ignore")
 	ctx.ReplyN("I'll ignore '%s'.", nick)
 }
 
 func unignore(ctx *Context) {
-	nick := strings.ToLower(strings.Fields(ctx.Text())[0])
-	if nick == "" {
+	fields := strings.Fields(ctx.Text())
+	if len(fields) == 0 {
 		return
 	}
+	nick := strings.ToLower(fields[0])
 	conf.Ns(ignoreNs).Delete(nick)
 	ctx.ReplyN("No longer ignoring '%s'.", nick)
 }
