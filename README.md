@@ -90,5 +90,28 @@ Getting started, from scratch:
 	# ... then send me a pull request on github :-)
 	```
 
-	Here's a more in depth description of a good workflow to use with github:
-	https://gist.github.com/Chaser324/ce0505fbed06b947d962
+Here's a more in depth description of a good workflow to use with github:
+https://gist.github.com/Chaser324/ce0505fbed06b947d962
+
+## Testing
+
+Integration tests live in `regtest/` subdirectories. Run them with:
+
+```bash
+REGTEST_SERVER=irc.example.com:6667 go test ./bot/regtest/ -v
+REGTEST_SERVER=irc.example.com:6667 go test ./drivers/seendriver/regtest/ -v
+```
+
+Set `REGTEST_BINARY` to use a pre-built binary instead of building one.
+
+Use `-run` to select specific tests:
+
+```bash
+REGTEST_SERVER=irc.example.com:6667 go test ./drivers/seendriver/regtest/ -run TestCommands/seen
+```
+
+Integration tests are gated by the `integration` build tag. Run them with:
+
+```bash
+go test -tags=integration ./regtest/
+```
