@@ -33,6 +33,9 @@ func recordPrivmsg(ctx *bot.Context) {
 	if !ctx.Public() {
 		return
 	}
+	if smokeRx.MatchString(ctx.Text()) {
+		return
+	}
 	sn := seenNickFromLine(ctx)
 	sn.Text = ctx.Text()
 	if err := sc.Put(sn); err != nil {
