@@ -8,3 +8,6 @@ sp0rkle
 sp0rkle.boltdb
 backup/
 coverage.txt
+
+ergo
+ergo-*.tar.gz

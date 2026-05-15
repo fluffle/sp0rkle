@@ -3,34 +3,30 @@
 package regtest
 
 import (
-	"os"
+	"context"
 	"testing"
-	"time"
 )
 
 func TestFullLifecycle(t *testing.T) {
-	if os.Getenv("REGTEST_SERVER") == "" {
-		t.Skip("REGTEST_SERVER not set, skipping integration test")
-	}
-
-	h, err := Start()
+	ctx := context.Background()
+	h, err := Start(ctx)
 	if err != nil {
 		t.Fatalf("Start failed: %v", err)
 	}
 	defer func() {
-		if err := Stop(); err != nil {
+		if err := h.Stop(); err != nil {
 			t.Logf("Stop error: %v", err)
 		}
 	}()
 
 	// Verify the harness has a valid channel.
-	if h.Channel() == "" {
-		t.Error("Channel() returned empty string")
+	if h.Channel == "" {
+		t.Error("Channel is empty")
 	}
 
-	// Verify SendAndExpect times out gracefully (no bot registered).
-	_, err = h.SendAndExpect("test", Exact("test"), 100*time.Millisecond)
-	if err == nil {
-		t.Error("SendAndExpect should timeout with no bot responding")
+	// Verify SendAndExpect can roundtrip a help to the bot
+	_, err = h.CommandAndExpect("help", h.Contains("github.com/fluffle/sp0rkle/wiki"))
+	if err != nil {
+		t.Errorf("SendAndExpect err = %v, want nil", err)
 	}
 }

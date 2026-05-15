@@ -1,7 +1,7 @@
 module github.com/fluffle/sp0rkle
 
 require (
-	github.com/fluffle/goirc v1.3.4
+	github.com/fluffle/goirc v1.3.5
 	github.com/fluffle/golog v1.0.2
 	github.com/google/go-github v17.0.0+incompatible
 	go.etcd.io/bbolt v1.4.3

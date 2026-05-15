@@ -4,6 +4,8 @@ github.com/emersion/go-sasl v0.0.0-20220912192320-0145f2c60ead h1:fI1Jck0vUrXT8b
 github.com/emersion/go-sasl v0.0.0-20220912192320-0145f2c60ead/go.mod h1:iL2twTeMvZnrg54ZoPDNfJaJaqy0xIQFuBdrLsmspwQ=
 github.com/fluffle/goirc v1.3.4 h1:WqIuoQpwAxtjzeDVj0jmWnjbJmaPUSlt6CrTUaQYI94=
 github.com/fluffle/goirc v1.3.4/go.mod h1:u5jzFHvmESPQ6pzcT/OVSKKd/WOh5pKDM28XJn15cO0=
+github.com/fluffle/goirc v1.3.5 h1:MKs1hzIwKfquqsCYk/U1Z7OFlQzgTJss/2ZlWckJXgM=
+github.com/fluffle/goirc v1.3.5/go.mod h1:u5jzFHvmESPQ6pzcT/OVSKKd/WOh5pKDM28XJn15cO0=
 github.com/fluffle/golog v1.0.2 h1:Ktg5k4A+KqWLKS8OlkSU46bZ6QjdDErYjMEd7Rn2uWY=
 github.com/fluffle/golog v1.0.2/go.mod h1:TKZoUh/MNb9worAhWP158Ol0TXc5EfhMJK/qB/7j+Ko=
 github.com/golang/mock v1.1.1/go.mod h1:oTYuIxOrZwtPieC+H1uAHpcLFnEyAGVDL/k47Jfbm0A=

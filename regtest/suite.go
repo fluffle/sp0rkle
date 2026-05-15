@@ -1,223 +1,287 @@
 package regtest
 
 import (
+	"context"
 	"crypto/rand"
 	"encoding/hex"
 	"fmt"
 	"os"
-	"os/exec"
+	"path/filepath"
+	"strings"
 	"sync"
+	"testing"
 	"time"
 
 	"github.com/fluffle/goirc/client"
+	"github.com/fluffle/goirc/logging"
 )
 
+type testLogger struct {
+	t *testing.T
+}
+
+func (tl testLogger) Debug(fmt string, args ...any) {
+	tl.t.Logf(fmt, args...)
+}
+
+func (tl testLogger) Info(fmt string, args ...any) {
+	tl.t.Logf(fmt, args...)
+}
+
+func (tl testLogger) Warn(fmt string, args ...any) {
+	tl.t.Logf(fmt, args...)
+}
+
+func (tl testLogger) Error(fmt string, args ...any) {
+	tl.t.Logf(fmt, args...)
+}
+
+func EnableClientLogging(t *testing.T) {
+	logging.SetLogger(testLogger{t})
+}
+
+func DisableClientLogging() {
+	logging.SetLogger(nil)
+}
+
 var (
-	mu          sync.Mutex
-	globalHarness *Harness
-	globalBot     *BotProcess
+	mu      sync.Mutex
+	running bool
 )
 
 // Start connects the harness IRC client to the server, forks the bot,
 // joins the test channel, and self-validates.
-func Start() (*Harness, error) {
+func Start(ctx context.Context) (*Harness, error) {
 	mu.Lock()
 	defer mu.Unlock()
 
-	if globalHarness != nil || globalBot != nil {
+	if running {
 		return nil, fmt.Errorf("regtest: already started; call Stop() first")
 	}
 
-	server := os.Getenv("REGTEST_SERVER")
-	if server == "" {
-		return nil, fmt.Errorf("REGTEST_SERVER environment variable not set")
-	}
-
-	channel := generateChannel()
-
-	cfg := client.NewConfig("regtest-bot", "regtest", "regtest harness")
-	cfg.Server = server
-	conn := client.Client(cfg)
-
-	if err := conn.Connect(); err != nil {
-		return nil, fmt.Errorf("harness connect: %w", err)
-	}
-
-	h := &Harness{Conn: conn, channel: channel}
-	h.SetBotNick("sp0rklf-test")
-
-	botPath, err := findBotBinary()
+	botBinary, err := getBinaryPath("REGTEST_BOT")
 	if err != nil {
-		conn.Quit("regtest: find bot binary failed")
-		conn.Close()
-		return nil, fmt.Errorf("find bot binary: %w", err)
+		return nil, err
+	}
+	ircdBinary, err := getBinaryPath("REGTEST_IRCD")
+	if err != nil {
+		return nil, err
 	}
 
 	tmpDir, err := os.MkdirTemp("", "sp0rkle-test-*")
 	if err != nil {
-		conn.Quit("regtest: temp dir failed")
-		conn.Close()
 		return nil, fmt.Errorf("temp dir: %w", err)
 	}
 
-	bot := &BotProcess{
-		path:    botPath,
-		args:    []string{"--servers=" + server, "--channels=" + channel, "--boltdb=" + tmpDir + "/sp0rkle.boltdb", "--backup_dir=", "--nick=sp0rklf-test"},
+	h := &Harness{
+		Channel: generateChannel(),
+		BotNick: generateNick(),
 		tempDir: tmpDir,
 	}
 
-	if err := bot.Start(); err != nil {
-		bot.Stop()
-		conn.Quit("regtest: bot start failed")
-		conn.Close()
-		return nil, fmt.Errorf("bot start: %w", err)
+	// First we must spin up the ergo ircd
+	localAddr, err := freeLocalAddr()
+	if err != nil {
+		h.cleanup()
+		return nil, fmt.Errorf("find free port: %w", err)
+	}
+	conf, err := templateConfig(tmpDir, localAddr)
+	if err != nil {
+		h.cleanup()
+		return nil, fmt.Errorf("template ircd conf: %w", err)
 	}
 
-	h.globalBot = bot
-	h.globalTmpDir = tmpDir
+	h.ircd = Exec(ircdBinary, "run", "--conf=" + conf)
+	// Only way to be sure ergo is booted and running is to
+	// watch what it prints to stderr and wait for a log line...
+	watcher := NewWriteWatcher(os.Stdout,
+		fmt.Sprintf("now listening on %s,", localAddr))
+	h.ircd.Stderr = watcher
 
-	globalHarness = h
-	globalBot = bot
+	if err := h.ircd.Start(ctx); err != nil {
+		h.cleanup()
+		return nil, fmt.Errorf("ircd start: %w", err)
+	}
+	select {
+		case <-watcher.Found:
+		case <-time.After(5*time.Second):
+		h.cleanup()
+		return nil, fmt.Errorf("harness did not see ergo listening in 5s")
+	}
 
-	conn.Join(channel)
+	cfg := client.NewConfig("test0rkle", "regtest", "kicking sp0rkle in the test0rkles")
+	cfg.Server = localAddr
+	// disable flood protections cos they mess with timings
+	cfg.Flood = true
+	conn := client.Client(cfg)
+	h.Conn = conn
+	connected := make(chan struct{})
+	h.HandleFunc(client.CONNECTED, func(c *client.Conn, l *client.Line) {
+		c.Join(h.Channel)
+		close(connected)
+	})
 
-	if err := waitForBotJoin(h, "sp0rklf-test", 5*time.Second); err != nil {
-		cleanup(h, bot, tmpDir)
-		return nil, fmt.Errorf("wait for bot join: %w", err)
+	if err := conn.ConnectContext(ctx); err != nil {
+		h.cleanup()
+		return nil, fmt.Errorf("harness connect: %w", err)
+	}
+	// wait here until our client has definitely connected, so we are guaranteed
+	// to be in the channel by the time the bot being tested is.
+	select {
+	case <-connected:
+	case <-time.After(5 * time.Second):
+		h.cleanup()
+		return nil, fmt.Errorf("harness did not receive connected event in 5s")
 	}
 
 	if err := h.selfValidate(); err != nil {
-		cleanup(h, bot, tmpDir)
+		h.cleanup()
 		return nil, fmt.Errorf("self-validate: %w", err)
 	}
 
+	h.sp0rkle = Exec(
+		botBinary,
+		"--servers=" + localAddr,
+		"--channels=" + h.Channel,
+		"--boltdb=" + tmpDir + "/sp0rkle.boltdb",
+		"--backup_dir=" + tmpDir,
+		"--nick=" + h.BotNick,
+	)
+
+	if err := h.sp0rkle.Start(ctx); err != nil {
+		h.cleanup()
+		return nil, fmt.Errorf("bot start: %w", err)
+	}
+
+	if err := h.waitForBotJoin(); err != nil {
+		h.cleanup()
+		return nil, fmt.Errorf("wait for bot join: %w", err)
+	}
+
+	running = true
 	return h, nil
 }
 
 // Stop disconnects the harness IRC client and kills the bot process.
-func Stop() error {
+func (h *Harness) Stop() error {
 	mu.Lock()
 	defer mu.Unlock()
-
-	var retErr error
-
-	if globalBot != nil {
-		if err := globalBot.Stop(); err != nil {
-			retErr = fmt.Errorf("bot stop: %w", err)
-		}
-		globalBot = nil
-	}
-
-	if globalHarness != nil {
-		h := globalHarness
-		globalHarness = nil
-
-		h.Quit("regtest stop")
-		if err := h.Conn.Close(); err != nil {
-			if retErr != nil {
-				retErr = fmt.Errorf("%w; close: %w", retErr, err)
-			} else {
-				retErr = fmt.Errorf("close: %w", err)
-			}
-		}
-	}
-
-	return retErr
+	running = false
+	return h.cleanup()
 }
 
-// cleanup tears down all resources created by Start().
-func cleanup(h *Harness, bot *BotProcess, tmpDir string) {
-	if bot != nil {
-		bot.Stop()
+
+// cleanup tears down all resources created by Start(), in reverse
+// order to their creation.
+func (h *Harness) cleanup() error {
+	var errs []string
+
+	// Close down bot process if it is running.
+	if h.sp0rkle != nil {
+		// Don't return straight away, cos we have to clean up properly.
+		if err := h.sp0rkle.Stop(); err != nil {
+			errs = append(errs, err.Error())
+		}
+		h.sp0rkle = nil
 	}
-	if h != nil {
+
+	// Safely disconnect from IRC if connected.
+	if h.Connected() {
+		disconnected := make(chan struct{})
+		h.HandleFunc(client.DISCONNECTED, func(c *client.Conn, l *client.Line) {
+			close(disconnected)
+		})
 		h.Quit("regtest: cleanup")
-		h.Conn.Close()
+		<-disconnected
+		if err := h.Conn.Close(); err != nil {
+			errs = append(errs, err.Error())
+		}
+		h.Conn = nil
 	}
-	if tmpDir != "" {
-		os.RemoveAll(tmpDir)
+
+	// Close down ircd process if it is running.
+	if h.ircd != nil {
+		// Don't return straight away, cos we have to clean up properly.
+		if err := h.ircd.Stop(); err != nil {
+			errs = append(errs, err.Error())
+		}
+		h.ircd = nil
 	}
+
+	// Clean up temp dir if we have one.
+	if h.tempDir != "" {
+		if err := os.RemoveAll(h.tempDir); err != nil {
+			errs = append(errs, err.Error())
+		}
+		h.tempDir = ""
+	}
+
+	if len(errs) == 0 {
+		return nil
+	}
+
+	return fmt.Errorf("Encountered %d errors during cleanup:\n\t%s",
+		len(errs), strings.Join(errs, "\n\t"))
 }
 
-func generateChannel() string {
+func getBinaryPath(env string) (string, error) {
+	path := os.Getenv(env)
+	if path == "" {
+		return "", fmt.Errorf("%s: environment variable not set", env)
+	}
+	abs, err := filepath.Abs(path)
+	if err != nil {
+		return "", fmt.Errorf("%s: could not get abspath for %q: %w", env, path, err)
+	}
+	stat, err := os.Stat(path)
+	if err != nil {
+		return "", fmt.Errorf("%s: abspath %q not found: %w", env, abs, err)
+	}
+	if !stat.Mode().IsRegular() || (stat.Mode().Perm() & 0500) != 0500 {
+		return "", fmt.Errorf("%s: abspath %q not regular readable executable", env, abs)
+	}
+	return abs, nil
+}
+
+func randSuffix() string {
 	b := make([]byte, 7)
 	if _, err := rand.Read(b); err != nil {
 		panic("regtest: rand.Read failed: " + err.Error())
 	}
-	return "#spt-" + hex.EncodeToString(b)[:7]
+	return hex.EncodeToString(b)[:7]
 }
 
-func findBotBinary() (string, error) {
-	binary := os.Getenv("REGTEST_BINARY")
-	if binary != "" {
-		if _, err := os.Stat(binary); err != nil {
-			return "", fmt.Errorf("REGTEST_BINARY %q not found: %w", binary, err)
-		}
-		return binary, nil
-	}
-	cmd := exec.Command("go", "build", "-o", "sp0rkle-test", ".")
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	if err := cmd.Run(); err != nil {
-		return "", fmt.Errorf("build bot binary: %w", err)
-	}
-	return "./sp0rkle-test", nil
+func generateChannel() string {
+	return "#spt-" + randSuffix()
+	// return "#sp0rklf"
 }
 
-func waitForBotJoin(h *Harness, botNick string, timeout time.Duration) error {
-	resultCh := make(chan *client.Line, 1)
-	var remover client.Remover
-	remover = h.HandleFunc(client.JOIN, func(conn *client.Conn, line *client.Line) {
-		if line.Nick == botNick {
-			remover.Remove()
-			select {
-			case resultCh <- line:
-			default:
-			}
-		}
-	})
-	defer remover.Remove()
+func generateNick() string {
+	return "sp0rkle^" + randSuffix()
+}
 
-	timer := time.NewTimer(timeout)
-	defer timer.Stop()
-
-	select {
-	case <-resultCh:
-		return nil
-	case <-timer.C:
-		return fmt.Errorf("bot did not join %q within %v", h.channel, timeout)
+func (h *Harness) waitForBotJoin() error {
+	match := func(line *client.Line) bool {
+		return line.Nick == h.BotNick
 	}
+	if _, err := h.ExpectEvent(client.JOIN, PatternFunc(match)); err != nil {
+		return fmt.Errorf("bot did not join %q: %v", h.Channel, err)
+	}
+	return nil
 }
 
 func (h *Harness) selfValidate() error {
-	resultCh := make(chan *client.Line, 1)
-
 	myNick := h.Me().Nick
 	if myNick == "" {
 		return fmt.Errorf("self-validate: Me().Nick is empty")
 	}
 
-	var remover client.Remover
-	remover = h.HandleFunc(client.PRIVMSG, func(conn *client.Conn, line *client.Line) {
-		if line.Nick == myNick {
-			remover.Remove()
-			select {
-			case resultCh <- line:
-			default:
-			}
-		}
-	})
-	defer remover.Remove()
-
 	h.Privmsg(myNick, "hello")
-
-	timer := time.NewTimer(2 * time.Second)
-	defer timer.Stop()
-
-	select {
-	case <-resultCh:
-		return nil
-	case <-timer.C:
-		return fmt.Errorf("self-validate: no response to own nick within 2s")
+	match := func(line *client.Line) bool {
+		return line.Nick == myNick && line.Text() == "hello"
 	}
+	if _, err := h.ExpectFunc(match); err != nil {
+		return fmt.Errorf("self-validate PRIVMSG %s: %v", myNick, err)
+	}
+	return nil
 }

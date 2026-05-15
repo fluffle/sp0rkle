@@ -1,9 +1,9 @@
 package regtest
 
 import (
+	"context"
 	"os"
 	"testing"
-	"time"
 
 	"github.com/fluffle/goirc/client"
 )
@@ -32,22 +32,33 @@ func TestChannelUniqueness(t *testing.T) {
 	}
 }
 
-func TestStartRequiresServer(t *testing.T) {
-	old := os.Getenv("REGTEST_SERVER")
-	os.Unsetenv("REGTEST_SERVER")
-	defer os.Setenv("REGTEST_SERVER", old)
+func TestStartRequiresBotBinary(t *testing.T) {
+	old := os.Getenv("REGTEST_BOT")
+	os.Unsetenv("REGTEST_BOT")
+	defer os.Setenv("REGTEST_BOT", old)
 
-	_, err := Start()
+	_, err := Start(context.Background())
 	if err == nil {
-		t.Error("Start without REGTEST_SERVER should error")
+		t.Error("Start without REGTEST_BOT should error")
+	}
+}
+
+func TestStartRequiresIrcdBinary(t *testing.T) {
+	old := os.Getenv("REGTEST_IRCD")
+	os.Unsetenv("REGTEST_IRCD")
+	defer os.Setenv("REGTEST_IRCD", old)
+
+	_, err := Start(context.Background())
+	if err == nil {
+		t.Error("Start without REGTEST_IRCD should error")
 	}
 }
 
 func TestWaitForBotJoinTimeout(t *testing.T) {
 	cfg := client.NewConfig("testbot", "test", "test bot")
 	conn := client.Client(cfg)
-	h := &Harness{Conn: conn, channel: "#test"}
-	err := waitForBotJoin(h, "nonexistent-bot", 50*time.Millisecond)
+	h := &Harness{Conn: conn, Channel: "#test"}
+	err := h.waitForBotJoin()
 	if err == nil {
 		t.Error("waitForBotJoin with no bot should error")
 	}
