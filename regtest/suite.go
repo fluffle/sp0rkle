@@ -38,6 +38,7 @@ func (tl testLogger) Error(fmt string, args ...any) {
 
 func EnableClientLogging(t *testing.T) {
 	logging.SetLogger(testLogger{t})
+	t.Cleanup(DisableClientLogging)
 }
 
 func DisableClientLogging() {

@@ -30,10 +30,6 @@ func TestCommands(t *testing.T) {
 	t.Run("netmask", testNetmask)
 	t.Run("chr", testChr)
 	t.Run("ord", testOrd)
+	t.Run("base", testBase)
+	t.Run("length", testLength)
 }
-
-func testCalc(t *testing.T)    { t.Skip("calc driver test") }
-func testDate(t *testing.T)    { t.Skip("date driver test") }
-func testNetmask(t *testing.T) { t.Skip("netmask driver test") }
-func testChr(t *testing.T)     { t.Skip("chr driver test") }
-func testOrd(t *testing.T)     { t.Skip("ord driver test") }
