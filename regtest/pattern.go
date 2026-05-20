@@ -48,6 +48,14 @@ func (r regexPattern) Match(line *client.Line) bool {
 	return line.Nick == r.nick && r.rx.MatchString(line.Text())
 }
 
+type cmdPattern struct {
+	who, what string
+}
+
+func (c cmdPattern) Match(line *client.Line) bool {
+	return line.Nick == c.who && line.Args[0] == c.what
+}
+
 // Exact returns a Pattern that matches a full response from the bot.
 func (h *Harness) Exact(text string) Pattern {
 	return exactPattern{nick: h.BotNick, text: text}

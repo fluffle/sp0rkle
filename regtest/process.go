@@ -64,6 +64,7 @@ func Exec(path string, args ...string) *Process {
 		Stderr: os.Stderr,
 		path: path,
 		args: args,
+		exit: make(chan error, 1),
 	}
 }
 
@@ -79,6 +80,7 @@ func (p *Process) Start(ctx context.Context) error {
 		return fmt.Errorf("%s: already started", p.path)
 	}
 	cctx, cancel := context.WithCancel(ctx)
+	p.cancel = cancel
 
 	p.cmd = exec.CommandContext(cctx, p.path, p.args...)
 	p.cmd.Stdout = p.Stdout
@@ -89,8 +91,6 @@ func (p *Process) Start(ctx context.Context) error {
 		cancel()
 		return fmt.Errorf("%s: start: %w", p.path, err)
 	}
-	p.cancel = cancel
-	p.exit = make(chan error, 1)
 	go p.wait()
 
 	return nil
@@ -105,7 +105,7 @@ func (p *Process) wait() {
 }
 
 func (p *Process) kill() error {
-	if p.cmd != nil {
+	if p.cmd != nil && p.cmd.Process != nil {
 		p.cmd.Process.Signal(os.Interrupt)
 	}
 	select {

@@ -13,9 +13,9 @@ func testSeen(t *testing.T) {
 }
 
 func testNotSeen(t *testing.T) {
+	w := h.Expect(h.Contains("Haven't seen nonexistentuser before"))
 	h.Privmsg(h.Channel, fmt.Sprintf("%s: seen nonexistentuser", h.BotNick))
-	_, err := h.Expect(h.Contains("Haven't seen nonexistentuser before"))
-	if err != nil {
+	if _, err := w.Wait(); err != nil {
 		t.Errorf("expected 'not seen' response, got: %v", err)
 	}
 }

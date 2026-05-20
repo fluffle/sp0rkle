@@ -166,8 +166,11 @@ func Start(ctx context.Context) (*Harness, error) {
 func (h *Harness) Stop() error {
 	mu.Lock()
 	defer mu.Unlock()
-	running = false
-	return h.cleanup()
+	err := h.cleanup()
+	if err == nil {
+		running = false
+	}
+	return err
 }
 
 
@@ -186,15 +189,20 @@ func (h *Harness) cleanup() error {
 	}
 
 	// Safely disconnect from IRC if connected.
-	if h.Connected() {
-		disconnected := make(chan struct{})
-		h.HandleFunc(client.DISCONNECTED, func(c *client.Conn, l *client.Line) {
-			close(disconnected)
-		})
-		h.Quit("regtest: cleanup")
-		<-disconnected
-		if err := h.Conn.Close(); err != nil {
-			errs = append(errs, err.Error())
+	if h.Conn != nil {
+		if h.Connected() {
+			disconnected := make(chan struct{})
+			h.HandleFunc(client.DISCONNECTED, func(c *client.Conn, l *client.Line) {
+				close(disconnected)
+			})
+			h.Quit("regtest: cleanup")
+			select {
+			case <-disconnected:
+			case <-time.After(5*time.Second):
+			}
+			if err := h.Conn.Close(); err != nil {
+				errs = append(errs, err.Error())
+			}
 		}
 		h.Conn = nil
 	}
@@ -238,7 +246,7 @@ func getBinaryPath(env string) (string, error) {
 		return "", fmt.Errorf("%s: abspath %q not found: %w", env, abs, err)
 	}
 	if !stat.Mode().IsRegular() || (stat.Mode().Perm() & 0500) != 0500 {
-		return "", fmt.Errorf("%s: abspath %q not regular readable executable", env, abs)
+		return "", fmt.Errorf("%s: abspath %q not regular o+rx file", env, abs)
 	}
 	return abs, nil
 }
@@ -253,7 +261,6 @@ func randSuffix() string {
 
 func generateChannel() string {
 	return "#spt-" + randSuffix()
-	// return "#sp0rklf"
 }
 
 func generateNick() string {
@@ -264,7 +271,7 @@ func (h *Harness) waitForBotJoin() error {
 	match := func(line *client.Line) bool {
 		return line.Nick == h.BotNick
 	}
-	if _, err := h.ExpectEvent(client.JOIN, PatternFunc(match)); err != nil {
+	if _, err := h.ExpectEvent(client.JOIN, PatternFunc(match)).Wait(); err != nil {
 		return fmt.Errorf("bot did not join %q: %v", h.Channel, err)
 	}
 	return nil
@@ -276,11 +283,9 @@ func (h *Harness) selfValidate() error {
 		return fmt.Errorf("self-validate: Me().Nick is empty")
 	}
 
+	w := h.Expect(exactPattern{nick: myNick, text: "hello"})
 	h.Privmsg(myNick, "hello")
-	match := func(line *client.Line) bool {
-		return line.Nick == myNick && line.Text() == "hello"
-	}
-	if _, err := h.ExpectFunc(match); err != nil {
+	if _, err := w.Wait(); err != nil {
 		return fmt.Errorf("self-validate PRIVMSG %s: %v", myNick, err)
 	}
 	return nil

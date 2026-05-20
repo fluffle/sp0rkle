@@ -127,52 +127,12 @@ channels:
     registration:
         enabled: false
 
-oper-classes:
-    "server-admin":
-        title: root
-        capabilities:
-            - "kill"         # disconnect user sessions
-            - "ban"          # ban IPs, CIDRs, NUH masks, and suspend accounts (UBAN / DLINE / KLINE)
-            - "nofakelag"    # exempted from "fakelag" restrictions on rate of message sending
-            - "relaymsg"     # use RELAYMSG in any channel (see the relaymsg config block)
-            - "vhosts"       # add and remove vhosts from users
-            - "sajoin"       # join arbitrary channels, including private channels
-            - "samode"       # modify arbitrary channel and user modes
-            - "snomasks"     # subscribe to arbitrary server notice masks
-            - "rehash"       # rehash the server, i.e. reload the config at runtime
-            - "accreg"       # modify arbitrary account registrations
-            - "chanreg"      # modify arbitrary channel registrations
-            - "history"      # modify or delete history messages
-            - "defcon"       # use the DEFCON command (restrict server capabilities)
-            - "massmessage"  # message all users on the server
-            - "metadata"     # modify arbitrary metadata on channels and users
-
-opers:
-    bob:
-        class: "server-admin"
-        hidden: true
-        whois-line: is the server administrator
-        password: "$2a$04$0123456789abcdef0123456789abcdef0123456789abcdef01234"
-
 logging:
     -
         method: stderr
-        # type(s) of logs to keep here. you can use - to exclude those types
-        #
-        # exclusions take precedent over inclusions, so if you exclude a type it will NEVER
-        # be logged, even if you explicitly include it
-        #
-        # useful types include:
-        #   *               everything (usually used with excluding some types below)
-        #   server          server startup, rehash, and shutdown events
-        #   accounts        account registration and authentication
-        #   channels        channel creation and operations
-        #   opers           oper actions, authentication, etc
-        #   services        actions related to NickServ, ChanServ, etc.
-        #   internal        unexpected runtime behavior, including potential bugs
-        #   userinput       raw lines sent by users
-        #   useroutput      raw lines sent to users
-        type: "* -userinput -useroutput"
+        # listeners @ info level is necessary for the harness to
+        # detect server startup by watching STDERR
+        type: "listeners internal"
 
         # one of: debug info warn error
         level: info
@@ -197,7 +157,6 @@ datastore:
 
 languages:
     enabled: false
-
 
 limits:
     nicklen: 32

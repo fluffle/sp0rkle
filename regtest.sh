@@ -1,7 +1,5 @@
 #! /bin/bash
 
-set -x
-
 declare -a TEST=( "./..." )
 if [ -n "$1" ]; then TEST=( "$@" ); fi
 
@@ -47,5 +45,5 @@ if [ ! -f "${REGTEST_IRCD}" ] || ! ergo_bin_check; then
   fi
 fi
 
-# disable parallel testing because it has a sad?
-go test -v -parallel 1 -count 1 -tags integration "${TEST[@]}"
+# -count 1 forces tests to be rerun every time instead of caching results
+go test -v -count 1 -tags integration "${TEST[@]}"
