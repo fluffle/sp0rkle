@@ -25,7 +25,7 @@ func calculate(ctx *bot.Context) {
 	}
 	if num, err := calc.Calc(maths, tm); err == nil {
 		ctx.ReplyN("%s = %g", maths, num)
-		tm[nick] = num
+		results[nick] = num
 	} else {
 		ctx.ReplyN("%s error while parsing %s", err, maths)
 	}
