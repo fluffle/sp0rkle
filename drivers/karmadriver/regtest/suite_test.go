@@ -28,4 +28,10 @@ func TestCommands(t *testing.T) {
 	t.Run("karma", testKarma)
 }
 
-func testKarma(t *testing.T) { t.Skip("karma driver test") }
+func TestHandlers(t *testing.T) {
+	t.Run("record_privmsg", testRecordPrivmsg)
+	t.Run("record_action", testRecordAction)
+	t.Run("record_multiple", testRecordMultiple)
+	t.Run("record_bracketed", testRecordBracketed)
+	t.Run("record_nothing", testRecordNothing)
+}

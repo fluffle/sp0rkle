@@ -259,7 +259,6 @@ func makeReplacers() []replacer {
 			from: regexp.MustCompile(`(?i)\b`+src[0]+`\b`),
 			to: src[1],
 		}
-		fmt.Println(rep[i].from, rep[i].to)
 	}
 	return rep
 }
