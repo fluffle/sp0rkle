@@ -74,7 +74,7 @@ func Init() *Collection {
 
 func (kc *Collection) KarmaFor(sub string) *Karma {
 	res := &Karma{Key: strings.ToLower(sub)}
-	if err := kc.Get(res.K(), res); err == nil {
+	if err := kc.Get(res.K(), res); err == nil && res.Subject != "" {
 		return res
 	}
 	return nil
