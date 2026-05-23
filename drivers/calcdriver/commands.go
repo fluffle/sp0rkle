@@ -132,7 +132,16 @@ func chr(ctx *bot.Context) {
 		ctx.ReplyN("Couldn't parse %s as an integer: %s", chr, err)
 		return
 	}
-	ctx.ReplyN("chr(%s) is %c, %U, '%s'", chr, i, i, utf8repr(rune(i)))
+	if i < 0 {
+		ctx.ReplyN("Don't be so negative.")
+		return
+	}
+	str := fmt.Sprintf("%c", i)
+	if i < 0x20 {
+		// Quote non-printable characters
+		str = fmt.Sprintf("%q", str)
+	}
+	ctx.ReplyN("chr(%s) is %s, %U, '%s'", chr, str, i, utf8repr(rune(i)))
 }
 
 func ord(ctx *bot.Context) {
@@ -182,7 +191,10 @@ func convertBase(ctx *bot.Context) {
 }
 
 func length(ctx *bot.Context) {
+	if len(strings.TrimSpace(ctx.Text())) == 0 {
+		ctx.ReplyN("'' is still longer than your penis, innit.")
+		return
+	}
 	ctx.ReplyN("'%s' is %d characters long",
 		ctx.Text(), len(ctx.Text()))
-
 }
