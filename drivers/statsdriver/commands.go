@@ -15,14 +15,16 @@ func statsCmd(ctx *bot.Context) {
 	ns := sc.StatsFor(n, ctx.Target())
 	if ns != nil {
 		ctx.ReplyN("%s", ns)
+	} else {
+		ctx.ReplyN("I've not seen %q before, sorry.", n)
 	}
 }
 
 func topten(ctx *bot.Context) {
 	top := sc.TopTen(ctx.Target())
-	s := make([]string, 0, 10)
+	s := make([]string, len(top))
 	for i, n := range top {
-		s = append(s, fmt.Sprintf("#%d: %s - %d", i+1, n.Nick, n.Lines))
+		s[i] = fmt.Sprintf("#%d: %s - %d", i+1, n.Nick, n.Lines)
 	}
 	ctx.Reply("%s", strings.Join(s, ", "))
 }
