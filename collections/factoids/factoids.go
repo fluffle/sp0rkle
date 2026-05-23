@@ -166,7 +166,7 @@ func (fc *Collection) GetCount(key string) int {
 
 func (fc *Collection) GetById(id bson.ObjectId) *Factoid {
 	res := &Factoid{Id_: id}
-	if err := fc.Get(res.byId(), res); err != nil {
+	if err := fc.Get(res.byId(), res); err != nil || res.Key == "" {
 		logging.Warn("Factoid GetById failed: %v", err)
 		return nil
 	}

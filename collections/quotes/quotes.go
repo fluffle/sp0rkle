@@ -63,10 +63,10 @@ func Init() *Collection {
 
 func (qc *Collection) GetByQID(qid int) *Quote {
 	res := &Quote{QID: qid}
-	if err := qc.Get(res.byQID(), res); err == nil {
-		return res
+	if err := qc.Get(res.byQID(), res); err != nil || res.Quote == "" {
+		return nil
 	}
-	return nil
+	return res
 }
 
 func (qc *Collection) NewQID() (int, error) {

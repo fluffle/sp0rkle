@@ -102,10 +102,10 @@ func Init() *Collection {
 
 func (sc *Collection) StatsFor(nick, ch string) *NickStat {
 	res := NewStat(bot.Nick(nick), bot.Chan(ch))
-	if err := sc.Get(res.byKey(), res); err == nil {
-		return res
+	if err := sc.Get(res.byKey(), res); err != nil || res.Lines == 0 {
+		return nil
 	}
-	return nil
+	return res
 }
 
 func (sc *Collection) TopTen(ch string) []*NickStat {
