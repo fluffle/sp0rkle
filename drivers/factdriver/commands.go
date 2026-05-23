@@ -69,11 +69,34 @@ func extractRx(l *util.Lexer, delim rune) string {
 		ret += l.Find(delim)
 		for i = len(ret) - 1; i >= 0 && ret[i] == '\\'; i-- {
 		}
-		if l.Peek() == 0 || (len(ret)-i)%2 == 1 {
+		if l.EOF() || (len(ret)-i)%2 == 1 {
 			// Even number of backslashes at end of string
 			// => delimiter isn't escaped. (Or we're at EOF).
 			break
 		}
+		ret += l.Next()
+	}
+	return unescapeRx(ret)
+}
+
+func unescapeRx(rx string) string {
+	if !strings.Contains(rx, `\`) {
+		return rx
+	}
+	ret := ""
+	l := &util.Lexer{Input: rx}
+	for {
+		ret += l.Find('\\')
+		// Skip \; exit at EOS
+		if l.Next() != `\` {
+			break
+		}
+		if l.EOF() {
+			// Preserve \ at end of string
+			ret += `\`
+			break
+		}
+		// otherwise append escaped char and keep scanning
 		ret += l.Next()
 	}
 	return ret
