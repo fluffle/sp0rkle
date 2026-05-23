@@ -10,11 +10,18 @@ import (
 type Lexer struct {
 	Input             string
 	start, pos, width int
+	eof               bool
 }
+
+// EOF() returns true if the lexer hit the end of the string while operating.
+func (l *Lexer) EOF() bool { return l.eof }
 
 // Pos() sets or returns the current position of the lexer in the string.
 func (l *Lexer) Pos(pos ...int) int {
-	if len(pos) > 0 {
+	if len(pos) > 0 && pos[0] < len(l.Input) {
+		if l.eof {
+			l.eof = false
+		}
 		l.pos = pos[0]
 	}
 	return l.pos
@@ -24,7 +31,7 @@ func (l *Lexer) Pos(pos ...int) int {
 // It does not move input.pos; repeated peek()s will return the same rune.
 func (l *Lexer) Peek() (r rune) {
 	if l.pos >= len(l.Input) {
-		l.width = 0
+		l.eof = true
 		return 0
 	}
 	r, l.width = utf8.DecodeRuneInString(l.Input[l.pos:])
@@ -51,7 +58,7 @@ func (l *Lexer) Next() string {
 func (l *Lexer) Scan(f func(rune) bool) string {
 	l.start = l.pos
 	for f(l.Peek()) {
-		if l.width == 0 {
+		if l.eof || l.width == 0 {
 			break
 		}
 		l.pos += l.width
@@ -65,7 +72,7 @@ func (l *Lexer) Scan(f func(rune) bool) string {
 func (l *Lexer) Not(f func(rune) bool) string {
 	l.start = l.pos
 	for !f(l.Peek()) {
-		if l.width == 0 {
+		if l.eof || l.width == 0 {
 			break
 		}
 		l.pos += l.width
@@ -86,6 +93,7 @@ func (l *Lexer) Find(r rune) string {
 
 // rewind() undoes the last next() or scan() by resetting lexer.pos.
 func (l *Lexer) Rewind() {
+	l.eof = false
 	l.pos = l.start
 }
 
