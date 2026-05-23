@@ -25,9 +25,30 @@ func TestMain(m *testing.M) {
 }
 
 func TestCommands(t *testing.T) {
-	t.Run("markov", testMarkov)
+	t.Run("markov_me", testMarkovMe)
+	t.Run("dont_markov_me", testDontMarkovMe)
+	t.Run("markov_nick", testMarkovNick)
 	t.Run("insult", testInsult)
+	t.Run("learn", testLearn)
 }
 
-func testMarkov(t *testing.T) { t.Skip("markov driver test") }
-func testInsult(t *testing.T) { t.Skip("insult driver test") }
+func TestHandlers(t *testing.T) {
+	t.Run("record_markov_privmsg", testRecordMarkovPrivmsg)
+	t.Run("record_markov_action", testRecordMarkovAction)
+	t.Run("record_markov_not_enabled", testRecordMarkovNotEnabled)
+	t.Run("record_markov_addressed", testRecordMarkovAddressed)
+}
+
+func mustEnable(t *testing.T) {
+	_, err := h.CommandAndExpect("markov me", h.Contains("I'll markov you"))
+	if err != nil {
+		t.Fatalf("failed to enable markov: %v", err)
+	}
+}
+
+func mustDisable(t *testing.T) {
+	_, err := h.CommandAndExpect("don't markov me", h.Contains("Sure, bro, I'll stop"))
+	if err != nil {
+		t.Fatalf("expected disable response, got: %v", err)
+	}
+}

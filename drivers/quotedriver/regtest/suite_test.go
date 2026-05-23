@@ -26,8 +26,14 @@ func TestMain(m *testing.M) {
 
 func TestCommands(t *testing.T) {
 	t.Run("qadd", testQadd)
+	t.Run("quote_add", testQuoteAdd)
+	t.Run("add_quote", testAddQuote)
 	t.Run("qdel", testQdel)
+	t.Run("quote_del", testQuoteDel)
+	t.Run("del_quote", testDelQuote)
+	t.Run("del_invalid_id", testDelInvalidID)
+	t.Run("del_nonexistent", testDelNonexistent)
+	t.Run("fetch", testFetch)
+	t.Run("lookup", testLookup)
+	t.Run("lookup_no_match", testLookupNoMatch)
 }
-
-func testQadd(t *testing.T) { t.Skip("qadd driver test") }
-func testQdel(t *testing.T) { t.Skip("qdel driver test") }

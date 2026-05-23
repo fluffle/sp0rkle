@@ -25,11 +25,16 @@ func TestMain(m *testing.M) {
 }
 
 func TestCommands(t *testing.T) {
-	t.Run("lines", testLines)
-	t.Run("stats", testStats)
+	t.Run("lines_self", testLinesSelf)
+	t.Run("lines_other", testLinesOther)
+	t.Run("lines_unknown", testLinesUnknown)
+	t.Run("stats_alias", testStatsAlias)
 	t.Run("topten", testTopten)
+	t.Run("top10_alias", testTop10Alias)
 }
 
-func testLines(t *testing.T) { t.Skip("lines driver test") }
-func testStats(t *testing.T) { t.Skip("stats driver test") }
-func testTopten(t *testing.T) { t.Skip("topten driver test") }
+func TestHandlers(t *testing.T) {
+	t.Run("record_privmsg", testRecordPrivmsg)
+	t.Run("record_action", testRecordAction)
+	t.Run("record_multiple", testRecordMultiple)
+}

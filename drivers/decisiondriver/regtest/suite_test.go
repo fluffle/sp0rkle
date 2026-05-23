@@ -29,7 +29,3 @@ func TestCommands(t *testing.T) {
 	t.Run("decide", testDecide)
 	t.Run("choose", testChoose)
 }
-
-func testRand(t *testing.T)    { t.Skip("rand driver test") }
-func testDecide(t *testing.T)  { t.Skip("decide driver test") }
-func testChoose(t *testing.T)  { t.Skip("choose driver test") }
