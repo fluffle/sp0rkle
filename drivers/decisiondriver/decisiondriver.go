@@ -59,6 +59,11 @@ func randomFloatAsString(val string) string {
 }
 
 func splitDelimitedString(val string) ([]string, error) {
+	// return nil slice if there's nothing to split.
+	if strings.TrimSpace(val) == "" {
+		return nil, nil
+	}
+
 	// We accept three different delimiter types in the input string, and we use
 	// the following heuristics to determine what type of parsing style to use.
 
