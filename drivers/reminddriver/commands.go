@@ -9,6 +9,7 @@ import (
 	"github.com/fluffle/sp0rkle/bot"
 	"github.com/fluffle/sp0rkle/collections/conf"
 	"github.com/fluffle/sp0rkle/collections/reminders"
+	"github.com/fluffle/sp0rkle/util"
 	"github.com/fluffle/sp0rkle/util/datetime"
 	"github.com/fluffle/sp0rkle/util/push"
 	"github.com/fluffle/sp0rkle/util/bson"
@@ -55,12 +56,17 @@ func list(ctx *bot.Context) {
 	listed[ctx.Nick] = list
 }
 
+
 // remind
 func set(ctx *bot.Context) {
+	if strings.TrimSpace(ctx.Text()) == "" {
+		ctx.ReplyN("... forget something?")
+		return
+	}
 	// s == <target> <reminder> in|at|on <time>
 	s := strings.Fields(ctx.Text())
 	if len(s) < 4 {
-		ctx.ReplyN("You asked me to remind %s.", ctx.Text())
+		ctx.ReplyN("You asked me to remind %s.", util.ToSecondPerson(ctx.Text()))
 		return
 	}
 	// Look up a per-user timezone if one is set.
@@ -84,12 +90,12 @@ func set(ctx *bot.Context) {
 			break
 		}
 	}
-	if reminder == "" {
-		ctx.ReplyN("You asked me to remind %s.", ctx.Text())
-		return
-	}
 	if err != nil {
 		ctx.ReplyN("Couldn't parse time string %q: %v", timestr, err)
+		return
+	}
+	if reminder == "" {
+		ctx.ReplyN("You asked me to remind %s.", util.ToSecondPerson(ctx.Text()))
 		return
 	}
 	now := time.Now()
