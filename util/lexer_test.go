@@ -1,7 +1,6 @@
 package util
 
 import (
-	"strings"
 	"testing"
 	"unicode"
 )
@@ -15,19 +14,23 @@ func TestLexerLowLevelFuncs(t *testing.T) {
 	if l.Peek() != 'T' {
 		t.Errorf("Lexer appears to be starting in the wrong place")
 	}
-	// Advance 5 bytes to ï (\u00ef, 0xC3 0xAf)
+	// Advance 5 bytes to ï (\u00ef, 0xc3 0xaf)
 	l.pos += 5
 	if l.Peek() != 'ï' {
 		t.Errorf("Lexer not decoding two-byte unicode chars")
 	}
 	// Advance another byte to the middle of ï
 	l.pos += 1
-	if l.Peek() != 0 {
-		t.Errorf("Didn't get EOF from bad unicode")
+	if l.Peek() != 0xaf {
+		t.Errorf("Peek couldn't peek into middle of utf8 char.")
 	}
+	// Skip over half-consumed byte.
+	l.Next()
 
 	// Advance to POO, PILE OF!
-	l.pos = strings.Index(l.Input, "💩")
+	if between := l.Scan(func(r rune) bool { return r != '💩' }); between != "ş æ " {
+		t.Errorf("Scan went to shit but got %q", between)
+	}
 	if l.Peek() != '💩' {
 		t.Errorf("Lexer can't decode shit")
 	}
@@ -69,6 +72,14 @@ func TestScanBadEOFHandling(t *testing.T) {
 	})
 	if s != "alongstringwithnospaces" {
 		t.Errorf("Scan failed to handle func with no EOF detection")
+	}
+}
+
+func TestScanBadUnicodeHandling(t *testing.T) {
+	badString := "unicode \x91\x80\x80\x80 sucks"
+	l := &Lexer{Input: badString}
+	if l.Scan(func(r rune) bool { return true }) != badString {
+		t.Errorf("Scan failed to handle string with unicode errors.")
 	}
 }
 

@@ -14,7 +14,11 @@ type Lexer struct {
 }
 
 // EOF() returns true if the lexer hit the end of the string while operating.
-func (l *Lexer) EOF() bool { return l.eof }
+func (l *Lexer) EOF() bool {
+	// Peek to ensure eof bool is up to date.
+	l.Peek()
+	return l.eof
+}
 
 // Pos() sets or returns the current position of the lexer in the string.
 func (l *Lexer) Pos(pos ...int) int {
@@ -29,22 +33,25 @@ func (l *Lexer) Pos(pos ...int) int {
 
 // peek() returns the utf8 rune that is at lexer.pos in the input string.
 // It does not move input.pos; repeated peek()s will return the same rune.
+// Returns the next byte if it encounters an invalid utf8 sequence.
 func (l *Lexer) Peek() (r rune) {
 	if l.pos >= len(l.Input) {
 		l.eof = true
+		l.width = 0
 		return 0
 	}
 	r, l.width = utf8.DecodeRuneInString(l.Input[l.pos:])
 	if r == utf8.RuneError {
-		// Treat bad unicode as EOF.
-		l.width = 0
-		return 0
+		// Invalid unicode, return byte value.
+		l.width = 1
+		return rune(l.Input[l.pos])
 	}
 	return r
 }
 
 // next() returns the utf8 rune (in string form, for convenience elsewhere)
 // that is at lexer.pos in the input string, then advances lexer.pos past it.
+// Returns a single character if the current position is not a valid utf8 char.
 func (l *Lexer) Next() string {
 	l.start = l.pos
 	r := l.Peek()
