@@ -47,21 +47,21 @@ func TestExtractRx(t *testing.T) {
 	tests := []struct {
 		in, out string
 	}{
-		{"", ""},
-		{"/foo", ""},
-		{"foo", "foo"},
-		{"foo/bar", "foo"},
-		{"foo\\/bar", "foo\\/bar"},
-		{"foo\\/bar/", "foo\\/bar"},
-		{"foo\\\\/bar", "foo\\\\"},
-		{"foo\\\\\\/bar", "foo\\\\\\/bar"},
-		{"foo\\", "foo\\"},
-		{"foo\\\\", "foo\\\\"},
-		{"\\/", "\\/"},
-		{"\\//", "\\/"},
-		{"\\\\/", "\\\\"},
-		{"\\\\//", "\\\\"},
-		{"\\/foo", "\\/foo"},
+		{``, ``},
+		{`/foo`, ``},
+		{`foo`, `foo`},
+		{`foo/bar`, `foo`},
+		{`foo\/bar`, `foo/bar`},
+		{`foo\/bar/`, `foo/bar`},
+		{`foo\\/bar`, `foo\`},
+		{`foo\\\/bar`, `foo\/bar`},
+		{`foo\`, `foo\`},
+		{`foo\\`, `foo\`},
+		{`\/`, `/`},
+		{`\//`, `/`},
+		{`\\/`, `\`},
+		{`\\//`, `\`},
+		{`\/foo`, `/foo`},
 	}
 	for i, test := range tests {
 		l := &util.Lexer{Input: test.in}
