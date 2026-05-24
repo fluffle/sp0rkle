@@ -53,7 +53,7 @@ func karmaThings(s string) []kt {
 	l := &util.Lexer{Input: reverse(s)}
 	for {
 		prefix := l.Scan(notPlusMinus)
-		if l.Peek() == 0 {
+		if l.EOF() {
 			break
 		} else if len(prefix) != 0 {
 			// Require a space or end of string after karma identifier.
@@ -75,7 +75,7 @@ func karmaThings(s string) []kt {
 			// TODO: Still doesn't handle nested brackets. Do I care?
 			l.Next()
 			thing.thing = reverse(l.Find('('))
-			if l.Peek() == 0 {
+			if l.EOF() {
 				// Hit EOF while looking for the opening bracket.
 				break
 			}
