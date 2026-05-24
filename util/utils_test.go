@@ -207,3 +207,26 @@ func TestFactPointer(t *testing.T) {
 		}
 	}
 }
+
+func TestToSecondPerson(t *testing.T) {
+	tests := []struct{
+		text string
+		want string
+	}{
+		{"", ""},
+		{"nothing second persony", "nothing second persony"},
+		{"me", "you"},
+		{"My God", "Your God"},
+		{"mah moneh", "your moneh"},
+		{"hey, that's MINE", "hey, that's YOURS"},
+		{"I hurt myself", "you hurt yourself"},
+		{"something I said", "something you said"},
+		{"a We b us c OUR d ours e", "a You b you c YOUR d yours e"},
+		{"something spammy mahjong", "something spammy mahjong"},
+	}
+	for _, test := range tests {
+		if got := ToSecondPerson(test.text); got != test.want {
+			t.Errorf("ToSecondPerson(%q) = %q, want %q", test.text, got, test.want)
+		}
+	}
+}

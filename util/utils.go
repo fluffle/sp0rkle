@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 	"unicode"
+	"unicode/utf8"
 )
 
 func RemovePrefixedNick(text, nick string) (string, bool) {
@@ -208,4 +209,64 @@ func TimeSince(t time.Time) string {
 		return s[:len(s)-1]
 	}
 	return ""
+}
+
+type replacer struct {
+	from *regexp.Regexp
+	to string
+}
+
+func (r replacer) replace(text string) string {
+	return r.from.ReplaceAllStringFunc(text, func(match string) string {
+		// Special case first, ugh.
+		if match == "I" { return r.to }
+
+		l := Lexer{Input: match}
+		upper := l.Scan(unicode.IsUpper)
+		if upper == match {
+			// match is all upper case, return upper case
+			return strings.ToUpper(r.to)
+		}
+		if utf8.RuneCountInString(upper) == 1 {
+			// First char is upper case, return title case
+			return strings.Title(r.to)
+		}
+		// otherwise, return lower case
+		return r.to
+	})
+}
+
+var replacers []replacer = makeReplacers()
+
+func makeReplacers() []replacer {
+	// Very basic, sue me.
+	table := [][]string{
+		{"me", "you"},
+		{"my", "your"},
+		{"mah", "your"},
+		{"mine", "yours"},
+		{"myself", "yourself"},
+		{"i", "you"},
+		{"we", "you"},
+		{"us", "you"},
+		{"our", "your"},
+		{"ours", "yours"},
+	}
+	rep := make([]replacer, len(table))
+
+	for i, src := range table {
+		rep[i] = replacer{
+			from: regexp.MustCompile(`(?i)\b`+src[0]+`\b`),
+			to: src[1],
+		}
+		fmt.Println(rep[i].from, rep[i].to)
+	}
+	return rep
+}
+
+func ToSecondPerson(text string) string {
+	for _, r := range replacers {
+		text = r.replace(text)
+	}
+	return text
 }
