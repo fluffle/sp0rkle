@@ -12,6 +12,8 @@ import (
 func find(ctx *bot.Context) {
 	if u := uc.GetRand(ctx.Text()); u != nil {
 		ctx.ReplyN("%s", u)
+	} else {
+		ctx.ReplyN("No urls matching %q, sorry", ctx.Text())
 	}
 }
 
@@ -54,7 +56,6 @@ func shorten(ctx *bot.Context) {
 	}
 	ctx.ReplyN("%s shortened to %s%s%s",
 		u.Url, bot.HttpHost(), shortenPath, u.Shortened)
-
 }
 
 func cache(ctx *bot.Context) {

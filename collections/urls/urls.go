@@ -65,7 +65,7 @@ func (u *Url) Id() bson.ObjectId {
 }
 
 func (u *Url) Exists() bool {
-	return u != nil && len(u.Id_) > 0
+	return u != nil && len(u.Id_) > 0 && u.Url != ""
 }
 
 func (u *Url) byId() db.K {

@@ -26,6 +26,7 @@ const cachePath string = "/c/"
 const autoShortenLimit int = 120
 const maxCacheSize = 1 << 22 // 4MB
 
+// TODO: this should be in a conf namespace.
 var badUrlStrings = []string{
 	"4chan",
 }
