@@ -9,7 +9,6 @@ import (
 	"math/rand"
 	"net/http"
 	"os"
-	"os/exec"
 	"os/signal"
 	"sync/atomic"
 	"syscall"
@@ -18,6 +17,16 @@ import (
 	"github.com/fluffle/goirc/logging/golog"
 	"github.com/fluffle/golog/logging"
 	"github.com/fluffle/sp0rkle/bot"
+	"github.com/fluffle/sp0rkle/db/conf"
+	"github.com/fluffle/sp0rkle/collections/factoids"
+	"github.com/fluffle/sp0rkle/collections/karma"
+	"github.com/fluffle/sp0rkle/collections/markov"
+	"github.com/fluffle/sp0rkle/collections/pushes"
+	"github.com/fluffle/sp0rkle/collections/quotes"
+	"github.com/fluffle/sp0rkle/collections/reminders"
+	"github.com/fluffle/sp0rkle/collections/seen"
+	"github.com/fluffle/sp0rkle/collections/stats"
+	"github.com/fluffle/sp0rkle/collections/urls"
 	"github.com/fluffle/sp0rkle/db"
 	"github.com/fluffle/sp0rkle/drivers/calcdriver"
 	"github.com/fluffle/sp0rkle/drivers/decisiondriver"
@@ -34,11 +43,13 @@ import (
 )
 
 var (
-	httpPort    = flag.String("http", ":6666", "Port to serve HTTP requests on.")
-	boltDB      = flag.String("boltdb", "sp0rkle.boltdb", "Path to boltdb file.")
-	backupDir   = flag.String("backup_dir", "backup", "Where to write BoltDB backups to.")
-	backupEvery = flag.Duration("backup_every", 24 * time.Hour, "How often to write backups.")
-	timezone    = flag.String("timezone", "Europe/London", "Default timezone for date/time.")
+	httpPort        = flag.String("http", ":6666", "Port to serve HTTP requests on.")
+	boltDB          = flag.String("boltdb", "sp0rkle.boltdb", "Path to boltdb file.")
+	backupDir       = flag.String("backup_dir", "backup", "Where to write BoltDB backups to")
+	backupEvery     = flag.Duration("backup_every", 24*time.Hour, "How often to write backups.")
+	timezone        = flag.String("timezone", "Europe/London", "Default timezone for date/time.")
+	backupOnStartup = flag.Bool("backup_on_startup", true, "Run initial backup on startup.")
+	fsckOnStartup   = flag.Bool("fsck_on_startup", true, "Run Fsck on all collections after registration.")
 )
 
 func main() {
@@ -52,60 +63,62 @@ func main() {
 	// Slightly more random than 1.
 	rand.Seed(time.Now().UnixNano() * int64(os.Getpid()))
 
-	// Initialise bot state
-	ctx := context.Background()
-	bot.Init(ctx)
-
 	// Connect to database
-	if err := db.Bolt.Init(*boltDB, *backupDir, *backupEvery); err != nil {
+	dbInst, err := db.New(*boltDB, *backupDir, *backupEvery)
+	if err != nil {
 		logging.Fatal("Unable to open BoltDB file %q: %v", *boltDB, err)
 	}
-	defer db.Bolt.Close()
+	defer dbInst.Close()
 
-	// Add drivers
-	calcdriver.Init()
-	decisiondriver.Init()
-	factdriver.Init()
-	karmadriver.Init()
-	markovdriver.Init()
-	netdriver.Init()
-	quotedriver.Init()
-	reminddriver.Init()
-	seendriver.Init()
-	statsdriver.Init()
-	urldriver.Init()
+	// Initialize collections
+	karmaC := karma.New(db.RegisterKeyed[*karma.Karma](dbInst))
+	quotesC := quotes.New(db.RegisterIndexed[*quotes.Quote](dbInst))
+	seenC := seen.New(db.RegisterIndexed[*seen.Nick](dbInst))
+	urlsC := urls.New(db.RegisterIndexed[*urls.Url](dbInst))
+	statsC := stats.New(db.RegisterIndexed[*stats.NickStat](dbInst))
+	pushesC := pushes.New(db.RegisterIndexed[*pushes.State](dbInst))
+	factoidsC := factoids.New(db.RegisterIndexed[*factoids.Factoid](dbInst))
+	remindersC := reminders.New(db.RegisterIndexed[*reminders.Reminder](dbInst))
+	markovC := markov.New(dbInst.DB())
+
+	// Wire up the bot's ignore namespace
+	config := conf.New(db.RegisterKeyed[*conf.Entry](dbInst))
+
+	// Initialise bot state
+	ctx := context.Background()
+	botInst := bot.New(ctx, config)
+
+	// Register drivers
+	calcdriver.New(botInst, config)
+	decisiondriver.New(botInst)
+	factdriver.New(botInst, factoidsC)
+	karmadriver.New(botInst, karmaC)
+	markovdriver.New(botInst, markovC, config)
+	netdriver.New(botInst, remindersC, pushesC, config)
+	quotedriver.New(botInst, quotesC)
+	reminddriver.New(botInst, remindersC, pushesC, config)
+	seendriver.New(botInst, seenC)
+	statsdriver.New(botInst, statsC)
+	urldriver.New(botInst, urlsC)
 
 	// Start up the HTTP server
 	go http.ListenAndServe(*httpPort, nil)
 
 	// Set up a signal handler to shut things down gracefully.
-	// NOTE: net/http doesn't provide for graceful shutdown :-/
 	go func() {
 		called := new(int32)
 		sigint := make(chan os.Signal, 1)
 		signal.Notify(sigint, syscall.SIGINT)
-		for _ = range sigint {
+		for range sigint {
 			if atomic.AddInt32(called, 1) > 1 {
+				dbInst.Close()
 				logging.Fatal("Recieved multiple interrupts, dying.")
 			}
-			bot.Shutdown()
+			botInst.Shutdown()
 		}
 	}()
 
 	// Connect the bot to IRC and wait; reconnects are handled automatically.
-	// If we get true back from the bot, re-exec the (rebuilt) binary.
-	if <-bot.Connect() {
-		// Calling syscall.Exec probably means deferred functions won't get
-		// called, so disconnect from DBs first for politeness' sake.
-		db.Bolt.Close()
-		// If sp0rkle was run from PATH, we need to do that lookup manually.
-		fq, _ := exec.LookPath(os.Args[0])
-		logging.Warn("Re-executing sp0rkle with args '%v'.", os.Args)
-		err := syscall.Exec(fq, os.Args, os.Environ())
-		if err != nil {
-			// hmmmmmm
-			logging.Fatal("Couldn't re-exec sp0rkle: %v", err)
-		}
-	}
+	<-botInst.Connect()
 	logging.Info("Shutting down cleanly.")
 }

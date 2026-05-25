@@ -3,6 +3,8 @@ _obj/
 _test/
 *.[568]
 *.swp
+.opencode/
+.worktrees/
 
 sp0rkle
 sp0rkle.boltdb

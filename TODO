@@ -30,6 +30,7 @@ Drivers
 	- max cache size
 	- auto shorten limit
   - 404 checking of old URLs
+  - Fsck-style check of cached files using the ValueValidator interface.
 
 *Quotes
   // Still TODO: some...
@@ -58,44 +59,18 @@ Core
 ====
 
 * Admin commands like join/part/ignore (and perms)
-* Push servemux-like command/handler dispatch up into a layer in goirc.
+* Wire nginx container up to sp0rkle container so shortening actually works.
 * Help: look into godoc -> wiki.git dumping
 * Revisit the polling / async tasks stuff as it is terrible
+   - Start polling asynchronously, don't block bot startup?
+   - Allow pollers to be started/stopped independently of bot startup.
+   - Needs a proper state machine for pollers.
 * context.Context propagation now goirc supports it
-* Proper dependency injection with https://github.com/google/wire
 
 Dockerising
 ===========
 
-* Ensure logging to STDOUT works ok
-* Env var secrets
 * Docker-compatible signal handling (more than just sigint)
-* kill off "rebuilding"
-
-BoltDB Migration
-================
-
-### Remaining collections
-
-* reminders
-* pushes
-
-### Migration
-
-* Change migration code to have more states
-    * MONGO_ONLY -- read/write to mongo only, don't expect bolt data
-	* MONGO_PRIMARY
-	    * initial migration run complete + diffed
-		* write to both, read from both, diff, return mongo
-	* BOLT_PRIMARY
-	    * run another complete diff to validate dual writes
-	    * write to both, read from both, diff, return bolt
-	* BOLT_ONLY -- don't even open mongo connection on startup
-* Migrate as far as BOLT_PRIMARY on current server
-* Dockerise (see dockerising section)
-* Set up new Dockerised servers without mongo
-* Run BOLT_ONLY on new server
-* Nuke all the migration code!
 
 Testability
 ===========
