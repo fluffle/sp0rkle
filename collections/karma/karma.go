@@ -23,7 +23,7 @@ type Karma struct {
 	Downvtime time.Time
 }
 
-func New(thing string) *Karma {
+func NewKarma(thing string) *Karma {
 	return &Karma{
 		Subject: thing,
 		Key:     strings.ToLower(thing),
@@ -60,22 +60,30 @@ func (k *Karma) K() db.Key {
 	return db.K{db.S{"key", k.Key}}
 }
 
+func (k *Karma) CollectionName() string { return "karma" }
+
 var _ db.Keyer = (*Karma)(nil)
 
 type Collection struct {
-	db.C
+	collection db.KeyedCollection[*Karma]
 }
 
-func Init() *Collection {
-	kc := &Collection{}
-	kc.Init(db.Bolt.Keyed(), COLLECTION, nil)
-	return kc
+func New(collection db.KeyedCollection[*Karma]) *Collection {
+	return &Collection{collection: collection}
 }
 
 func (kc *Collection) KarmaFor(sub string) *Karma {
-	res := &Karma{Key: strings.ToLower(sub)}
-	if err := kc.Get(res.K(), res); err == nil && res.Subject != "" {
-		return res
+	karma, err := kc.collection.Get(db.K{db.S{"key", strings.ToLower(sub)}})
+	if err != nil || karma == nil {
+		return nil
 	}
-	return nil
+	return karma
+}
+
+func (kc *Collection) Put(k *Karma) error {
+	return kc.collection.Put(k)
+}
+
+func (kc *Collection) Del(k *Karma) error {
+	return kc.collection.Del(k)
 }

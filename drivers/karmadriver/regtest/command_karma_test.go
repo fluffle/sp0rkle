@@ -53,8 +53,8 @@ func testKarma(t *testing.T) {
 		time.Sleep(100 * time.Millisecond)
 		line, err := h.CommandAndExpect("karma multi",
 			h.Contains("'multi' has a karma of 1 after 3 votes."))
-		if err != nil {
-			t.Errorf("expected 'multi' karma of 1 after 3 votes with both up/downvoter, got: %v", err)
+		if err != nil || line == nil {
+			t.Fatalf("expected 'multi' karma of 1 after 3 votes with both up/downvoter, got: %v", err)
 		}
 		wants := []string{
 			"Last upvoted by "+h.Me().Nick,

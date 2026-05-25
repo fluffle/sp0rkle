@@ -10,15 +10,18 @@ import (
 	"github.com/fluffle/sp0rkle/util"
 )
 
-var kc *karma.Collection
+type Driver struct {
+	kc *karma.Collection
+}
 
-func Init() {
-	kc = karma.Init()
+func New(b *bot.Bot, kc *karma.Collection) *Driver {
+	d := &Driver{kc: kc}
 
-	bot.Handle(recordKarma, client.PRIVMSG, client.ACTION)
+	b.Handle(d.recordKarma, client.PRIVMSG, client.ACTION)
 
-	bot.Command(karmaCmd, "karma", "karma <thing>  -- "+
+	b.Command(d.karmaCmd, "karma", "karma <thing>  -- "+
 		"Retrieve the karma score of <thing>.")
+	return d
 }
 
 type kt struct {

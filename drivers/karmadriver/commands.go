@@ -6,12 +6,12 @@ import (
 	"github.com/fluffle/sp0rkle/bot"
 )
 
-func karmaCmd(ctx *bot.Context) {
+func (d *Driver) karmaCmd(ctx *bot.Context) {
 	if strings.TrimSpace(ctx.Text()) == "" {
 		ctx.ReplyN("karma karma karma karma, karma chameeleeoooooonnn")
 		return
 	}
-	if k := kc.KarmaFor(ctx.Text()); k != nil {
+	if k := d.kc.KarmaFor(ctx.Text()); k != nil {
 		ctx.ReplyN("%s", k)
 		return
 	}
