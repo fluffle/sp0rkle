@@ -13,8 +13,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/fluffle/goirc/client"
 	"github.com/fluffle/golog/logging"
+	"github.com/fluffle/goirc/client"
 	"github.com/fluffle/sp0rkle/bot"
 	"github.com/fluffle/sp0rkle/collections/urls"
 	"github.com/fluffle/sp0rkle/util"
@@ -35,53 +35,56 @@ var urlCacheDir *string = flag.String("url_cache_dir",
 	util.JoinPath(os.Getenv("HOME"), ".sp0rkle"),
 	"Path to store cached content under.")
 
-var uc *urls.Collection
+type Driver struct {
+	uc       *urls.Collection
+	lastseen map[string]bson.ObjectId
+}
 
-// Remember the last url seen on a per-channel basis
-var lastseen = map[string]bson.ObjectId{}
 
-func Init() {
-	uc = urls.Init()
+func New(b *bot.Bot, uc *urls.Collection) *Driver {
+	d := &Driver{uc: uc, lastseen: map[string]bson.ObjectId{}}
 
 	if err := os.MkdirAll(*urlCacheDir, 0700); err != nil {
 		logging.Fatal("Couldn't create URL cache dir: %v", err)
 	}
 
-	bot.Handle(urlScan, client.PRIVMSG)
+	b.Handle(d.urlScan, client.PRIVMSG)
 
-	bot.Command(find, "urlfind", "urlfind <regex>  -- "+
+	b.Command(d.find, "urlfind", "urlfind <regex>  -- "+
 		"searches for previously mentioned URLs matching <regex>")
-	bot.Command(find, "url find", "url find <regex>  -- "+
+	b.Command(d.find, "url find", "url find <regex>  -- "+
 		"searches for previously mentioned URLs matching <regex>")
-	bot.Command(find, "urlsearch", "urlsearch <regex>  -- "+
+	b.Command(d.find, "urlsearch", "urlsearch <regex>  -- "+
 		"searches for previously mentioned URLs matching <regex>")
-	bot.Command(find, "url search", "url search <regex>  -- "+
+	b.Command(d.find, "url search", "url search <regex>  -- "+
 		"searches for previously mentioned URLs matching <regex>")
 
-	bot.Command(find, "randurl", "randurl  -- displays a random URL")
-	bot.Command(find, "random url", "random url  -- displays a random URL")
+	b.Command(d.find, "randurl", "randurl  -- displays a random URL")
+	b.Command(d.find, "random url", "random url  -- displays a random URL")
 
-	bot.Command(shorten, "shorten that", "shorten that  -- "+
+	b.Command(d.shorten, "shorten that", "shorten that  -- "+
 		"shortens the last mentioned URL.")
-	bot.Command(shorten, "shorten", "shorten <url>  -- shortens <url>")
+	b.Command(d.shorten, "shorten", "shorten <url>  -- shortens <url>")
 
-	bot.Command(cache, "cache that", "cache that  -- "+
+	b.Command(d.cache, "cache that", "cache that  -- "+
 		"caches the last mentioned URL.")
-	bot.Command(cache, "cache", "cache <url>  -- caches <url>")
-	bot.Command(cache, "save that", "save that  -- "+
+	b.Command(d.cache, "cache", "cache <url>  -- caches <url>")
+	b.Command(d.cache, "save that", "save that  -- "+
 		"caches the last mentioned URL.")
-	bot.Command(cache, "save", "save <url>  -- caches <url>")
+	b.Command(d.cache, "save", "save <url>  -- caches <url>")
 
 	// This serves "shortened" urls
 	http.Handle(shortenPath, http.StripPrefix(shortenPath,
-		http.HandlerFunc(shortenedServer)))
+		http.HandlerFunc(d.shortenedServer)))
 
 	// This serves "cached" urls
 	http.Handle(cachePath, http.StripPrefix(cachePath,
 		http.FileServer(http.Dir(*urlCacheDir))))
+
+	return d
 }
 
-func Encode(url string) string {
+func (d *Driver) Encode(url string) string {
 	// We shorten/cache a url with it's base-64 encoded CRC32 hash
 	crc := crc32.ChecksumIEEE([]byte(url))
 	crcb := make([]byte, 4)
@@ -94,8 +97,8 @@ func Encode(url string) string {
 		// resulting in 5 1/3 bytes of encoded data, we can drop
 		// the two padding equals signs for brevity.
 		s := (base64.URLEncoding.EncodeToString(crcb))[:6]
-		cached := uc.GetCached(s)
-		shortened := uc.GetShortened(s)
+		cached := d.uc.GetCached(s)
+		shortened := d.uc.GetShortened(s)
 		if !(cached.Exists() || shortened.Exists()) {
 			return s
 		}
@@ -105,16 +108,16 @@ func Encode(url string) string {
 	return ""
 }
 
-func Shorten(u *urls.Url) error {
-	u.Shortened = Encode(u.Url)
-	if err := uc.Put(u); err != nil {
+func (d *Driver) Shorten(u *urls.Url) error {
+	u.Shortened = d.Encode(u.Url)
+	if err := d.uc.Put(u); err != nil {
 		return err
 	}
 	return nil
 }
 
-func Cache(u *urls.Url) error {
-	u.CachedAs = Encode(u.Url)
+func (d *Driver) Cache(u *urls.Url) error {
+	u.CachedAs = d.Encode(u.Url)
 	if u.CachedAs == "" {
 		return fmt.Errorf("collided 10 times while encoding URL")
 	}
@@ -158,7 +161,7 @@ func Cache(u *urls.Url) error {
 	}
 	u.CacheTime = time.Now()
 	u.MimeType = res.Header.Get("Content-Type")
-	if err := uc.Put(u); err != nil {
+	if err := d.uc.Put(u); err != nil {
 		return err
 	}
 	return nil

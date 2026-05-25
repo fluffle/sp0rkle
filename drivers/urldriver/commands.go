@@ -9,19 +9,19 @@ import (
 	"github.com/fluffle/sp0rkle/util/datetime"
 )
 
-func find(ctx *bot.Context) {
-	if u := uc.GetRand(ctx.Text()); u != nil {
+func (d *Driver) find(ctx *bot.Context) {
+	if u := d.uc.GetRand(ctx.Text()); u != nil {
 		ctx.ReplyN("%s", u)
 	} else {
 		ctx.ReplyN("No urls matching %q, sorry", ctx.Text())
 	}
 }
 
-func shorten(ctx *bot.Context) {
+func (d *Driver) shorten(ctx *bot.Context) {
 	var u *urls.Url
 	if ctx.Text() == "" {
 		// assume we have been given "shorten that"
-		if u = uc.GetById(lastseen[ctx.Target()]); u == nil {
+		if u = d.uc.GetById(d.lastseen[ctx.Target()]); u == nil {
 			ctx.ReplyN("I seem to have forgotten what to shorten")
 			return
 		}
@@ -40,7 +40,7 @@ func shorten(ctx *bot.Context) {
 			ctx.ReplyN("'%s' doesn't look URLish", url)
 			return
 		}
-		if u = uc.GetByUrl(url); u == nil {
+		if u = d.uc.GetByUrl(url); u == nil {
 			n, c := ctx.Storable()
 			u = urls.NewUrl(url, n, c)
 		} else if u.Shortened != "" {
@@ -50,7 +50,7 @@ func shorten(ctx *bot.Context) {
 			return
 		}
 	}
-	if err := Shorten(u); err != nil {
+	if err := d.Shorten(u); err != nil {
 		ctx.ReplyN("Failed to store shortened url: %s", err)
 		return
 	}
@@ -58,11 +58,11 @@ func shorten(ctx *bot.Context) {
 		u.Url, bot.HttpHost(), shortenPath, u.Shortened)
 }
 
-func cache(ctx *bot.Context) {
+func (d *Driver) cache(ctx *bot.Context) {
 	var u *urls.Url
 	if ctx.Text() == "" {
 		// assume we have been given "cache that"
-		if u = uc.GetById(lastseen[ctx.Target()]); u == nil {
+		if u = d.uc.GetById(d.lastseen[ctx.Target()]); u == nil {
 			ctx.ReplyN("I seem to have forgotten what to cache")
 			return
 		}
@@ -81,7 +81,7 @@ func cache(ctx *bot.Context) {
 			ctx.ReplyN("'%s' doesn't look URLish", url)
 			return
 		}
-		if u = uc.GetByUrl(url); u == nil {
+		if u = d.uc.GetByUrl(url); u == nil {
 			n, c := ctx.Storable()
 			u = urls.NewUrl(url, n, c)
 		} else if u.CachedAs != "" {
@@ -92,7 +92,7 @@ func cache(ctx *bot.Context) {
 			return
 		}
 	}
-	if err := Cache(u); err != nil {
+	if err := d.Cache(u); err != nil {
 		ctx.ReplyN("Failed to store cached url: %s", err)
 		return
 	}

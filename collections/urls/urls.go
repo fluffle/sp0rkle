@@ -3,6 +3,7 @@ package urls
 import (
 	"fmt"
 	"math/rand"
+	"regexp"
 	"time"
 
 	"github.com/fluffle/golog/logging"
@@ -84,57 +85,55 @@ func (u *Url) byShortened() db.K {
 	return db.K{db.S{"shortened", u.Shortened}}
 }
 
-type Urls []*Url
+func (u *Url) CollectionName() string { return "urls" }
 
 type Collection struct {
-	db.C
-	seen map[string]map[bson.ObjectId]bool
+	collection db.IndexedCollection[*Url]
+	seen       map[string]map[bson.ObjectId]bool
 }
 
-func Init() *Collection {
-	uc := &Collection{
-		seen: make(map[string]map[bson.ObjectId]bool),
+func New(collection db.IndexedCollection[*Url]) *Collection {
+	return &Collection{
+		collection: collection,
+		seen:       make(map[string]map[bson.ObjectId]bool),
 	}
-	uc.Init(db.Bolt.Indexed(), COLLECTION, nil)
-	if err := uc.Fsck(&Url{}); err != nil {
-		logging.Fatal("urls fsck: %v", err)
-	}
-	return uc
 }
 
 func (uc *Collection) GetById(id bson.ObjectId) *Url {
 	res := &Url{Id_: id}
-	if err := uc.Get(res.byId(), res); err == nil && res.Exists() {
-		return res
+	url, err := uc.collection.Get(res.byId())
+	if err != nil || !url.Exists() {
+		return nil
 	}
-	return nil
+	return url
 }
 
 func (uc *Collection) GetByUrl(u string) *Url {
 	res := &Url{Url: u}
-	if err := uc.Get(res.byUrl(), res); err == nil && res.Exists() {
-		return res
+	url, err := uc.collection.Get(res.byUrl())
+	if err != nil || !url.Exists() {
+		return nil
 	}
-	return nil
+	return url
 }
 
-// TODO(fluffle): Dedupe with quotes and other pseudo-rand implementations.
-// Comments in quotes collection about efficiency apply here too.
 func (uc *Collection) GetRand(regex string) *Url {
-	urls := Urls{}
+	var urls []*Url
+	var err error
 	if regex == "" {
-		if err := uc.All(db.K{}, &urls); err != nil {
-			logging.Warn("URL All() failed: %v", err)
-			return nil
-		}
+		urls, err = uc.collection.All(db.K{})
 	} else {
-		if err := uc.Match("Url", regex, &urls); err != nil {
-			logging.Warn("URL Match(%q) failed: %v", regex, err)
-			return nil
-		}
+		rx := regexp.MustCompile("(?i)" + regex)
+		urls, err = uc.collection.Match(func(u *Url) bool {
+			return rx.MatchString(u.Url)
+		})
+	}
+	if err != nil {
+		logging.Warn("URL Match() failed: %v", err)
+		return nil
 	}
 
-	filtered := Urls{}
+	filtered := []*Url{}
 	ids, ok := uc.seen[regex]
 	if ok && len(ids) > 0 {
 		logging.Debug("Looked for URLs matching %q before, %d stored id's", regex, len(ids))
@@ -151,20 +150,15 @@ func (uc *Collection) GetRand(regex string) *Url {
 	switch count {
 	case 0:
 		if ok {
-			// Looked for this regex before, but nothing matches now
 			delete(uc.seen, regex)
 		}
 		return nil
 	case 1:
 		if ok {
-			// if the count of results is 1 and we're storing seen data for regex
-			// then we've exhausted the possible results and should wipe it
 			delete(uc.seen, regex)
 		}
 		return filtered[0]
 	}
-	// case count > 1, effectively
-	// only store seen for regex that match more than one quote
 	if !ok {
 		uc.seen[regex] = map[bson.ObjectId]bool{}
 	}
@@ -176,16 +170,26 @@ func (uc *Collection) GetRand(regex string) *Url {
 
 func (uc *Collection) GetCached(c string) *Url {
 	res := &Url{CachedAs: c}
-	if err := uc.Get(res.byCachedAs(), res); err == nil && res.Exists() {
-		return res
+	url, err := uc.collection.Get(res.byCachedAs())
+	if err != nil || !url.Exists() {
+		return nil
 	}
-	return nil
+	return url
 }
 
 func (uc *Collection) GetShortened(s string) *Url {
 	res := &Url{Shortened: s}
-	if err := uc.Get(res.byShortened(), res); err == nil && res.Exists() {
-		return res
+	url, err := uc.collection.Get(res.byShortened())
+	if err != nil || !url.Exists() {
+		return nil
 	}
-	return nil
+	return url
+}
+
+func (uc *Collection) Put(value *Url) error {
+	return uc.collection.Put(value)
+}
+
+func (uc *Collection) Del(value *Url) error {
+	return uc.collection.Del(value)
 }
