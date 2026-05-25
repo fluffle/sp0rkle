@@ -32,8 +32,8 @@ func pushDeviceURL(state string) string {
 // device for push notifications. Once this is done, we push
 // a confirmation notification to the chosen device with a 6
 // digit pin and require that they msg that to us via IRC.
-func pushEnable(ctx *bot.Context) {
-	if s := pc.GetByNick(ctx.Nick, true); s != nil {
+func (d *Driver) pushEnable(ctx *bot.Context) {
+	if s := d.pc.GetByNick(ctx.Nick, true); s != nil {
 		if s.HasAlias(ctx.Nick) {
 			ctx.ReplyN("Your nick is already used as an alias for %s.", s.Nick)
 			return
@@ -43,11 +43,11 @@ func pushEnable(ctx *bot.Context) {
 			return
 		}
 		ctx.Privmsg(ctx.Nick, "Hmm. Deleting partially-complete state...")
-		if err := pc.Del(s); err != nil {
+		if err := d.pc.Del(s); err != nil {
 			logging.Error("Deleting state with id=%q: %v", s.Id_, err)
 		}
 	}
-	s, err := pc.NewState(ctx.Nick)
+	s, err := d.pc.NewState(ctx.Nick)
 	if err != nil {
 		ctx.ReplyN("Error creating push state: %v", err)
 		return
@@ -58,24 +58,24 @@ func pushEnable(ctx *bot.Context) {
 	ctx.Privmsg(ctx.Nick, push.AuthCodeURL(s))
 }
 
-func pushDisable(ctx *bot.Context) {
+func (d *Driver) pushDisable(ctx *bot.Context) {
 	// Do not search by aliases here: it allows someone to change nick
 	// to a known alias and then disable pushes for that user.
-	s := pc.GetByNick(ctx.Nick, false)
+	s := d.pc.GetByNick(ctx.Nick, false)
 	if s == nil {
 		ctx.ReplyN("Pushes not enabled.")
 		return
 	}
-	if err := pc.Del(s); err != nil {
+	if err := d.pc.Del(s); err != nil {
 		ctx.ReplyN("Error deleting push state: %v", err)
 		return
 	}
 	ctx.ReplyN("Ok, pushes disabled.")
 }
 
-func pushConfirm(ctx *bot.Context) {
+func (d *Driver) pushConfirm(ctx *bot.Context) {
 	pin := strings.Fields(ctx.Text())[0]
-	s := pc.GetByNick(ctx.Nick, false)
+	s := d.pc.GetByNick(ctx.Nick, false)
 	switch {
 	case s == nil:
 		ctx.ReplyN("No authentication state found.")
@@ -88,16 +88,16 @@ func pushConfirm(ctx *bot.Context) {
 		return
 	}
 	s.Done = true
-	if err := pc.Put(s); err != nil {
+	if err := d.pc.Put(s); err != nil {
 		ctx.ReplyN("Error setting push state: %v", err)
 		return
 	}
 	ctx.ReplyN("Pushes enabled! Yay!")
 }
 
-func pushAddAlias(ctx *bot.Context) {
+func (d *Driver) pushAddAlias(ctx *bot.Context) {
 	alias := strings.Fields(ctx.Text())[0]
-	s := pc.GetByNick(ctx.Nick, false)
+	s := d.pc.GetByNick(ctx.Nick, false)
 	if s == nil || !s.CanPush() {
 		ctx.ReplyN("Pushes not enabled.")
 		return
@@ -106,21 +106,21 @@ func pushAddAlias(ctx *bot.Context) {
 		ctx.ReplyN("Alias %q already exists.", alias)
 		return
 	}
-	if a := pc.GetByNick(alias, true); a != nil {
+	if a := d.pc.GetByNick(alias, true); a != nil {
 		ctx.ReplyN("Alias %q already exists for nick %s.", alias, a.Nick)
 		return
 	}
 	s.AddAlias(alias)
-	if err := pc.Put(s); err != nil {
+	if err := d.pc.Put(s); err != nil {
 		ctx.ReplyN("Error setting push state: %v", err)
 		return
 	}
 	ctx.ReplyN("Added alias %q to your push state.", alias)
 }
 
-func pushDelAlias(ctx *bot.Context) {
+func (d *Driver) pushDelAlias(ctx *bot.Context) {
 	alias := strings.Fields(ctx.Text())[0]
-	s := pc.GetByNick(ctx.Nick, false)
+	s := d.pc.GetByNick(ctx.Nick, false)
 	if s == nil || !s.CanPush() {
 		ctx.ReplyN("Pushes not enabled.")
 		return
@@ -130,14 +130,14 @@ func pushDelAlias(ctx *bot.Context) {
 		return
 	}
 	s.DelAlias(alias)
-	if err := pc.Put(s); err != nil {
+	if err := d.pc.Put(s); err != nil {
 		ctx.ReplyN("Error setting push state: %v", err)
 		return
 	}
 	ctx.ReplyN("Deleted alias %q from your push state.", alias)
 }
 
-func pushAuthHTTP(rw http.ResponseWriter, req *http.Request) {
+func (d *Driver) pushAuthHTTP(rw http.ResponseWriter, req *http.Request) {
 	if err := req.ParseForm(); err != nil {
 		http.Redirect(rw, req, pushFailureURL("parse"), 302)
 		return
@@ -147,7 +147,7 @@ func pushAuthHTTP(rw http.ResponseWriter, req *http.Request) {
 		return
 	}
 	id := req.FormValue("state")
-	s := pc.GetByB64(id)
+	s := d.pc.GetByB64(id)
 	if id == "" || s == nil {
 		http.Redirect(rw, req, pushFailureURL("nostate"), 302)
 		return
@@ -165,7 +165,7 @@ func pushAuthHTTP(rw http.ResponseWriter, req *http.Request) {
 	}
 
 	s.Token = tok
-	if err := pc.Put(s); err != nil {
+	if err := d.pc.Put(s); err != nil {
 		logging.Error("Failed to write state to db: %v", err)
 		http.Redirect(rw, req, pushFailureURL("writestate"), 302)
 		return
@@ -173,13 +173,13 @@ func pushAuthHTTP(rw http.ResponseWriter, req *http.Request) {
 	http.Redirect(rw, req, pushDeviceURL(id), 302)
 }
 
-func pushDeviceHTTP(rw http.ResponseWriter, req *http.Request) {
+func (d *Driver) pushDeviceHTTP(rw http.ResponseWriter, req *http.Request) {
 	if err := req.ParseForm(); err != nil {
 		http.Redirect(rw, req, pushFailureURL("parse"), 302)
 		return
 	}
 	id := req.FormValue("state")
-	s := pc.GetByB64(id)
+	s := d.pc.GetByB64(id)
 	if id == "" || s == nil {
 		http.Redirect(rw, req, pushFailureURL("nostate"), 302)
 		return
@@ -195,7 +195,7 @@ func pushDeviceHTTP(rw http.ResponseWriter, req *http.Request) {
 			http.Redirect(rw, req, pushFailureURL("push"), 302)
 			return
 		}
-		if err := pc.Put(s); err != nil {
+		if err := d.pc.Put(s); err != nil {
 			logging.Error("Failed to write state to db: %v", err)
 			http.Redirect(rw, req, pushFailureURL("writestate"), 302)
 		}
@@ -220,11 +220,11 @@ func pushDeviceHTTP(rw http.ResponseWriter, req *http.Request) {
 	}
 }
 
-func pushSuccessHTTP(rw http.ResponseWriter, req *http.Request) {
+func (d *Driver) pushSuccessHTTP(rw http.ResponseWriter, req *http.Request) {
 	strings.NewReader(pushSuccessHTML).WriteTo(rw)
 }
 
-func pushFailureHTTP(rw http.ResponseWriter, req *http.Request) {
+func (d *Driver) pushFailureHTTP(rw http.ResponseWriter, req *http.Request) {
 	f := "parse"
 	if err := req.ParseForm(); err == nil {
 		f = "nofail"

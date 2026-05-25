@@ -11,10 +11,11 @@ import (
 
 	"github.com/fluffle/golog/logging"
 	"github.com/fluffle/sp0rkle/bot"
-	"github.com/fluffle/sp0rkle/collections/conf"
+	"github.com/fluffle/sp0rkle/db/conf"
 )
 
 type mcStatus struct {
+	confNs   conf.Namespace
 	motd       string
 	nump, maxp string
 	players    []string
@@ -34,7 +35,7 @@ var (
 	mcGetStatus = []byte("\xfe\xfd\x00\x00\x00\x00\x00")
 )
 
-func mcSet(ctx *bot.Context) {
+func (d *Driver) mcSet(ctx *bot.Context) {
 	kv := strings.Fields(ctx.Text())
 	if len(kv) < 2 {
 		ctx.ReplyN("I need a key and a value.")
@@ -42,20 +43,20 @@ func mcSet(ctx *bot.Context) {
 	}
 	switch kv[0] {
 	case mcServer:
-		mcConf.String(mcServer, kv[1])
+		d.confNs.String(mcServer, kv[1])
 	case mcChan:
 		if !strings.HasPrefix(kv[1], "#") {
 			ctx.ReplyN("Channel '%s' doesn't start with #.", kv[1])
 			return
 		}
-		mcConf.String(mcChan, kv[1])
+		d.confNs.String(mcChan, kv[1])
 	case mcFreq:
 		freq, err := strconv.Atoi(kv[1])
 		if err != nil {
 			ctx.ReplyN("Couldn't convert '%s' to an integer.", kv[1])
 			return
 		}
-		mcConf.Int(mcFreq, freq)
+		d.confNs.Int(mcFreq, freq)
 	default:
 		ctx.ReplyN("Valid keys are: %s, %s, %s", mcServer, mcFreq, mcChan)
 		return
@@ -64,7 +65,7 @@ func mcSet(ctx *bot.Context) {
 }
 
 func (mcs *mcStatus) Poll(ctxs []*bot.Context) {
-	srv := mcConf.String(mcServer)
+	srv := mcs.confNs.String(mcServer)
 	logging.Debug("polling minecraft server at %s", srv)
 	st, err := pollServer(srv)
 	if err != nil {
@@ -73,18 +74,18 @@ func (mcs *mcStatus) Poll(ctxs []*bot.Context) {
 	}
 	*mcs = *st
 	for _, ctx := range ctxs {
-		ctx.Topic(mcConf.String(mcChan))
+		ctx.Topic(mcs.confNs.String(mcChan))
 	}
 }
 
 func (mcs *mcStatus) Start() { /* empty */ }
 func (mcs *mcStatus) Stop()  { /* empty */ }
 func (mcs *mcStatus) Tick() time.Duration {
-	return time.Duration(mcConf.Int(mcFreq)) * time.Minute
+	return time.Duration(mcs.confNs.Int(mcFreq)) * time.Minute
 }
 
 func (mcs *mcStatus) Topic(ctx *bot.Context) {
-	ch := mcConf.String(mcChan)
+	ch := mcs.confNs.String(mcChan)
 	if ctx.Args[1] != ch {
 		return
 	}
@@ -99,7 +100,7 @@ func (mcs *mcStatus) Topic(ctx *bot.Context) {
 		players = ": " + strings.Join(mcs.players, ", ")
 	}
 	topic = fmt.Sprintf("%s %s v%s [%s/%s%s]%s", mcs.motd,
-		mcConf.String(mcServer), mcs.version, mcs.nump, mcs.maxp, players, topic)
+		mcs.confNs.String(mcServer), mcs.version, mcs.nump, mcs.maxp, players, topic)
 	if topic != ctx.Text() {
 		ctx.Topic(ch, topic)
 	}

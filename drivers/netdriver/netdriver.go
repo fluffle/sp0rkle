@@ -1,87 +1,82 @@
 package netdriver
 
 import (
-	"io/ioutil"
+	"context"
 	"net/http"
 
 	"github.com/fluffle/goirc/client"
 	"github.com/fluffle/golog/logging"
 	"github.com/fluffle/sp0rkle/bot"
-	"github.com/fluffle/sp0rkle/collections/conf"
+	"github.com/fluffle/sp0rkle/db/conf"
 	"github.com/fluffle/sp0rkle/collections/pushes"
 	"github.com/fluffle/sp0rkle/collections/reminders"
 	"github.com/fluffle/sp0rkle/util/push"
 	"github.com/google/go-github/github"
 )
 
-var pc *pushes.Collection
-var rc *reminders.Collection
-var gh *github.Client
-
-func get(req string) ([]byte, error) {
-	res, err := http.Get(req)
-	if err != nil {
-		return nil, err
-	}
-	defer res.Body.Close()
-	return ioutil.ReadAll(res.Body)
+type Driver struct {
+	ctx    context.Context
+	pc     *pushes.Collection
+	rc     *reminders.Collection
+	gh     *github.Client
+	confNs conf.Namespace
 }
 
-func Init() {
-	bot.Command(urbanDictionary, "ud", "ud <term>  -- "+
+
+func New(b *bot.Bot, rc *reminders.Collection, pc *pushes.Collection, config *conf.Registry) *Driver {
+	d := &Driver{ctx: b.Ctx(), rc: rc, pc: pc, confNs: config.Ns("mc")}
+
+	b.Command(d.urbanDictionary, "ud", "ud <term>  -- "+
 		"Look up <term> on UrbanDictionary.")
 
-	mcConf = conf.Ns("mc")
-	srv := mcConf.String(mcServer)
+	srv := d.confNs.String(mcServer)
 	if srv != "" {
 		if st, err := pollServer(srv); err == nil {
+			st.confNs = d.confNs
 			logging.Info("Starting MC poller for '%s'", srv)
-			bot.Poll(st)
-			bot.Handle(func(ctx *bot.Context) {
-				st.Topic(ctx)
-			}, "332")
+			b.Poll(st)
+			b.HandleBG(st.Topic, "332")
 		} else {
 			logging.Error("Not starting MC poller: %v", err)
 		}
 	}
-	bot.Command(mcSet, "mc set", "mc set <key> <value>  -- "+
+	b.Command(d.mcSet, "mc set", "mc set <key> <value>  -- "+
 		"Set minecraft server polling config vars.")
-	// TODO(fluffle): Polling can only be en/disabled at reconnect.
-	//	bot.Command(mcPoll, "mc poll", "mc poll start|stop  -- "+
-	//		"Enable or disable minecraft server polling.")
 
 	if *githubToken != "" {
-		rc = reminders.Init()
-		gh = githubClient()
+		d.rc = rc
+		d.gh = githubClient(b)
 
-		bot.Handle(githubWatcher, client.PRIVMSG)
+		b.Handle(d.githubWatcher, client.PRIVMSG)
 
-		bot.Command(githubCreateIssue, "file bug:", "file bug: <title>. "+
+		b.Command(d.githubCreateIssue, "file bug:", "file bug: <title>. "+
 			"<descriptive body>  -- Files a bug on GitHub. Abusers will be hurt.")
-		bot.Command(githubCreateIssue, "file bug", "file bug <title>. "+
+		b.Command(d.githubCreateIssue, "file bug", "file bug <title>. "+
 			"<descriptive body>  -- Files a bug on GitHub. Abusers will be hurt.")
-		bot.Command(githubCreateIssue, "report bug", "report bug <title>. "+
+		b.Command(d.githubCreateIssue, "report bug", "report bug <title>. "+
 			"<descriptive body>  -- Files a bug on GitHub. Abusers will be hurt.")
-		bot.Command(githubUpdateIssue, "update bug #", "update bug #<number> "+
+		b.Command(d.githubUpdateIssue, "update bug #", "update bug #<number> "+
 			"<comment>  -- Adds a comment to bug <number>. Abusers will be hurt.")
 	}
 
 	if push.Enabled() {
-		pc = pushes.Init()
-		bot.Command(pushEnable, "push enable", "push enable  -- "+
+		d.pc = pc
+		b.Command(d.pushEnable, "push enable", "push enable  -- "+
 			"Start the OAuth flow to enable pushbullet notifications.")
-		bot.Command(pushDisable, "push disable", "push disable  -- "+
+		b.Command(d.pushDisable, "push disable", "push disable  -- "+
 			"Disable pushbullet notifications and delete tokens.")
-		bot.Command(pushConfirm, "push auth", "push auth <pin>  -- "+
+		b.Command(d.pushConfirm, "push auth", "push auth <pin>  -- "+
 			"Confirm pushed PIN to finish pushbullet auth dance.")
-		bot.Command(pushAddAlias, "push add alias", "push add alias  -- "+
+		b.Command(d.pushAddAlias, "push add alias", "push add alias  -- "+
 			"Add a push alias for your nick.")
-		bot.Command(pushDelAlias, "push del alias", "push del alias  -- "+
+		b.Command(d.pushDelAlias, "push del alias", "push del alias  -- "+
 			"Delete a push alias for your nick.")
 
-		http.HandleFunc("/oauth/auth", pushAuthHTTP)
-		http.HandleFunc("/oauth/device", pushDeviceHTTP)
-		http.HandleFunc("/oauth/success", pushSuccessHTTP)
-		http.HandleFunc("/oauth/failure", pushFailureHTTP)
+		http.HandleFunc("/oauth/auth", d.pushAuthHTTP)
+		http.HandleFunc("/oauth/device", d.pushDeviceHTTP)
+		http.HandleFunc("/oauth/success", d.pushSuccessHTTP)
+		http.HandleFunc("/oauth/failure", d.pushFailureHTTP)
 	}
+
+	return d
 }

@@ -3,6 +3,7 @@ package netdriver
 import (
 	"encoding/json"
 	"fmt"
+	"net/http"
 	"net/url"
 	"strings"
 	"time"
@@ -54,6 +55,17 @@ func (udc udCache) prune() {
 	}
 }
 
+func get(u string) ([]byte, error) {
+	resp, err := http.Get(u)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+	buf := make([]byte, 1<<20)
+	n, err := resp.Body.Read(buf)
+	return buf[:n], err
+}
+
 func (udc udCache) fetch(term string) (entry udCacheEntry, ok bool, err error) {
 	udc.prune()
 	entry, ok = udc[term]
@@ -78,7 +90,7 @@ func (udc udCache) fetch(term string) (entry udCacheEntry, ok bool, err error) {
 
 var cache = udCache{}
 
-func urbanDictionary(ctx *bot.Context) {
+func (d *Driver) urbanDictionary(ctx *bot.Context) {
 	entry, ok, err := cache.fetch(strings.ToLower(ctx.Text()))
 	if err != nil {
 		ctx.ReplyN("ud request failed: %s", err)

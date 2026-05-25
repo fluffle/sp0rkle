@@ -29,8 +29,12 @@ type State struct {
 var _ db.Indexer = (*State)(nil)
 
 func (s *State) String() string {
+	token := "***"
+	if s.Token != nil && len(s.Token.AccessToken) > 0 {
+		token = s.Token.AccessToken[:4] + "***" + s.Token.AccessToken[len(s.Token.AccessToken)-4:]
+	}
 	return fmt.Sprintf("Push for %q (%d aliases); done=%t at %s; iden=%q pin=%q tok=%q",
-		s.Nick, len(s.Aliases), s.Done, datetime.Format(s.Time), s.Iden, s.Pin, s.Token)
+		s.Nick, len(s.Aliases), s.Done, datetime.Format(s.Time), s.Iden, s.Pin, token)
 }
 
 func (s *State) Id() bson.ObjectId {
@@ -105,17 +109,14 @@ func (s *State) aliasIndex(alias string) int {
 	return -1
 }
 
+func (s *State) CollectionName() string { return "push" }
+
 type Collection struct {
-	db.C
+	collection db.IndexedCollection[*State]
 }
 
-func Init() *Collection {
-	pc := &Collection{}
-	pc.Init(db.Bolt.Indexed(), COLLECTION, nil)
-	if err := pc.Fsck(&State{}); err != nil {
-		logging.Fatal("pushes fsck failed: %v", err)
-	}
-	return pc
+func New(collection db.IndexedCollection[*State]) *Collection {
+	return &Collection{collection: collection}
 }
 
 func (pc *Collection) NewState(nick string) (*State, error) {
@@ -124,7 +125,7 @@ func (pc *Collection) NewState(nick string) (*State, error) {
 		Time: time.Now(),
 		Id_:  bson.NewObjectId(),
 	}
-	if err := pc.Put(s); err != nil {
+	if err := pc.collection.Put(s); err != nil {
 		return nil, err
 	}
 	return s, nil
@@ -137,40 +138,50 @@ func (pc *Collection) GetByB64(b64 string) *State {
 		return nil
 	}
 	s := &State{Id_: bson.ObjectId(id)}
-	if err := pc.Get(s.byId(), s); err != nil {
+	state, err := pc.collection.Get(s.byId())
+	if err != nil {
 		logging.Error("Looking up state with id=%q: %v", id, err)
 		return nil
 	}
-	if s.AuthWindowExpired() {
-		if err := pc.Del(s); err != nil {
+	if state.AuthWindowExpired() {
+		if err := pc.collection.Del(state); err != nil {
 			logging.Error("Deleting state with id=%q: %v", id, err)
 		}
 		return nil
 	}
-	return s
+	return state
 }
 
 func (pc *Collection) GetByNick(nick string, checkAliases bool) *State {
-	s := &State{}
-	if err := pc.Get(byNick(nick), s); err != nil {
+	nick = strings.ToLower(nick)
+	state, err := pc.collection.Get(byNick(nick))
+	if err != nil {
 		logging.Error("Looking up state with nick=%q: %v", nick, err)
 		return nil
 	}
-	if !s.Exists() && checkAliases {
-		// Not found by nick, check aliases.
-		if err := pc.Get(byAlias(nick), s); err != nil {
+	if state == nil && checkAliases {
+		state, err = pc.collection.Get(byAlias(nick))
+		if err != nil {
 			logging.Error("Looking up state with alias=%q: %v", nick, err)
 			return nil
 		}
 	}
-	if !s.Exists() {
+	if state == nil {
 		return nil
 	}
-	if s.AuthWindowExpired() {
-		if err := pc.Del(s); err != nil {
-			logging.Error("Deleting state with id=%q: %v", s.Id_, err)
+	if state.AuthWindowExpired() {
+		if err := pc.collection.Del(state); err != nil {
+			logging.Error("Deleting state with id=%q: %v", state.Id_, err)
 		}
 		return nil
 	}
-	return s
+	return state
+}
+
+func (pc *Collection) Put(s *State) error {
+	return pc.collection.Put(s)
+}
+
+func (pc *Collection) Del(s *State) error {
+	return pc.collection.Del(s)
 }

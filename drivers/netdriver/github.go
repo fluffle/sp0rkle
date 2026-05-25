@@ -25,16 +25,16 @@ const (
 	githubIssuesURL = githubURL + "/issues"
 )
 
-func githubClient() *github.Client {
+func githubClient(b *bot.Bot) *github.Client {
 	ts := oauth2.StaticTokenSource(
 		&oauth2.Token{AccessToken: bot.GetSecret(*githubToken)},
 	)
-	tc := oauth2.NewClient(bot.Ctx(), ts)
+	tc := oauth2.NewClient(b.Ctx(), ts)
 
 	return github.NewClient(tc)
 }
 
-func githubCreateIssue(ctx *bot.Context) {
+func (d *Driver) githubCreateIssue(ctx *bot.Context) {
 	s := strings.SplitN(ctx.Text(), ". ", 2)
 	if s[0] == "" {
 		ctx.ReplyN("I'm not going to create an empty issue.")
@@ -52,7 +52,7 @@ func githubCreateIssue(ctx *bot.Context) {
 	if len(s) == 2 {
 		req.Body = &s[1]
 	}
-	issue, _, err := gh.Issues.Create(bot.Ctx(), githubUser, githubRepo, req)
+	issue, _, err := d.gh.Issues.Create(d.ctx, githubUser, githubRepo, req)
 	if err != nil {
 		ctx.ReplyN("Error creating issue: %v", err)
 		return
@@ -62,7 +62,7 @@ func githubCreateIssue(ctx *bot.Context) {
 		*issue.Number, githubIssuesURL, *issue.Number)
 }
 
-func githubUpdateIssue(ctx *bot.Context) {
+func (d *Driver) githubUpdateIssue(ctx *bot.Context) {
 	l := &util.Lexer{Input: ctx.Text()}
 	issue := int(l.Number())
 	if issue == 0 {
@@ -75,8 +75,8 @@ func githubUpdateIssue(ctx *bot.Context) {
 		return
 	}
 	text = fmt.Sprintf("<%s/%s> %s", ctx.Nick, ctx.Target(), text)
-	comm, _, err := gh.Issues.CreateComment(
-		bot.Ctx(), githubUser, githubRepo, issue,
+	comm, _, err := d.gh.Issues.CreateComment(
+		d.ctx, githubUser, githubRepo, issue,
 		&github.IssueComment{Body: &text})
 	if err != nil {
 		ctx.ReplyN("Error creating issue comment: %v", err)
@@ -86,7 +86,7 @@ func githubUpdateIssue(ctx *bot.Context) {
 		githubIssuesURL, issue, *comm.ID)
 }
 
-func githubWatcher(ctx *bot.Context) {
+func (d *Driver) githubWatcher(ctx *bot.Context) {
 	// Watch #sp0rklf for IRC messages about issues coming from github.
 	if ctx.Nick != "fluffle\\sp0rkle" || ctx.Target() != "#sp0rklf" ||
 		!strings.Contains(ctx.Text(), "issue #") {
@@ -101,8 +101,8 @@ func githubWatcher(ctx *bot.Context) {
 	l.Next()
 	issue := int(l.Number())
 
-	labels, _, err := gh.Issues.ListLabelsByIssue(
-		bot.Ctx(), githubUser, githubRepo, issue, &github.ListOptions{})
+	labels, _, err := d.gh.Issues.ListLabelsByIssue(
+		d.ctx, githubUser, githubRepo, issue, &github.ListOptions{})
 	if err != nil {
 		logging.Error("Error getting labels for issue %d: %v", issue, err)
 		return
@@ -112,7 +112,7 @@ func githubWatcher(ctx *bot.Context) {
 		if len(kv) == 2 && kv[0] == "nick" {
 			logging.Debug("Recording tell for %s about issue %d.", kv[1], issue)
 			r := reminders.NewTell("that "+text, bot.Nick(kv[1]), "github", "")
-			if err := rc.Put(r); err != nil {
+			if err := d.rc.Put(r); err != nil {
 				logging.Error("Error inserting github tell: %v", err)
 			}
 		}
