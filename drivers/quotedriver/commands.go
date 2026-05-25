@@ -7,25 +7,25 @@ import (
 	"github.com/fluffle/sp0rkle/collections/quotes"
 )
 
-func add(ctx *bot.Context) {
+func (d *Driver) add(ctx *bot.Context) {
 	n, c := ctx.Storable()
 	quote := quotes.NewQuote(ctx.Text(), n, c)
 	var err error
-	if quote.QID, err = qc.NewQID(); err != nil {
+	if quote.QID, err = d.qc.NewQID(); err != nil {
 		ctx.ReplyN("Retrieving new quote ID failed: %v", err)
 		return
 	}
-	if err = qc.Put(quote); err == nil {
+	if err = d.qc.Put(quote); err == nil {
 		ctx.ReplyN("Quote added succesfully, id #%d.", quote.QID)
 	} else {
 		ctx.ReplyN("Error adding quote: %s.", err)
 	}
 }
 
-func del(ctx *bot.Context) {
+func (d *Driver) del(ctx *bot.Context) {
 	txt := ctx.Text()
 	// Strip optional # before qid
-	if txt[0] == '#' {
+	if len(txt) > 0 && txt[0] == '#' {
 		txt = txt[1:]
 	}
 	qid, err := strconv.Atoi(txt)
@@ -33,8 +33,8 @@ func del(ctx *bot.Context) {
 		ctx.ReplyN("'%s' doesn't look like a quote id.", ctx.Text())
 		return
 	}
-	if quote := qc.GetByQID(qid); quote != nil {
-		if err := qc.Del(quote); err == nil {
+	if quote := d.qc.GetByQID(qid); quote != nil {
+		if err := d.qc.Del(quote); err == nil {
 			ctx.ReplyN("I forgot quote #%d: %s", qid, quote.Quote)
 		} else {
 			ctx.ReplyN("I failed to forget quote #%d: %s", qid, err)
@@ -44,7 +44,7 @@ func del(ctx *bot.Context) {
 	}
 }
 
-func fetch(ctx *bot.Context) {
+func (d *Driver) fetch(ctx *bot.Context) {
 	if RateLimit(ctx.Nick) {
 		return
 	}
@@ -53,7 +53,7 @@ func fetch(ctx *bot.Context) {
 		ctx.ReplyN("'%s' doesn't look like a quote id.", ctx.Text())
 		return
 	}
-	quote := qc.GetByQID(qid)
+	quote := d.qc.GetByQID(qid)
 	if quote != nil {
 		ctx.Reply("#%d: %s", quote.QID, quote.Quote)
 	} else {
@@ -61,11 +61,11 @@ func fetch(ctx *bot.Context) {
 	}
 }
 
-func lookup(ctx *bot.Context) {
+func (d *Driver) lookup(ctx *bot.Context) {
 	if RateLimit(ctx.Nick) {
 		return
 	}
-	quote := qc.GetPseudoRand(ctx.Text())
+	quote := d.qc.GetPseudoRand(ctx.Text())
 	if quote == nil {
 		ctx.ReplyN("No quotes matching '%s' found.", ctx.Text())
 		return
@@ -73,7 +73,7 @@ func lookup(ctx *bot.Context) {
 
 	// TODO(fluffle): qd should take care of updating Accessed internally
 	quote.Accessed++
-	if err := qc.Put(quote); err != nil {
+	if err := d.qc.Put(quote); err != nil {
 		ctx.ReplyN("I failed to update quote #%d: %s", quote.QID, err)
 	}
 	ctx.Reply("#%d: %s", quote.QID, quote.Quote)

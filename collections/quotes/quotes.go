@@ -2,6 +2,7 @@ package quotes
 
 import (
 	"math/rand"
+	"regexp"
 	"time"
 
 	"github.com/fluffle/golog/logging"
@@ -42,31 +43,36 @@ func (q *Quote) byQID() db.K {
 	return db.K{db.I{"qid", uint64(q.QID)}}
 }
 
+func (q *Quote) CollectionName() string { return "quotes" }
+
+var _ db.Indexer = (*Quote)(nil)
+
 type Quotes []*Quote
 
 type Collection struct {
-	db.C
+	collection db.IndexedCollection[*Quote]
 
 	seen map[string]map[bson.ObjectId]bool
 }
 
-func Init() *Collection {
-	qc := &Collection{
-		seen: make(map[string]map[bson.ObjectId]bool),
+func New(collection db.IndexedCollection[*Quote]) *Collection {
+	return &Collection{
+		collection: collection,
+		seen:       make(map[string]map[bson.ObjectId]bool),
 	}
-	qc.Init(db.Bolt.Indexed(), COLLECTION, nil)
-	if err := qc.Fsck(&Quote{}); err != nil {
-		logging.Fatal("quotes fsck failed: %v", err)
-	}
-	return qc
+}
+
+func (qc *Collection) Next(key db.Key, set ...int) (int, error) {
+	return qc.collection.Next(key, set...)
 }
 
 func (qc *Collection) GetByQID(qid int) *Quote {
 	res := &Quote{QID: qid}
-	if err := qc.Get(res.byQID(), res); err != nil || res.Quote == "" {
+	quote, err := qc.collection.Get(res.byQID())
+	if err != nil || quote == nil {
 		return nil
 	}
-	return res
+	return quote
 }
 
 func (qc *Collection) NewQID() (int, error) {
@@ -74,27 +80,21 @@ func (qc *Collection) NewQID() (int, error) {
 }
 
 func (qc *Collection) GetPseudoRand(regex string) *Quote {
-	quotes := Quotes{}
-	if regex == "" {
-		if err := qc.All(db.K{}, &quotes); err != nil {
-			logging.Warn("Quote All() failed: %s", err)
-			return nil
-		}
-	} else {
-		if err := qc.Match("Quote", regex, &quotes); err != nil {
-			logging.Warn("Quote Match(%q) failed: %s", regex, err)
-			return nil
-		}
+	rx := regexp.MustCompile("(?i)" + regex)
+	quotes, err := qc.collection.Match(func(q *Quote) bool {
+		return rx.MatchString(q.Quote)
+	})
+	if err != nil {
+		logging.Warn("Quote Match() failed: %s", err)
+		return nil
 	}
-
 	filtered := Quotes{}
 	ids, ok := qc.seen[regex]
 	if ok && len(ids) > 0 {
-		logging.Debug("Looked for quotes matching %q before, %d stored id's",
-			regex, len(ids))
-		for _, quote := range quotes {
-			if !ids[quote.Id_] {
-				filtered = append(filtered, quote)
+		logging.Debug("Seen '%s' before, %d stored id's", regex, len(ids))
+		for _, q := range quotes {
+			if !ids[q.Id_] {
+				filtered = append(filtered, q)
 			}
 		}
 	} else {
@@ -105,25 +105,30 @@ func (qc *Collection) GetPseudoRand(regex string) *Quote {
 	switch count {
 	case 0:
 		if ok {
-			// Looked for this regex before, but nothing matches now
 			delete(qc.seen, regex)
 		}
 		return nil
 	case 1:
 		if ok {
-			// if the count of results is 1 and we're storing seen data for regex
-			// then we've exhausted the possible results and should wipe it
+			logging.Debug("Zeroing seen data for key '%s'.", regex)
 			delete(qc.seen, regex)
 		}
 		return filtered[0]
 	}
-	// case count > 1, effectively
-	// only store seen for regex that match more than one quote
 	if !ok {
-		qc.seen[regex] = map[bson.ObjectId]bool{}
+		logging.Debug("Creating seen data for key '%s'.", regex)
+		qc.seen[regex] = make(map[bson.ObjectId]bool)
 	}
 	res := filtered[rand.Intn(count)]
-	logging.Debug("Storing id %v for regex %q.", res.Id_, regex)
+	logging.Debug("Storing id %v for key '%s'.", res.Id_, regex)
 	qc.seen[regex][res.Id_] = true
 	return res
+}
+
+func (qc *Collection) Put(value *Quote) error {
+	return qc.collection.Put(value)
+}
+
+func (qc *Collection) Del(value *Quote) error {
+	return qc.collection.Del(value)
 }

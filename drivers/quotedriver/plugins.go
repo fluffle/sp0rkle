@@ -8,15 +8,15 @@ import (
 	"github.com/fluffle/sp0rkle/util"
 )
 
-func quotePlugin(in string, ctx *bot.Context) string {
+func (d *Driver) quotePlugin(in string, ctx *bot.Context) string {
 	f := func(s string) string {
 		var quote *quotes.Quote
-		if s[0] == '#' {
+		if len(s) > 0 && s[0] == '#' {
 			if qid, err := strconv.Atoi(s[1:]); err == nil {
-				quote = qc.GetByQID(qid)
+				quote = d.qc.GetByQID(qid)
 			}
 		} else {
-			quote = qc.GetPseudoRand(s)
+			quote = d.qc.GetPseudoRand(s)
 		}
 		if quote == nil {
 			return "<plugin error>"
