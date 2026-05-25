@@ -6,9 +6,9 @@ import (
 	chain "github.com/fluffle/sp0rkle/util/markov"
 )
 
-func insultPlugin(in string, ctx *bot.Context) string {
+func (d *Driver) insultPlugin(in string, ctx *bot.Context) string {
 	f := func(string) string {
-		source := mc.Source("tag:insult")
+		source := d.mc.Source("tag:insult")
 		if insult, err := chain.Sentence(source); err == nil {
 			return insult
 		}

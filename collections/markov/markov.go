@@ -6,7 +6,6 @@ import (
 	"strings"
 
 	"github.com/fluffle/golog/logging"
-	"github.com/fluffle/sp0rkle/db"
 	"github.com/fluffle/sp0rkle/util"
 	"github.com/fluffle/sp0rkle/util/markov"
 	"go.etcd.io/bbolt"
@@ -24,10 +23,9 @@ type Collection struct {
 	bolt *bbolt.DB
 }
 
-// Wrapper to get hold of a factoid collection handle
-func Init() *Collection {
-	mc := &Collection{}
-	mc.bolt = db.Bolt.DB()
+// Wrapper to get hold of a markov collection handle
+func New(db *bbolt.DB) *Collection {
+	mc := &Collection{bolt: db}
 
 	err := mc.bolt.Update(func(tx *bbolt.Tx) error {
 		_, err := tx.CreateBucketIfNotExists([]byte(COLLECTION))

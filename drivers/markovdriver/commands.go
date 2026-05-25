@@ -4,26 +4,25 @@ import (
 	"strings"
 
 	"github.com/fluffle/sp0rkle/bot"
-	"github.com/fluffle/sp0rkle/collections/conf"
 	chain "github.com/fluffle/sp0rkle/util/markov"
 )
 
-func enableMarkov(ctx *bot.Context) {
-	conf.Ns(markovNs).String(strings.ToLower(ctx.Nick), "markov")
+func (d *Driver) enableMarkov(ctx *bot.Context) {
+	d.confNs.String(strings.ToLower(ctx.Nick), "markov")
 	ctx.ReplyN("I'll markov you like I markov'd your mum last night.")
 }
 
-func disableMarkov(ctx *bot.Context) {
+func (d *Driver) disableMarkov(ctx *bot.Context) {
 	key := strings.ToLower(ctx.Nick)
-	conf.Ns(markovNs).Delete(key)
-	if err := mc.ClearTag("user:" + key); err != nil {
+	d.confNs.Delete(key)
+	if err := d.mc.ClearTag("user:" + key); err != nil {
 		ctx.ReplyN("Failed to clear tag: %s", err)
 		return
 	}
 	ctx.ReplyN("Sure, bro, I'll stop.")
 }
 
-func randomCmd(ctx *bot.Context) {
+func (d *Driver) randomCmd(ctx *bot.Context) {
 	if len(ctx.Text()) == 0 {
 		ctx.ReplyN("Be who? Your mum?")
 		return
@@ -33,7 +32,7 @@ func randomCmd(ctx *bot.Context) {
 		ctx.ReplyN("Ha, you're funny. No, wait. Retarded... I meant retarded.")
 		return
 	}
-	if !shouldMarkov(whom) {
+	if !d.shouldMarkov(whom) {
 		if whom == strings.ToLower(ctx.Nick) {
 			ctx.ReplyN("You're not recording markov data. " +
 				"Use 'markov me' to enable collection.")
@@ -42,7 +41,7 @@ func randomCmd(ctx *bot.Context) {
 		}
 		return
 	}
-	source := mc.Source("user:" + whom)
+	source := d.mc.Source("user:" + whom)
 	if out, err := chain.Sentence(source); err == nil {
 		ctx.Reply("%s would say: %s", ctx.Text(), out)
 	} else {
@@ -50,8 +49,8 @@ func randomCmd(ctx *bot.Context) {
 	}
 }
 
-func insult(ctx *bot.Context) {
-	source := mc.Source("tag:insult")
+func (d *Driver) insult(ctx *bot.Context) {
+	source := d.mc.Source("tag:insult")
 	whom, lc := ctx.Text(), strings.ToLower(ctx.Text())
 	if lc == strings.ToLower(ctx.Me()) || lc == "yourself" {
 		ctx.ReplyN("Ha, you're funny. No, wait. Retarded... I meant retarded.")
@@ -71,7 +70,7 @@ func insult(ctx *bot.Context) {
 	}
 }
 
-func learn(ctx *bot.Context) {
+func (d *Driver) learn(ctx *bot.Context) {
 	s := strings.SplitN(ctx.Text(), " ", 2)
 	if len(s) != 2 {
 		ctx.ReplyN("I can't learn from you, you're an idiot.")
@@ -79,7 +78,7 @@ func learn(ctx *bot.Context) {
 	}
 
 	// Prepending "tag:" prevents people from learning as "user:foo".
-	mc.AddSentence(s[1], "tag:"+s[0])
+	d.mc.AddSentence(s[1], "tag:"+s[0])
 	if ctx.Public() {
 		// Allow large-scale learning via privmsg by not replying there.
 		ctx.ReplyN("Ta. You're a fount of knowledge, you are.")
