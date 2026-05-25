@@ -6,19 +6,19 @@ import (
 	"github.com/fluffle/sp0rkle/bot"
 )
 
-func load(ctx *bot.Context) {
+func (d *Driver) load(ctx *bot.Context) {
 	// We're connected to IRC, so load saved reminders
-	r := rc.LoadAndPrune()
+	r := d.rc.LoadAndPrune()
 	for i := range r {
 		if r[i] == nil {
 			logging.Warn("Nil reminder %d from LoadAndPrune", i)
 			continue
 		}
-		Remind(r[i], ctx)
+		d.Remind(r[i], ctx)
 	}
 }
 
-func unload(ctx *bot.Context) {
+func (d *Driver) unload(ctx *bot.Context) {
 	// We've been disconnected from IRC: stop all remind goroutines
 	// since they will be restarted when we reconnect.
 	for id, cancel := range running {
@@ -27,13 +27,13 @@ func unload(ctx *bot.Context) {
 	}
 }
 
-func tellCheck(ctx *bot.Context) {
+func (d *Driver) tellCheck(ctx *bot.Context) {
 	nick := ctx.Nick
 	if ctx.Cmd == client.NICK {
 		// We want the destination nick, not the source.
 		nick = ctx.Target()
 	}
-	r := rc.TellsFor(nick)
+	r := d.rc.TellsFor(nick)
 	for i := range r {
 		if ctx.Cmd == client.NICK {
 			if r[i].Chan != "" {
@@ -46,7 +46,7 @@ func tellCheck(ctx *bot.Context) {
 				ctx.ReplyN("%s", r[i].Reply())
 			}
 		}
-		rc.Del(r[i])
+		d.rc.Del(r[i])
 	}
 	if len(r) > 0 {
 		delete(listed, ctx.Nick)

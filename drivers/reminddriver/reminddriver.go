@@ -9,15 +9,21 @@ import (
 	"github.com/fluffle/goirc/client"
 	"github.com/fluffle/golog/logging"
 	"github.com/fluffle/sp0rkle/bot"
+	"github.com/fluffle/sp0rkle/db/conf"
 	"github.com/fluffle/sp0rkle/collections/pushes"
 	"github.com/fluffle/sp0rkle/collections/reminders"
-	"github.com/fluffle/sp0rkle/util/push"
 	"github.com/fluffle/sp0rkle/util/bson"
+	"github.com/fluffle/sp0rkle/util/datetime"
+	"github.com/fluffle/sp0rkle/util/push"
 )
 
-// We use the reminders collection
-var rc *reminders.Collection
-var pc *pushes.Collection
+type Driver struct {
+	ctx    context.Context
+	rc     *reminders.Collection
+	pc     *pushes.Collection
+	tzNs   conf.Namespace
+}
+
 
 // We need to be able to kill reminder goroutines
 var running = map[bson.ObjectId]context.CancelFunc{}
@@ -28,42 +34,53 @@ var finished = map[string]*reminders.Reminder{}
 // And it's useful to index them for deletion per-person
 var listed = map[string][]bson.ObjectId{}
 
-func Init() {
-	rc = reminders.Init()
+func (d *Driver) Zone(nick string, tz ...string) string {
+	nick = strings.ToLower(nick)
+	if len(tz) > 0 && tz[0] == "" {
+		d.tzNs.Delete(nick)
+		return ""
+	}
+	return d.tzNs.String(nick, tz...)
+}
+
+func New(b *bot.Bot, rc *reminders.Collection, pc *pushes.Collection, config *conf.Registry) *Driver {
+	d := &Driver{ctx: b.Ctx(), rc: rc, pc: pc, tzNs: config.Ns(datetime.ZoneNs)}
+	
 	if push.Enabled() {
-		pc = pushes.Init()
+		d.pc = pc
 	}
 
 	// Set up the handlers and commands.
-	bot.Handle(load, client.CONNECTED)
-	bot.Handle(unload, client.DISCONNECTED)
-	bot.Handle(tellCheck,
-		client.PRIVMSG, client.ACTION, client.JOIN, client.NICK)
+	b.Handle(d.load, client.CONNECTED)
+	b.Handle(d.unload, client.DISCONNECTED)
+	b.Handle(d.tellCheck, client.PRIVMSG, client.ACTION, client.JOIN, client.NICK)
 
-	bot.Command(tell, "tell", "tell <nick> <msg>  -- "+
+	b.Command(d.tell, "tell", "tell <nick> <msg>  -- "+
 		"Stores a message for the (absent) nick.")
-	bot.Command(tell, "ask", "ask <nick> <msg>  -- "+
+	b.Command(d.tell, "ask", "ask <nick> <msg>  -- "+
 		"Stores a message for the (absent) nick.")
-	bot.Command(list, "remind list",
+	b.Command(d.list, "remind list",
 		"remind list  -- Lists reminders set by or for your nick.")
-	bot.Command(del, "remind del",
+	b.Command(d.del, "remind del",
 		"remind del <N>  -- Deletes (previously listed) reminder N.")
-	bot.Command(set, "remind", "remind <nick> <msg> "+
+	b.Command(d.set, "remind", "remind <nick> <msg> "+
 		"in|at|on <time>  -- Reminds nick about msg at time.")
-	bot.Command(snooze, "snooze", "snooze [duration]  -- "+
+	b.Command(d.snooze, "snooze", "snooze [duration]  -- "+
 		"Resets the previously-triggered reminder.")
-	bot.Command(zone, "my timezone is", "my timezone is <zone>  -- "+
+	b.Command(d.zone, "my timezone is", "my timezone is <zone>  -- "+
 		"Sets a local timezone for your nick.")
-	bot.Command(unzone, "forget my timezone", "forget my timezone  -- "+
+	b.Command(d.unzone, "forget my timezone", "forget my timezone  -- "+
 		"Unsets a local timezone for your nick.")
+
+	return d
 }
 
-func Remind(r *reminders.Reminder, ctx *bot.Context) {
+func (d *Driver) Remind(r *reminders.Reminder, ctx *bot.Context) {
 	delta := r.RemindAt.Sub(time.Now())
 	if delta < 0 {
 		return
 	}
-	c, cancel := context.WithDeadline(bot.Ctx(), r.RemindAt)
+	c, cancel := context.WithDeadline(d.ctx, r.RemindAt)
 	running[r.Id()] = cancel
 	go func() {
 		<-c.Done()
@@ -73,17 +90,17 @@ func Remind(r *reminders.Reminder, ctx *bot.Context) {
 			ctx.Privmsg(string(r.Target), r.Reply())
 			// This is used in snooze to reinstate reminders.
 			finished[strings.ToLower(string(r.Target))] = r
-			if pc != nil {
-				if s := pc.GetByNick(string(r.Target), true); s.CanPush() {
+			if d.pc != nil {
+				if s := d.pc.GetByNick(string(r.Target), true); s.CanPush() {
 					push.Push(s, "Reminder from sp0rkle!", r.Reply())
 				}
 			}
-			Forget(r.Id(), false)
+			d.Forget(r.Id(), false)
 		}
 	}()
 }
 
-func Forget(id bson.ObjectId, stop bool) {
+func (d *Driver) Forget(id bson.ObjectId, stop bool) {
 	cancel, ok := running[id]
 	if ok {
 		// If it's *not* in running, it's probably a Tell.
@@ -92,11 +109,11 @@ func Forget(id bson.ObjectId, stop bool) {
 			cancel()
 		}
 	}
-	r := rc.GetById(id)
+	r := d.rc.GetById(id)
 	if r == nil {
 		return
 	}
-	if err := rc.Del(r); err != nil {
+	if err := d.rc.Del(r); err != nil {
 		logging.Error("Failure removing reminder %s: %v", id, err)
 	}
 }

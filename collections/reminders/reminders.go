@@ -2,7 +2,7 @@ package reminders
 
 import (
 	"fmt"
-	"sort"
+	"slices"
 	"strings"
 	"time"
 
@@ -153,45 +153,38 @@ func (r *Reminder) List(nick string) (s string) {
 	return
 }
 
-type Reminders []*Reminder
+func (r *Reminder) CollectionName() string { return "reminders" }
 
-func (rs Reminders) sortByRemindAt() {
-	sort.Slice(rs, func(i, j int) bool {
-		return rs[i].RemindAt.Before(rs[j].RemindAt)
-	})
+func byRemindAt(a, b *Reminder) int {
+	return a.RemindAt.Compare(b.RemindAt)
 }
 
 type Collection struct {
-	db.C
+	collection db.IndexedCollection[*Reminder]
 }
 
-func Init() *Collection {
-	rc := &Collection{}
-	rc.Init(db.Bolt.Indexed(), COLLECTION, nil)
-	if err := rc.Fsck(&Reminder{}); err != nil {
-		logging.Fatal("remind fsck: %v", err)
-	}
-	return rc
+func New(collection db.IndexedCollection[*Reminder]) *Collection {
+	return &Collection{collection: collection}
 }
 
 func (rc *Collection) GetById(id bson.ObjectId) *Reminder {
-	r := &Reminder{Id_: id}
-	if err := rc.Get(r.byId(), r); err != nil {
+	r, err := rc.collection.Get(db.K{db.ID{id}})
+	if err != nil {
 		logging.Error("Reminder GetById(%s) failed: %v", id, err)
 		return nil
 	}
 	return r
 }
 
-func (rc *Collection) LoadAndPrune() Reminders {
-	var all Reminders
-	if err := rc.All(db.K{db.T{"tell", false}}, &all); err != nil {
+func (rc *Collection) LoadAndPrune() []*Reminder {
+	all, err := rc.collection.All(db.K{db.T{"tell", false}})
+	if err != nil {
 		logging.Error("Loading all reminders: %v", err)
 		return nil
 	}
-	all.sortByRemindAt()
+	slices.SortFunc(all, byRemindAt)
 	now := time.Now()
-	var last int
+	last := -1
 	for i, r := range all {
 		if r.RemindAt.After(now) {
 			last = i
@@ -199,9 +192,14 @@ func (rc *Collection) LoadAndPrune() Reminders {
 		}
 	}
 
+	// If no future reminder was found, all reminders are expired
+	if last == -1 && len(all) > 0 {
+		last = len(all)
+	}
+
 	if last > 0 {
 		for _, r := range all[:last] {
-			if err := rc.Del(r); err != nil {
+			if err := rc.collection.Del(r); err != nil {
 				logging.Error("Deleting expired reminder %v (expiry %s): %v", r.Id_, r.At(), err)
 			}
 		}
@@ -211,34 +209,44 @@ func (rc *Collection) LoadAndPrune() Reminders {
 	return all
 }
 
-func (rc *Collection) RemindersFor(nick string) Reminders {
+func (rc *Collection) RemindersFor(nick string) []*Reminder {
+	// Note: remindFrom and remindTo queries both filter by Tell=false,
+	// so tells are excluded from the results. The dedup below only removes
+	// reminders where the sender and receiver are the same nick.
 	nick = strings.ToLower(nick)
-	var from, to Reminders
-	if err := rc.All(remindFrom(nick), &from); err != nil {
+	from, err := rc.collection.All(remindFrom(nick))
+	if err != nil {
 		logging.Error("Loading reminders from %s returned error: %v", nick, err)
 	}
-	if err := rc.All(remindTo(nick), &to); err != nil {
+	to, err := rc.collection.All(remindTo(nick))
+	if err != nil {
 		logging.Error("Loading reminders to %s returned error: %v", nick, err)
 	}
 	if len(from) == 0 && len(to) == 0 {
 		return nil
 	}
-	// A reminder that is both from nick and to nick will appear in
-	// both lists, so we can't just append one to the other...
 	for _, r := range to {
 		if r.From != nick {
 			from = append(from, r)
 		}
 	}
-	from.sortByRemindAt()
+	slices.SortFunc(from, byRemindAt)
 	return from
 }
 
-func (rc *Collection) TellsFor(nick string) Reminders {
-	var tells Reminders
-	if err := rc.All(tellTo(strings.ToLower(nick)), &tells); err != nil {
+func (rc *Collection) TellsFor(nick string) []*Reminder {
+	tells, err := rc.collection.All(tellTo(strings.ToLower(nick)))
+	if err != nil {
 		logging.Error("Loading tells for %s returned error: %v", nick, err)
 		return nil
 	}
 	return tells
+}
+
+func (rc *Collection) Put(value *Reminder) error {
+	return rc.collection.Put(value)
+}
+
+func (rc *Collection) Del(value *Reminder) error {
+	return rc.collection.Del(value)
 }

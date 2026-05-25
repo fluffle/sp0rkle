@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/fluffle/sp0rkle/bot"
-	"github.com/fluffle/sp0rkle/collections/conf"
 	"github.com/fluffle/sp0rkle/collections/reminders"
 	"github.com/fluffle/sp0rkle/util"
 	"github.com/fluffle/sp0rkle/util/datetime"
@@ -16,7 +15,7 @@ import (
 )
 
 // remind del
-func del(ctx *bot.Context) {
+func (d *Driver) del(ctx *bot.Context) {
 	list, ok := listed[ctx.Nick]
 	if !ok {
 		ctx.ReplyN("Please use 'remind list' first, " +
@@ -29,14 +28,14 @@ func del(ctx *bot.Context) {
 		return
 	}
 	idx--
-	Forget(list[idx], true)
+	d.Forget(list[idx], true)
 	delete(listed, ctx.Nick)
 	ctx.ReplyN("I'll forget that one, then...")
 }
 
 // remind list
-func list(ctx *bot.Context) {
-	r := rc.RemindersFor(ctx.Nick)
+func (d *Driver) list(ctx *bot.Context) {
+	r := d.rc.RemindersFor(ctx.Nick)
 	c := len(r)
 	if c == 0 {
 		ctx.ReplyN("You have no reminders set.")
@@ -58,7 +57,7 @@ func list(ctx *bot.Context) {
 
 
 // remind
-func set(ctx *bot.Context) {
+func (d *Driver) set(ctx *bot.Context) {
 	if strings.TrimSpace(ctx.Text()) == "" {
 		ctx.ReplyN("... forget something?")
 		return
@@ -70,7 +69,7 @@ func set(ctx *bot.Context) {
 		return
 	}
 	// Look up a per-user timezone if one is set.
-	z := datetime.ZoneOrLocal(conf.Zone(ctx.Nick))
+	z := datetime.ZoneOrLocal(d.Zone(ctx.Nick))
 	// Parse the reminder time from the input.
 	at, err, reminder, timestr := time.Now(), error(nil), "", ""
 	for i := 1; i+1 < len(s); i++ {
@@ -115,25 +114,25 @@ func set(ctx *bot.Context) {
 		t = n
 	}
 	r := reminders.NewReminder(reminder, at, t, n, c)
-	if err := rc.Put(r); err != nil {
+	if err := d.rc.Put(r); err != nil {
 		ctx.ReplyN("Error saving reminder: %v", err)
 		return
 	}
 	// Any previously-generated list of reminders is now obsolete.
 	delete(listed, ctx.Nick)
 	ctx.ReplyN("%s", r.Acknowledge())
-	Remind(r, ctx)
+	d.Remind(r, ctx)
 }
 
 // snooze
-func snooze(ctx *bot.Context) {
+func (d *Driver) snooze(ctx *bot.Context) {
 	r, ok := finished[strings.ToLower(ctx.Nick)]
 	if !ok {
 		ctx.ReplyN("No record of an expired reminder for you, sorry!")
 		return
 	}
 	// Look up a per-user timezone if one is set.
-	z := datetime.ZoneOrLocal(conf.Zone(ctx.Nick))
+	z := datetime.ZoneOrLocal(d.Zone(ctx.Nick))
 	now := time.Now().In(z)
 	at := now.Add(30 * time.Minute)
 	if ctx.Text() != "" {
@@ -150,17 +149,17 @@ func snooze(ctx *bot.Context) {
 	}
 	r.Created = now
 	r.RemindAt = at
-	if err := rc.Put(r); err != nil {
+	if err := d.rc.Put(r); err != nil {
 		ctx.ReplyN("Error saving reminder: %v", err)
 		return
 	}
 	delete(listed, ctx.Nick)
 	ctx.ReplyN("%s", r.Acknowledge())
-	Remind(r, ctx)
+	d.Remind(r, ctx)
 }
 
 // tell
-func tell(ctx *bot.Context) {
+func (d *Driver) tell(ctx *bot.Context) {
 	// s == <target> <stuff>
 	txt := ctx.Text()
 	idx := strings.Index(txt, " ")
@@ -177,12 +176,12 @@ func tell(ctx *bot.Context) {
 		return
 	}
 	r := reminders.NewTell(tell, t, n, c)
-	if err := rc.Put(r); err != nil {
+	if err := d.rc.Put(r); err != nil {
 		ctx.ReplyN("Error saving tell: %v", err)
 		return
 	}
-	if pc != nil {
-		if s := pc.GetByNick(txt[:idx], true); s.CanPush() {
+	if d.pc != nil {
+		if s := d.pc.GetByNick(txt[:idx], true); s.CanPush() {
 			push.Push(s, fmt.Sprintf("%s in %s asked me to tell you:",
 				ctx.Nick, ctx.Target()), tell)
 		}
@@ -193,14 +192,14 @@ func tell(ctx *bot.Context) {
 }
 
 // zone
-func zone(ctx *bot.Context) {
+func (d *Driver) zone(ctx *bot.Context) {
 	fields := strings.Fields(ctx.Text())
 	if len(fields) == 0 {
 		ctx.ReplyN("Your timezone is ... fat? Like your mum?")
 		return
 	}
 	if z := datetime.Zone(fields[0]); z != nil {
-		conf.Zone(ctx.Nick, fields[0])
+		d.Zone(ctx.Nick, fields[0])
 		ctx.ReplyN("Reminders will now be in %q.", z)
 	} else {
 		ctx.ReplyN("Don't recognise %q as a valid timezone, sorry.", fields[0])
@@ -208,7 +207,7 @@ func zone(ctx *bot.Context) {
 }
 
 // unzone
-func unzone(ctx *bot.Context) {
-	conf.Zone(ctx.Nick, "")
+func (d *Driver) unzone(ctx *bot.Context) {
+	d.Zone(ctx.Nick, "")
 	ctx.ReplyN("I've forgotten where you live... honest!")
 }
