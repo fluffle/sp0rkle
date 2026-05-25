@@ -6,46 +6,44 @@ import (
 )
 
 type Namespace interface {
-	All() Entries
 	String(key string, value ...string) string
 	Int(key string, value ...int) int
 	Float(key string, value ...float64) float64
-	Value(key string, value ...any) any
 	Delete(key string)
 }
 
 type namespace struct {
-	db.Collection
-	ns string
+	collection db.KeyedCollection[*Entry]
+	ns         string
 }
 
 func (ns *namespace) K() db.Key {
 	return db.K{db.S{"ns", ns.ns}}
 }
 
+func (ns *namespace) CollectionName() string { return "conf" }
+
 var _ db.Keyer = (*namespace)(nil)
 
 func (ns *namespace) set(key string, value any) {
 	e := &Entry{Ns: ns.ns, Key: key, Value: value}
-	if err := ns.Put(e); err != nil {
+	if err := ns.collection.Put(e); err != nil {
 		logging.Error("Couldn't set config entry %q: %v", e, err)
 	}
 }
 
 func (ns *namespace) get(key string) any {
 	e := &Entry{Ns: ns.ns, Key: key}
-	if err := ns.Get(e.K(), e); err != nil {
+	e, err := ns.collection.Get(e.K())
+	if err != nil {
+		logging.Error("Couldn't get config entry %q: %v", e, err)
+		return nil
+	}
+	if e == nil {
+		// key not found
 		return nil
 	}
 	return e.Value
-}
-
-func (ns *namespace) All() Entries {
-	var e Entries
-	if err := ns.Collection.All(ns.K(), &e); err == nil {
-		return e
-	}
-	return Entries{}
 }
 
 func (ns *namespace) String(key string, value ...string) string {
@@ -81,14 +79,6 @@ func (ns *namespace) Float(key string, value ...float64) float64 {
 	return 0
 }
 
-func (ns *namespace) Value(key string, value ...any) any {
-	if len(value) > 0 {
-		ns.set(key, value[0])
-		return value[0]
-	}
-	return ns.get(key)
-}
-
 func (ns *namespace) Delete(key string) {
-	ns.Del(&Entry{Ns: ns.ns, Key: key})
+	ns.collection.Del(&Entry{Ns: ns.ns, Key: key})
 }

@@ -7,6 +7,8 @@ import (
 
 const TimeFormat = "15:04:05, Monday 2 January 2006 MST"
 
+const ZoneNs = "timezones"
+
 type tokenMap interface {
 	Lookup(input string, lval *yySymType) (tokenType int, ok bool)
 }
@@ -21,6 +23,7 @@ var wordTokenMap = wordMap{
 	"ON":  T_IGNORE,
 	// Ambiguity problems: 2nd vs. the time unit
 	"SECOND": T_SECOND,
+	"SECONDS": T_SECOND,
 }
 
 func (wtm wordMap) Lookup(input string, lval *yySymType) (int, bool) {
