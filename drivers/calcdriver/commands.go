@@ -9,14 +9,13 @@ import (
 	"unicode/utf8"
 
 	"github.com/fluffle/sp0rkle/bot"
-	"github.com/fluffle/sp0rkle/collections/conf"
 	"github.com/fluffle/sp0rkle/util/calc"
 	"github.com/fluffle/sp0rkle/util/datetime"
 )
 
 var results = map[string]float64{}
 
-func calculate(ctx *bot.Context) {
+func (d *Driver) calculate(ctx *bot.Context) {
 	nick := strings.ToLower(ctx.Nick)
 	maths := ctx.Text()
 	tm := calc.TokenMap{}
@@ -31,14 +30,14 @@ func calculate(ctx *bot.Context) {
 	}
 }
 
-func date(ctx *bot.Context) {
+func (d *Driver) date(ctx *bot.Context) {
 	tstr, zstr := ctx.Text(), ""
 	if idx := strings.Index(tstr, "in "); idx != -1 {
 		tstr, zstr = tstr[:idx], strings.TrimSpace(tstr[idx+3:])
 	}
 	zone := datetime.Zone(zstr)
 	if zone == nil {
-		zone = datetime.ZoneOrLocal(conf.Zone(ctx.Nick))
+		zone = datetime.ZoneOrLocal(d.Zone(ctx.Nick))
 	}
 	tm := time.Now().In(zone)
 	if tstr != "" {
@@ -51,7 +50,7 @@ func date(ctx *bot.Context) {
 	ctx.ReplyN("%s", datetime.Format(tm))
 }
 
-func netmask(ctx *bot.Context) {
+func (d *Driver) netmask(ctx *bot.Context) {
 	s := strings.Split(ctx.Text(), " ")
 	if len(s) == 1 && strings.Index(s[0], "/") != -1 {
 		// Assume we have netmask ip/cidr
@@ -120,7 +119,7 @@ func parseMask(ips, nms string) string {
 		ip, cidr, btm, top, nmip)
 }
 
-func chr(ctx *bot.Context) {
+func (d *Driver) chr(ctx *bot.Context) {
 	chr := strings.ToLower(ctx.Text())
 	if strings.HasPrefix(chr, "u+") {
 		// Allow "unicode" syntax by translating it to 0x...
@@ -144,7 +143,7 @@ func chr(ctx *bot.Context) {
 	ctx.ReplyN("chr(%s) is %s, %U, '%s'", chr, str, i, utf8repr(rune(i)))
 }
 
-func ord(ctx *bot.Context) {
+func (d *Driver) ord(ctx *bot.Context) {
 	ord := ctx.Text()
 	r, _ := utf8.DecodeRuneInString(ord)
 	if r == utf8.RuneError {
@@ -164,7 +163,7 @@ func utf8repr(r rune) string {
 	return strings.Join(s, " ")
 }
 
-func convertBase(ctx *bot.Context) {
+func (d *Driver) convertBase(ctx *bot.Context) {
 	s := strings.Split(ctx.Text(), " ")
 	fromto := strings.Split(s[0], "to")
 	if len(fromto) != 2 {
@@ -190,7 +189,7 @@ func convertBase(ctx *bot.Context) {
 
 }
 
-func length(ctx *bot.Context) {
+func (d *Driver) length(ctx *bot.Context) {
 	if len(strings.TrimSpace(ctx.Text())) == 0 {
 		ctx.ReplyN("'' is still longer than your penis, innit.")
 		return
