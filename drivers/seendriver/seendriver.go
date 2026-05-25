@@ -38,25 +38,29 @@ func init() {
 	}
 }
 
-var sc *seen.Collection
+type Driver struct {
+	sc *seen.Collection
+}
 
-func Init() {
-	sc = seen.Init()
+func New(b *bot.Bot, sc *seen.Collection) *Driver {
+	d := &Driver{sc: sc}
 
-	bot.Handle(smoke, client.PRIVMSG, client.ACTION)
-	bot.Handle(recordPrivmsg, client.PRIVMSG, client.ACTION)
-	bot.Handle(recordJoin, client.JOIN, client.PART)
-	bot.Handle(recordNick, client.NICK, client.QUIT)
-	bot.Handle(recordKick, client.KICK)
+	b.Handle(d.smoke, client.PRIVMSG, client.ACTION)
+	b.Handle(d.recordPrivmsg, client.PRIVMSG, client.ACTION)
+	b.Handle(d.recordJoin, client.JOIN, client.PART)
+	b.Handle(d.recordNick, client.NICK, client.QUIT)
+	b.Handle(d.recordKick, client.KICK)
 
-	bot.Command(seenCmd, "seen", "seen <nick> [action]  -- "+
+	b.Command(d.seenCmd, "seen", "seen <nick> [action]  -- "+
 		"display the last time <nick> was seen on IRC [doing action]")
+
+	return d
 }
 
 // Look up or create a "seen" entry for the line.
 // Explicitly don't handle updating line.Text or line.OtherNick
-func seenNickFromLine(ctx *bot.Context) *seen.Nick {
-	sn := sc.LastSeenDoing(ctx.Nick, ctx.Cmd)
+func (d *Driver) seenNickFromLine(ctx *bot.Context) *seen.Nick {
+	sn := d.sc.LastSeenDoing(ctx.Nick, ctx.Cmd)
 	n, c := ctx.Storable()
 	if sn == nil {
 		sn = seen.SawNick(n, c, ctx.Cmd, "")

@@ -7,24 +7,24 @@ import (
 	"github.com/fluffle/sp0rkle/bot"
 )
 
-func seenCmd(ctx *bot.Context) {
+func (d *Driver) seenCmd(ctx *bot.Context) {
 	s := strings.Fields(ctx.Text())
 	if len(s) == 2 {
 		// Assume we have "seen <nick> <action>"
-		if n := sc.LastSeenDoing(s[0], strings.ToUpper(s[1])); n != nil {
+		if n := d.sc.LastSeenDoing(s[0], strings.ToUpper(s[1])); n != nil {
 			ctx.ReplyN("%s", n)
 			return
 		}
 	}
 	// Not specifically asking for that action, or no matching action.
-	if n := sc.LastSeen(s[0]); n != nil {
+	if n := d.sc.LastSeen(s[0]); n != nil {
 		ctx.ReplyN("%s", n)
 		return
 	}
 	// No exact matches for nick found, look for possible partial matches.
-	if m := sc.SeenAnyMatching(s[0]); len(m) > 0 {
+	if m := d.sc.SeenAnyMatching(s[0]); len(m) > 0 {
 		if len(m) == 1 {
-			if n := sc.LastSeen(m[0]); n != nil {
+			if n := d.sc.LastSeen(m[0]); n != nil {
 				ctx.ReplyN("1 possible match: %s", n)
 			}
 		} else if len(m) > 10 {

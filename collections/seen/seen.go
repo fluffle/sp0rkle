@@ -2,10 +2,10 @@ package seen
 
 import (
 	"fmt"
-	"sort"
+	"regexp"
+	"slices"
 	"time"
 
-	"github.com/fluffle/golog/logging"
 	"github.com/fluffle/sp0rkle/bot"
 	"github.com/fluffle/sp0rkle/db"
 	"github.com/fluffle/sp0rkle/util"
@@ -120,41 +120,18 @@ func (n *Nick) byNickAction() db.K {
 	return db.K{db.S{"nick", n.Nick.Lower()}, db.S{"action", n.Action}}
 }
 
-type Nicks []*Nick
+func (n *Nick) CollectionName() string { return "seen" }
 
-func (ns Nicks) Strings() []string {
-	s := make([]string, len(ns))
-	for i, n := range ns {
-		s[i] = fmt.Sprintf("%#v", n)
-	}
-	return s
+func byTimestamp(a, b *Nick) int {
+	return a.Timestamp.Compare(b.Timestamp)
 }
-
-// Implement sort.Interface to sort by descending timestamp.
-func (ns Nicks) Len() int           { return len(ns) }
-func (ns Nicks) Swap(i, j int)      { ns[i], ns[j] = ns[j], ns[i] }
-func (ns Nicks) Less(i, j int) bool { return ns[i].Timestamp.After(ns[j].Timestamp) }
 
 type Collection struct {
-	db.C
+	collection db.IndexedCollection[*Nick]
 }
 
-func Init() *Collection {
-	sc := &Collection{}
-	sc.Init(db.Bolt.Indexed(), COLLECTION, nil)
-
-	// Between July 14-September 14 2024 the live sp0rkle instance was not
-	// correctly cleaning up/replacing seen Nick instances, instead adding
-	// new ones. This has left a bunch of detritus in boltdb, which we can
-	// clear up by enforcing some invariants. Some of this has to happen
-	// within the db layer, some is dependent on invariants inherent to
-	// seen behaviour.
-	// This problem was magnified by bson truncating timestamps to ms
-	// precision, invalidating indexes.
-	if err := sc.Fsck(); err != nil {
-		logging.Fatal("seen fsck failed: %v", err)
-	}
-	return sc
+func New(collection db.IndexedCollection[*Nick]) *Collection {
+	return &Collection{collection: collection}
 }
 
 // actMap keys are Actions
@@ -189,64 +166,58 @@ func (rc *refCheck) Add(n *Nick) {
 	} else {
 		rc.del = append(rc.del, n)
 	}
-	return
 }
 
-func (sc *Collection) Fsck() error {
-	// First, enforce seen-specific invariants on the stored values.
-	var all Nicks
-	if err := sc.All(db.K{}, &all); err != nil {
-		return fmt.Errorf("seen fsck: fetching all: %w", err)
-	}
+func (n *Nick) ValidateValues(all []*Nick) ([]*Nick, error) {
 	rc := &refCheck{}
-	for _, n := range all {
-		rc.Add(n)
+	for _, nick := range all {
+		rc.Add(nick)
 	}
-	if len(rc.del) > 0 {
-		logging.Warn("seen fsck: removing %d of %d nick values", len(rc.del), len(all))
-		for _, n := range rc.del {
-			logging.Debug("seen fsck: deleting %#v", n)
-			sc.Del(n)
-		}
-	}
-	// Once the values are tidied up, ask db to groom indexes.
-	return sc.Collection.Fsck(&Nick{})
+	return rc.del, nil
 }
 
 func (sc *Collection) LastSeen(nick string) *Nick {
-	var bAll Nicks
 	n := &Nick{Nick: bot.Nick(nick)}
-	if err := sc.All(n.byNick(), &bAll); err != nil {
-		logging.Error("LastSeen error: %v", err)
+	nicks, err := sc.collection.All(n.byNick())
+	if err != nil || len(nicks) == 0 {
 		return nil
 	}
-	if len(bAll) == 0 {
-		return nil
-	}
-	return bAll[len(bAll)-1]
+	return nicks[len(nicks)-1]
 }
 
 func (sc *Collection) LastSeenDoing(nick, act string) *Nick {
 	n := &Nick{Nick: bot.Nick(nick), Action: act}
-	if err := sc.Get(n.byNickAction(), n); err == nil && n.Exists() {
-		return n
+	saw, err := sc.collection.Get(n.byNickAction())
+	if err != nil || !saw.Exists() {
+		return nil
 	}
-	return nil
+	return saw
 }
 
 func (sc *Collection) SeenAnyMatching(rx string) []string {
-	var ns Nicks
-	if err := sc.Match("Nick", rx, &ns); err != nil {
+	r := regexp.MustCompile("(?i)" + rx)
+	nicks, err := sc.collection.Match(func(n *Nick) bool {
+		return r.MatchString(string(n.Nick))
+	})
+	if err != nil || len(nicks) == 0 {
 		return nil
 	}
-	sort.Sort(ns)
+	slices.SortFunc(nicks, byTimestamp)
 	seen := make(map[string]bool)
-	res := make([]string, 0, len(ns))
-	for _, n := range ns {
+	res := make([]string, 0, len(nicks))
+	for _, n := range nicks {
 		if !seen[n.Nick.Lower()] {
 			res = append(res, string(n.Nick))
 			seen[n.Nick.Lower()] = true
 		}
 	}
 	return res
+}
+
+func (sc *Collection) Put(value *Nick) error {
+	return sc.collection.Put(value)
+}
+
+func (sc *Collection) Del(value *Nick) error {
+	return sc.collection.Del(value)
 }
