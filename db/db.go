@@ -3,10 +3,8 @@ package db
 import (
 	"bytes"
 	"encoding/binary"
-	"errors"
 	"fmt"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/fluffle/sp0rkle/util/datetime"
@@ -23,78 +21,33 @@ const (
 	FALSE = '\x00'
 )
 
+// collection[T] is the internal generic collection interface.
+// External users should only reference KeyedCollection[T] or IndexedCollection[T].
+type collection[T any] interface {
+	Get(key Key) (T, error)
+	All(key Key) ([]T, error)
+	Match(pred func(T) bool) ([]T, error)
+	Put(value T) error
+	BatchPut(values []T) error
+	Del(value T) error
+	Next(key Key, set ...int) (int, error)
+	Debug(show bool)
+}
+
+// KeyedCollection[T] and IndexedCollection[T] are type aliases that express
+// the constraint on T. They are the only public entry points for external code.
+type KeyedCollection[T Keyer] = collection[T]
+type IndexedCollection[T Indexer] = collection[T]
+
+type ValueValidator[T any] interface {
+	// ValidateValues receives all stored values and returns the subset
+	// that should be deleted. Called on a nil receiver, must not dereference it.
+	ValidateValues(values []T) ([]T, error)
+}
+
 type Database interface {
-	C(name string) Collection
 	Live() bool
-}
-
-type Collection interface {
-	Get(Key, any) error
-	// GetPR(Key, any) error ?
-	Match(string, string, any) error
-	All(Key, any) error
-	Put(any) error
-	BatchPut(any) error
-	Del(any) error
-	Next(Key, ...int) (int, error)
-	// Referential integrity checks are a thing
-	Fsck(any) error
-	// Turn on debugging for this collection.
-	Debug(bool)
-}
-
-type unimplementedCollection struct{}
-
-var UnimplementedErr = errors.New("unimplemented")
-
-func (unimplementedCollection) Get(Key, any) error {
-	return UnimplementedErr
-}
-
-func (unimplementedCollection) Match(string, string, any) error {
-	return UnimplementedErr
-}
-
-func (unimplementedCollection) All(Key, any) error {
-	return UnimplementedErr
-}
-
-func (unimplementedCollection) Put(any) error {
-	return UnimplementedErr
-}
-
-func (unimplementedCollection) BatchPut(any) error {
-	return UnimplementedErr
-}
-
-func (unimplementedCollection) Del(any) error {
-	return UnimplementedErr
-}
-
-func (unimplementedCollection) Next(Key, ...int) (int, error) {
-	return 0, UnimplementedErr
-}
-
-func (unimplementedCollection) Debug(bool) {}
-
-func (unimplementedCollection) Fsck(any) error { return nil }
-
-type C struct {
-	Collection
-	sync.Once
-}
-
-func (c *C) Init(db Database, name string, f func(Collection)) {
-	if !db.Live() {
-		c.Collection = unimplementedCollection{}
-		return
-	}
-	c.Do(func() {
-		c.Collection = db.C(name)
-		if f != nil {
-			f(c)
-		}
-	})
+	Close() error
 }
 
 type Elem interface {

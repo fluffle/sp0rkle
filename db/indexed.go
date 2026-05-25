@@ -3,8 +3,6 @@ package db
 import (
 	"bytes"
 	"fmt"
-	"reflect"
-	"regexp"
 
 	"github.com/fluffle/golog/logging"
 	"github.com/fluffle/sp0rkle/util/bson"
@@ -16,10 +14,38 @@ import (
 type Indexer interface {
 	Id() bson.ObjectId
 	Indexes() []Key
+	CollectionName() string
 }
 
-// Per https://stackoverflow.com/questions/7132848/how-to-get-the-reflect-type-of-an-interface
-var indexerType reflect.Type = reflect.TypeOf((*Indexer)(nil)).Elem()
+// RegisterIndexed creates a new indexed collection for the given type T.
+// Requires *boltDatabase specifically (not the Database interface) because
+// it needs to create buckets in the BoltDB instance.
+func RegisterIndexed[T Indexer](b *boltDatabase) IndexedCollection[T] {
+	b.Lock()
+	defer b.Unlock()
+	if b.db == nil {
+		logging.Fatal("Tried to create BoltDB indexed database when disconnected.")
+	}
+	var zero T
+	n := []byte(zero.CollectionName())
+	vals := append(n, []byte("_vals")...)
+	idxs := append(n, []byte("_idxs")...)
+
+	err := b.db.Update(func(tx *bbolt.Tx) error {
+		if _, err := tx.CreateBucketIfNotExists(vals); err != nil {
+			return err
+		}
+		if _, err := tx.CreateBucketIfNotExists(idxs); err != nil {
+			return err
+		}
+		return nil
+	})
+	if err != nil {
+		logging.Fatal("Creating BoltDB bucket for collection %q failed: %v", zero.CollectionName(), err)
+	}
+	bucket := &indexedBucket[T]{name: n, vals: vals, idxs: idxs, db: b.db}
+	return bucket
+}
 
 func isPointer(data []byte) bool {
 	if len(data) < prefixLen {
@@ -33,86 +59,38 @@ func toPointer(value Indexer) []byte {
 	return e.Bytes()
 }
 
-// This function rigourously tested for all of 15 minutes
-// at https://play.golang.org/p/IrEWIxm_PEH ;-)
-func dupe(in any) any {
-	return dupeR(reflect.TypeOf(in), reflect.ValueOf(in)).Interface()
-}
-
-func dupeR(vt reflect.Type, vv reflect.Value) reflect.Value {
-	switch vv.Kind() {
-	case reflect.Ptr:
-		duped := dupeR(vv.Elem().Type(), vv.Elem())
-		ptr := reflect.New(vv.Elem().Type())
-		ptr.Elem().Set(duped)
-		return ptr
-	case reflect.Slice:
-		return reflect.MakeSlice(vt, 0, vv.Cap())
-	default:
-		return reflect.New(vt).Elem()
-	}
-}
-
-func (b *boltDatabase) Indexed() Database {
-	b.Lock()
-	defer b.Unlock()
-	if b.db == nil {
-		logging.Fatal("Tried to create BoltDB indexed database when disconnected.")
-	}
-	return &indexedDatabase{db: b.db}
-}
-
-type indexedDatabase struct {
-	db *bbolt.DB
-}
-
-func (i *indexedDatabase) Live() bool { return true }
-
-func (i *indexedDatabase) C(name string) Collection {
-	vals := append([]byte(name), []byte("_vals")...)
-	idxs := append([]byte(name), []byte("_idxs")...)
-
-	err := i.db.Update(func(tx *bbolt.Tx) error {
-		_, err := tx.CreateBucketIfNotExists(vals)
-		if err != nil {
-			return err
-		}
-		_, err = tx.CreateBucketIfNotExists(idxs)
-		return err
-	})
-	if err != nil {
-		logging.Fatal("Creating BoltDB bucket failed: %v", err)
-	}
-	return &indexedBucket{name: name, vals: vals, idxs: idxs, db: i.db}
-}
-
-type indexedBucket struct {
-	name   string
+// indexedBucket is a generic, type-safe indexed store.
+type indexedBucket[T Indexer] struct {
+	name   []byte
 	vals   []byte
 	idxs   []byte
 	db     *bbolt.DB
 	debug_ bool
 }
 
-func (bucket *indexedBucket) Debug(on bool) {
+func (bucket *indexedBucket[T]) Debug(on bool) {
 	bucket.debug_ = on
 }
 
-func (bucket *indexedBucket) debug(f string, args ...any) {
+func (bucket *indexedBucket[T]) debug(f string, args ...any) {
 	if bucket.debug_ {
-		logging.Debug("%s."+f, append([]any{bucket.name}, args...)...)
+		logging.Debug("%s."+f, append([]any{string(bucket.name)}, args...)...)
 	}
 }
 
-func (bucket *indexedBucket) error(f string, args ...any) error {
-	return fmt.Errorf("%s."+f, append([]any{bucket.name}, args...)...)
+func (bucket *indexedBucket[T]) error(f string, args ...any) error {
+	return fmt.Errorf("%s."+f, append([]any{string(bucket.name)}, args...)...)
 }
 
-func (bucket *indexedBucket) values(tx *bbolt.Tx) *bbolt.Bucket {
-	return tx.Bucket(bucket.vals)
+func (bucket *indexedBucket[T]) values(tx *bbolt.Tx) *valsBucket {
+	return &valsBucket{Bucket: tx.Bucket(bucket.vals)}
 }
 
-func (bucket *indexedBucket) find(tx *bbolt.Tx, elems [][]byte) *bbolt.Bucket {
+func (bucket *indexedBucket[T]) indexes(tx *bbolt.Tx) *idxsBucket {
+	return &idxsBucket{Bucket: tx.Bucket(bucket.idxs)}
+}
+
+func (bucket *indexedBucket[T]) find(tx *bbolt.Tx, elems [][]byte) *idxsBucket {
 	b := tx.Bucket(bucket.idxs)
 	for _, elem := range elems {
 		if b = b.Bucket(elem); b == nil {
@@ -120,10 +98,10 @@ func (bucket *indexedBucket) find(tx *bbolt.Tx, elems [][]byte) *bbolt.Bucket {
 			return nil
 		}
 	}
-	return b
+	return &idxsBucket{Bucket: b}
 }
 
-func (bucket *indexedBucket) create(tx *bbolt.Tx, elems [][]byte) (*bbolt.Bucket, error) {
+func (bucket *indexedBucket[T]) create(tx *bbolt.Tx, elems [][]byte) (*idxsBucket, error) {
 	b := tx.Bucket(bucket.idxs)
 	var err error
 	for _, elem := range elems {
@@ -131,17 +109,22 @@ func (bucket *indexedBucket) create(tx *bbolt.Tx, elems [][]byte) (*bbolt.Bucket
 			return nil, err
 		}
 	}
-	return b, nil
+	return &idxsBucket{Bucket: b}, nil
 }
 
-func (bucket *indexedBucket) Get(key Key, value any) error {
+func (bucket *indexedBucket[T]) Get(key Key) (T, error) {
+	var zero T
 	elems, last := key.B()
 	if len(last) == 0 {
-		return bucket.error("Get(): zero length key")
+		return zero, bucket.error("Get(): zero length key")
 	}
-
-	return bucket.db.View(func(tx *bbolt.Tx) error {
+	var result T
+	err := bucket.db.View(func(tx *bbolt.Tx) error {
 		bucket.debug("Get(%s) looking up bucket key %q", key, last)
+		// Dual-path pointer resolution:
+		// - If there are index elements to traverse (elems), look up in the index bucket.
+		// - If the key is not already a pointer (isPointer check), also look it up in the index bucket.
+		// - Otherwise, the key is a direct _id pointer and we skip the index lookup.
 		if len(elems) > 0 || !isPointer(last) {
 			b := bucket.find(tx, elems)
 			if b == nil {
@@ -158,146 +141,100 @@ func (bucket *indexedBucket) Get(key Key, value any) error {
 		if data == nil {
 			return nil
 		}
-		return bson.Unmarshal(suffix(data), value)
+		return bson.Unmarshal(suffix(data), &result)
 	})
+	if err != nil {
+		return zero, err
+	}
+	return result, nil
 }
 
-func (bucket *indexedBucket) All(key Key, value any) error {
+func (bucket *indexedBucket[T]) All(key Key) ([]T, error) {
+	var result []T
 	elems, last := key.B()
 	if len(last) == 0 {
-		// A zero-length key will perform a scan over the vals bucket directly,
-		// since this conveniently contains all the real data keyed by ID.
-		scanner := allScanner{
-			sp: newSlicePtr(value),
-		}
-		return bucket.db.View(func(tx *bbolt.Tx) error {
-			err := scanTx(bucket.values(tx), scanner)
-			bucket.debug("%s: found %d keys", scanner, scanner.sp.len())
+		err := bucket.db.View(func(tx *bbolt.Tx) error {
+			var err error
+			result, err = scanAll[T](bucket.values(tx))
 			return err
 		})
+		if err != nil {
+			return nil, err
+		}
+		return result, nil
 	}
-	// All implies that the last key elem is also a bucket.
 	elems = append(elems, last)
-	return bucket.db.View(func(tx *bbolt.Tx) error {
+	err := bucket.db.View(func(tx *bbolt.Tx) error {
 		b := bucket.find(tx, elems)
 		if b == nil {
 			return nil
 		}
-		scanner := indexScanner{
-			sp:   newSlicePtr(value),
-			vals: bucket.values(tx),
-			seen: map[string]bool{},
-		}
-		err := scanTx(b, scanner)
-		bucket.debug("%s: found %d keys", scanner, scanner.sp.len())
+		var err error
+		result, err = scanIndexedAll[T](b, bucket.values(tx))
 		return err
 	})
-}
-
-func (bucket *indexedBucket) Fsck(value any) error {
-	return bucket.db.Update(func(tx *bbolt.Tx) error {
-		vals := bucket.values(tx)
-		idxs := tx.Bucket(bucket.idxs)
-		// First, idxScanner will prune all live indexes
-		// that should not exist for values...
-		idxScanner := fsckIndex{
-			et:   reflect.TypeOf(value).Elem(),
-			vals: vals,
-		}
-		if err := scanTx(idxs, idxScanner); err != nil {
-			return err
-		}
-		// Then, valScanner will create all missing indexes
-		// that *should* exist for values...
-		valScanner := fsckValues{
-			et:   reflect.TypeOf(value).Elem(),
-			idxs: idxs,
-		}
-		return scanTx(vals, valScanner)
-	})
-}
-
-func (bucket *indexedBucket) Match(field, re string, value any) error {
-	if re == "" {
-		return bucket.error("Match(): zero-length regex match")
+	if err != nil {
+		return nil, err
 	}
-	rx, err := regexp.Compile("(?i)" + re)
+	return result, nil
+}
+
+func (bucket *indexedBucket[T]) Match(pred func(T) bool) ([]T, error) {
+	var result []T
+	err := bucket.db.View(func(tx *bbolt.Tx) error {
+		var err error
+		result, err = scanMatch[T](bucket.values(tx), pred)
+		return err
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result, nil
+}
+
+func (bucket *indexedBucket[T]) Put(value T) error {
+	data, err := toBson(value)
 	if err != nil {
 		return err
 	}
-	scanner := matchScanner{
-		re:    re,
-		rx:    rx,
-		sp:    newSlicePtr(value),
-		field: field,
-	}
-
-	// The slice elements may be pointers, we need the struct.
-	cev := scanner.sp.newStruct()
-	if cev.Kind() != reflect.Struct || cev.FieldByName(field).Kind() != reflect.String {
-		return bucket.error("Match(): value kind is %s not struct, or field %s is kind %s not string (%#v)",
-			cev.Kind(), field, cev.FieldByName(field).Kind(), value)
-	}
-
-	return bucket.db.View(func(tx *bbolt.Tx) error {
-		// Match always scans across all values.
-		err := scanTx(bucket.values(tx), scanner)
-		bucket.debug("%s: found %d keys", scanner, scanner.sp.len())
-		return err
-	})
-}
-
-func (bucket *indexedBucket) Put(value any) error {
-	indexer, ok := value.(Indexer)
-	if !ok {
-		return bucket.error("Put(): don't know how to put value %#v", value)
-	}
-	data, err := toBson(indexer)
-	if err != nil {
-		return err
-	}
-	for _, key := range indexer.Indexes() {
+	for _, key := range value.Indexes() {
 		if err := key.Valid(); err != nil {
-			return bucket.error("Put(): invalid key for %T: %w", indexer, err)
+			return bucket.error("Put(): invalid key for %T: %w", value, err)
 		}
 	}
+	if !value.Id().Valid() {
+		return bucket.error("Put(): invalid ObjectId for %T", value)
+	}
 	return bucket.db.Update(func(tx *bbolt.Tx) error {
-		return bucket.putTx(tx, indexer, data)
+		return bucket.putTx(tx, value, data)
 	})
 }
 
-func (bucket *indexedBucket) BatchPut(value any) error {
-	// vv == value Value
-	vv := reflect.ValueOf(value)
-	if vv.Kind() != reflect.Slice || !vv.Type().Elem().Implements(indexerType) {
-		return bucket.error("BatchPut(): can only put a slice of Indexers")
-	}
-
+func (bucket *indexedBucket[T]) BatchPut(values []T) error {
 	type kvTuple struct {
-		value Indexer
+		value T
 		data  []byte
 	}
-	tuples := make([]kvTuple, vv.Len())
+	tuples := make([]kvTuple, len(values))
 
-	for i := range vv.Len() {
-		indexer, _ := vv.Index(i).Interface().(Indexer)
-		for _, key := range indexer.Indexes() {
+	for i, v := range values {
+		for _, key := range v.Indexes() {
 			if err := key.Valid(); err != nil {
-				return bucket.error("BatchPut(): invalid key for %T: %w", indexer, err)
+				return bucket.error("BatchPut(): invalid key for %T: %w", v, err)
 			}
 		}
-		data, err := toBson(vv.Index(i).Interface())
+		data, err := toBson(v)
 		if err != nil {
 			return err
 		}
-		tuples[i] = kvTuple{indexer, data}
+		tuples[i] = kvTuple{v, data}
 	}
 	bucket.debug("BatchPut(): serialized %d items", len(tuples))
 
 	return bucket.db.Update(func(tx *bbolt.Tx) error {
 		for _, tuple := range tuples {
 			if err := bucket.putTx(tx, tuple.value, tuple.data); err != nil {
-				return err
+				return fmt.Errorf("BatchPut(%s): %w", tuple.value.Id(), err)
 			}
 		}
 		bucket.debug("BatchPut(): put %d items", len(tuples))
@@ -305,7 +242,64 @@ func (bucket *indexedBucket) BatchPut(value any) error {
 	})
 }
 
-func (bucket *indexedBucket) putTx(tx *bbolt.Tx, value Indexer, data []byte) error {
+func (bucket *indexedBucket[T]) Del(value T) error {
+	for _, key := range value.Indexes() {
+		if err := key.Valid(); err != nil {
+			return bucket.error("Del(): invalid key for %T: %w", value, err)
+		}
+	}
+	return bucket.db.Update(func(tx *bbolt.Tx) error {
+		if err := bucket.values(tx).Delete(toPointer(value)); err != nil {
+			return err
+		}
+		bucket.debug("Del(%s)", value.Id())
+		return bucket.delIndex(tx, value)
+	})
+}
+
+func (bucket *indexedBucket[T]) Fsck() error {
+	all, err := bucket.All(K{})
+	if err != nil {
+		return err
+	}
+	if len(all) > 0 {
+		var zero T
+		if vv, ok := interface{}(zero).(ValueValidator[T]); ok {
+			del, err := vv.ValidateValues(all)
+			if err != nil {
+				return err
+			}
+			if len(del) > 0 {
+				return bucket.db.Update(func(tx *bbolt.Tx) error {
+					vals := bucket.values(tx)
+					for _, d := range del {
+						if err := vals.Delete(toPointer(d)); err != nil {
+							return err
+						}
+						if err := bucket.delIndex(tx, d); err != nil {
+							return err
+						}
+					}
+					return nil
+				})
+			}
+		}
+	}
+
+	return bucket.db.Update(func(tx *bbolt.Tx) error {
+		vals := bucket.values(tx)
+		idxs := bucket.indexes(tx)
+		if err := fsckIndexPass[T](idxs, vals); err != nil {
+			return err
+		}
+		if err := fsckValuePass[T](idxs, vals); err != nil {
+			return err
+		}
+		return nil
+	})
+}
+
+func (bucket *indexedBucket[T]) putTx(tx *bbolt.Tx, value T, data []byte) error {
 	ptr := toPointer(value)
 	v := bucket.values(tx).Get(ptr)
 	if isBson(v) {
@@ -317,8 +311,8 @@ func (bucket *indexedBucket) putTx(tx *bbolt.Tx, value Indexer, data []byte) err
 		//   2) The indexes derived from the old data are exactly
 		//      the correct set that should be deleted to tidy up.
 		//   3) We don't need to recursively clean up empty nested buckets.
-		old := dupe(value).(Indexer)
-		if err := bson.Unmarshal(suffix(v), old); err != nil {
+		var old T
+		if err := bson.Unmarshal(suffix(v), &old); err != nil {
 			return err
 		}
 		if err := bucket.delIndex(tx, old); err != nil {
@@ -332,7 +326,7 @@ func (bucket *indexedBucket) putTx(tx *bbolt.Tx, value Indexer, data []byte) err
 	return bucket.putIndex(tx, value)
 }
 
-func (bucket *indexedBucket) putIndex(tx *bbolt.Tx, value Indexer) error {
+func (bucket *indexedBucket[T]) putIndex(tx *bbolt.Tx, value T) error {
 	ptr := toPointer(value)
 	for _, key := range value.Indexes() {
 		elems, last := key.B()
@@ -348,7 +342,7 @@ func (bucket *indexedBucket) putIndex(tx *bbolt.Tx, value Indexer) error {
 	return nil
 }
 
-func (bucket *indexedBucket) delIndex(tx *bbolt.Tx, value Indexer) error {
+func (bucket *indexedBucket[T]) delIndex(tx *bbolt.Tx, value T) error {
 	ptr := toPointer(value)
 	for _, key := range value.Indexes() {
 		elems, last := key.B()
@@ -364,36 +358,21 @@ func (bucket *indexedBucket) delIndex(tx *bbolt.Tx, value Indexer) error {
 	return nil
 }
 
-func (bucket *indexedBucket) Del(value any) error {
-	indexer, ok := value.(Indexer)
-	if !ok {
-		return bucket.error("Del(): don't know how to delete value %#v", value)
-	}
-	for _, key := range indexer.Indexes() {
-		if err := key.Valid(); err != nil {
-			return bucket.error("Del(): invalid key for %T: %w", indexer, err)
-		}
-	}
-	return bucket.db.Update(func(tx *bbolt.Tx) error {
-		if err := bucket.values(tx).Delete(toPointer(indexer)); err != nil {
-			return err
-		}
-		bucket.debug("Del(%s)", indexer.Id())
-		return bucket.delIndex(tx, indexer)
-	})
-}
-
-func (bucket *indexedBucket) Next(k Key, set ...int) (int, error) {
+func (bucket *indexedBucket[T]) Next(k Key, set ...int) (int, error) {
 	var i uint64
 	elems, last := k.B()
-	// Next implies that the last key elem is also a bucket.
 	if len(last) > 0 {
 		elems = append(elems, last)
 	}
 	err := bucket.db.Update(func(tx *bbolt.Tx) error {
-		// The empty key will increment the counter for the values
-		// bucket, non-empty keys will be in the index buckets.
-		b := bucket.values(tx)
+		// seqBucket is a minimal interface for sequence operations used by Next().
+		// This is necessary because we could be operating on an index bucket
+		// or the values bucket depending on the key.
+		type seqBucket interface {
+			SetSequence(uint64) error
+			NextSequence() (uint64, error)
+		}
+		var b seqBucket = bucket.values(tx)
 		if len(elems) > 0 {
 			b = bucket.find(tx, elems)
 		}
@@ -401,6 +380,8 @@ func (bucket *indexedBucket) Next(k Key, set ...int) (int, error) {
 			return bbolt.ErrBucketNotFound
 		}
 
+		// The empty key will increment the counter for the values
+		// bucket, non-empty keys will be in the index buckets.
 		var err error
 		if len(set) > 0 {
 			i, err = uint64(set[0]), b.SetSequence(uint64(set[0]))

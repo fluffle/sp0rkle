@@ -3,7 +3,6 @@ package db
 import (
 	"bytes"
 	"compress/gzip"
-	"errors"
 	"fmt"
 	"os"
 	"path"
@@ -61,42 +60,40 @@ type boltDatabase struct {
 	quit  chan struct{}
 }
 
-var Bolt = &boltDatabase{}
-
-func (b *boltDatabase) Init(path, backupDir string, backupEvery time.Duration) error {
+func New(path, backupDir string, backupEvery time.Duration) (*boltDatabase, error) {
+	b := &boltDatabase{}
 	b.Lock()
 	defer b.Unlock()
 	if b.db != nil {
-		return errors.New("init already called")
+		return nil, fmt.Errorf("init already called")
 	}
 	db, err := bolt.Open(path, 0600, &bolt.Options{Timeout: 5 * time.Second})
 	if err != nil {
-		return err
+		return nil, err
 	}
 	b.db, b.dir, b.every, b.quit = db, backupDir, backupEvery, make(chan struct{})
 	// Do a backup on startup and error if it is not successful.
 	if err := os.MkdirAll(b.dir, 0700); err != nil {
-		return fmt.Errorf("could not create backup dir %q: %v", b.dir, err)
+		return nil, fmt.Errorf("could not create backup dir %q: %v", b.dir, err)
 	}
 	if err := b.doBackup(); err != nil {
-		return fmt.Errorf("could not perform initial backup: %v", err)
+		return nil, fmt.Errorf("could not perform initial backup: %v", err)
 	}
 	go b.backupLoop()
-	return nil
+	return b, nil
 }
 
-func (b *boltDatabase) Close() {
+func (b *boltDatabase) Close() error {
 	b.Lock()
 	defer b.Unlock()
 
 	if b.db == nil {
-		return
+		return nil
 	}
-	if err := b.db.Close(); err != nil {
-		logging.Error("Unable to close BoltDB: %v", err)
-	}
+	err := b.db.Close()
 	b.db = nil
 	close(b.quit)
+	return err
 }
 
 func (b *boltDatabase) DB() *bolt.DB {

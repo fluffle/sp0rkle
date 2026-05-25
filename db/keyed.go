@@ -1,10 +1,7 @@
 package db
 
 import (
-	"errors"
 	"fmt"
-	"reflect"
-	"regexp"
 
 	"github.com/fluffle/golog/logging"
 	"github.com/fluffle/sp0rkle/util/bson"
@@ -19,59 +16,51 @@ import (
 // they will most likely be returning a db.K anyway.
 type Keyer interface {
 	K() Key
+	CollectionName() string
 }
 
-// Per https://stackoverflow.com/questions/7132848/how-to-get-the-reflect-type-of-an-interface
-var keyerType reflect.Type = reflect.TypeOf((*Keyer)(nil)).Elem()
-
-func (b *boltDatabase) Keyed() Database {
+// RegisterKeyed creates a new keyed collection for the given type T.
+// Requires *boltDatabase specifically (not the Database interface) because
+// it needs to create buckets in the BoltDB instance.
+func RegisterKeyed[T Keyer](b *boltDatabase) KeyedCollection[T] {
 	b.Lock()
 	defer b.Unlock()
 	if b.db == nil {
 		logging.Fatal("Tried to create BoltDB keyed database when disconnected.")
 	}
-	return &keyedDatabase{db: b.db}
-}
-
-type keyedDatabase struct {
-	db *bbolt.DB
-}
-
-func (k *keyedDatabase) Live() bool { return true }
-
-func (k *keyedDatabase) C(name string) Collection {
-	n := []byte(name)
-	err := k.db.Update(func(tx *bbolt.Tx) error {
+	var zero T
+	n := []byte(zero.CollectionName())
+	err := b.db.Update(func(tx *bbolt.Tx) error {
 		_, err := tx.CreateBucketIfNotExists(n)
 		return err
 	})
 	if err != nil {
 		logging.Fatal("Creating BoltDB bucket failed: %v", err)
 	}
-	return &keyedBucket{name: n, db: k.db}
+	return &keyedBucket[T]{name: n, db: b.db}
 }
 
-type keyedBucket struct {
+type keyedBucket[T Keyer] struct {
 	name   []byte
 	db     *bbolt.DB
 	debug_ bool
 }
 
-func (bucket *keyedBucket) Debug(on bool) {
+func (bucket *keyedBucket[T]) Debug(on bool) {
 	bucket.debug_ = on
 }
 
-func (bucket *keyedBucket) debug(f string, args ...any) {
+func (bucket *keyedBucket[T]) debug(f string, args ...any) {
 	if bucket.debug_ {
 		logging.Debug("%s."+f, append([]any{bucket.name}, args...)...)
 	}
 }
 
-func (bucket *keyedBucket) error(f string, args ...any) error {
+func (bucket *keyedBucket[T]) error(f string, args ...any) error {
 	return fmt.Errorf("%s."+f, append([]any{bucket.name}, args...)...)
 }
 
-func (bucket *keyedBucket) find(tx *bbolt.Tx, elems [][]byte) *bbolt.Bucket {
+func (bucket *keyedBucket[T]) find(tx *bbolt.Tx, elems [][]byte) *valsBucket {
 	b := tx.Bucket(bucket.name)
 	for _, elem := range elems {
 		if b = b.Bucket(elem); b == nil {
@@ -79,10 +68,10 @@ func (bucket *keyedBucket) find(tx *bbolt.Tx, elems [][]byte) *bbolt.Bucket {
 			return nil
 		}
 	}
-	return b
+	return &valsBucket{Bucket: b}
 }
 
-func (bucket *keyedBucket) create(tx *bbolt.Tx, elems [][]byte) (*bbolt.Bucket, error) {
+func (bucket *keyedBucket[T]) create(tx *bbolt.Tx, elems [][]byte) (*valsBucket, error) {
 	b := tx.Bucket(bucket.name)
 	var err error
 	for _, elem := range elems {
@@ -90,15 +79,18 @@ func (bucket *keyedBucket) create(tx *bbolt.Tx, elems [][]byte) (*bbolt.Bucket, 
 			return nil, fmt.Errorf("create bucket %q: %w", elem, err)
 		}
 	}
-	return b, nil
+	return &valsBucket{Bucket: b}, nil
 }
 
-func (bucket *keyedBucket) Get(key Key, value any) error {
+func (bucket *keyedBucket[T]) Get(key Key) (T, error) {
+	var zero T
 	elems, last := key.B()
 	if len(last) == 0 {
-		return bucket.error("Get(): zero length key")
+		return zero, bucket.error("Get(): zero length key")
 	}
-	return bucket.db.View(func(tx *bbolt.Tx) error {
+	var result T
+	var err error
+	err = bucket.db.View(func(tx *bbolt.Tx) error {
 		b := bucket.find(tx, elems)
 		if b == nil {
 			return nil
@@ -108,75 +100,56 @@ func (bucket *keyedBucket) Get(key Key, value any) error {
 		if data == nil {
 			return nil
 		}
-		return bson.Unmarshal(suffix(data), value)
+		return bson.Unmarshal(suffix(data), &result)
 	})
+	if err != nil {
+		return zero, err
+	}
+	return result, nil
 }
 
-func (bucket *keyedBucket) All(key Key, value any) error {
+func (bucket *keyedBucket[T]) All(key Key) ([]T, error) {
 	elems, last := key.B()
-	// All implies that the last key elem is also a bucket.
-	// We support a zero-length key to perform a scan over the root bucket.
 	if len(last) > 0 {
 		elems = append(elems, last)
 	}
-	scanner := allScanner{
-		sp: newSlicePtr(value),
-	}
-
-	return bucket.db.View(func(tx *bbolt.Tx) error {
-		if b := bucket.find(tx, elems); b != nil {
-			err := scanTx(b, scanner)
-			bucket.debug("%s: found %d keys", scanner, scanner.sp.len())
-			return err
+	var result []T
+	err := bucket.db.View(func(tx *bbolt.Tx) error {
+		b := bucket.find(tx, elems)
+		if b == nil {
+			return nil
 		}
-		return nil
-	})
-}
-
-func (bucket *keyedBucket) Fsck(value any) error {
-	return errors.New("keyed fsck unimplemented")
-}
-
-func (bucket *keyedBucket) Match(field, re string, value any) error {
-	if re == "" {
-		return bucket.error("Match(): zero-length regex match")
-	}
-	rx, err := regexp.Compile("(?i)" + re)
-	if err != nil {
+		var err error
+		result, err = scanAll[T](b)
 		return err
-	}
-	scanner := matchScanner{
-		re:    re,
-		rx:    rx,
-		sp:    newSlicePtr(value),
-		field: field,
-	}
-
-	// The slice elements may be pointers, we need the struct.
-	cev := scanner.sp.newStruct()
-	if cev.Kind() != reflect.Struct || cev.FieldByName(field).Kind() != reflect.String {
-		return bucket.error("Match(): value kind is %s not struct, or field %s is kind %s not string (%#v)",
-			cev.Kind(), field, cev.FieldByName(field).Kind(), value)
-	}
-
-	return bucket.db.View(func(tx *bbolt.Tx) error {
-		if b := bucket.find(tx, nil); b != nil {
-			err := scanTx(b, scanner)
-			bucket.debug("%s: found %d keys", scanner, scanner.sp.len())
-			return err
-		}
-		return nil
 	})
+	if err != nil {
+		return nil, err
+	}
+	return result, nil
 }
 
-func (bucket *keyedBucket) Put(value any) error {
-	keyer, ok := value.(Keyer)
-	if !ok {
-		return bucket.error("Put(): don't know how to put value %#v", value)
+func (bucket *keyedBucket[T]) Match(pred func(T) bool) ([]T, error) {
+	var result []T
+	err := bucket.db.View(func(tx *bbolt.Tx) error {
+		b := bucket.find(tx, nil)
+		if b == nil {
+			return nil
+		}
+		var err error
+		result, err = scanMatch[T](b, pred)
+		return err
+	})
+	if err != nil {
+		return nil, err
 	}
-	key := keyer.K()
+	return result, nil
+}
+
+func (bucket *keyedBucket[T]) Put(value T) error {
+	key := value.K()
 	if err := key.Valid(); err != nil {
-		return bucket.error("Put(): invalid key for %T: %w", keyer, err)
+		return bucket.error("Put(): invalid key for %T: %w", value, err)
 	}
 	elems, last := key.B()
 	if len(last) == 0 {
@@ -186,36 +159,30 @@ func (bucket *keyedBucket) Put(value any) error {
 	if err != nil {
 		return err
 	}
-	bucket.debug("Put(%s) = %q", keyer.K(), data)
+	bucket.debug("Put(%s) = %q", value.K(), data)
 	return bucket.db.Update(func(tx *bbolt.Tx) error {
 		return bucket.putTx(tx, elems, last, data)
 	})
 }
 
-func (bucket *keyedBucket) BatchPut(value any) error {
-	// vv == value Value
-	vv := reflect.ValueOf(value)
-	if vv.Kind() != reflect.Slice || !vv.Type().Elem().Implements(keyerType) {
-		return bucket.error("BatchPut(): can only put a slice of Keyers")
-	}
-
-	// Do as much work as possible before the transaction.
+func (bucket *keyedBucket[T]) BatchPut(values []T) error {
 	type kvTuple struct {
-		elems      [][]byte
-		last, data []byte
+		elems  [][]byte
+		last   []byte
+		data   []byte
 	}
-	tuples := make([]kvTuple, vv.Len())
+	tuples := make([]kvTuple, len(values))
 
-	for i := range vv.Len() {
-		keyer, _ := vv.Index(i).Interface().(Keyer)
-		if err := keyer.K().Valid(); err != nil {
-			return bucket.error("BatchPut(): invalid key for %T: %w", keyer, err)
+	for i, v := range values {
+		key := v.K()
+		if err := key.Valid(); err != nil {
+			return bucket.error("BatchPut(): invalid key for %T: %w", v, err)
 		}
-		elems, last := keyer.K().B()
+		elems, last := key.B()
 		if len(last) == 0 {
 			return bucket.error("BatchPut(): can't put value with empty key")
 		}
-		data, err := toBson(vv.Index(i).Interface())
+		data, err := toBson(v)
 		if err != nil {
 			return err
 		}
@@ -234,7 +201,7 @@ func (bucket *keyedBucket) BatchPut(value any) error {
 	})
 }
 
-func (bucket *keyedBucket) putTx(tx *bbolt.Tx, elems [][]byte, key, value []byte) error {
+func (bucket *keyedBucket[T]) putTx(tx *bbolt.Tx, elems [][]byte, key, value []byte) error {
 	b, err := bucket.create(tx, elems)
 	if err != nil {
 		return err
@@ -242,14 +209,10 @@ func (bucket *keyedBucket) putTx(tx *bbolt.Tx, elems [][]byte, key, value []byte
 	return b.Put(key, value)
 }
 
-func (bucket *keyedBucket) Del(value any) error {
-	keyer, ok := value.(Keyer)
-	if !ok {
-		return bucket.error("Del(): don't know how to delete value %#v", value)
-	}
-	key := keyer.K()
+func (bucket *keyedBucket[T]) Del(value T) error {
+	key := value.K()
 	if err := key.Valid(); err != nil {
-		return bucket.error("Del(): invalid key for %T: %w", keyer, err)
+		return bucket.error("Del(): invalid key for %T: %w", value, err)
 	}
 	elems, last := key.B()
 	if len(last) == 0 {
@@ -258,18 +221,64 @@ func (bucket *keyedBucket) Del(value any) error {
 	return bucket.db.Update(func(tx *bbolt.Tx) error {
 		b := bucket.find(tx, elems)
 		if b == nil {
-			// Parent bucket already doesn't exist.
 			return nil
 		}
-		// Allow partial keys to recursively delete nested buckets.
-		if b.Bucket(last) != nil {
+		if b.Bucket.Bucket(last) != nil {
+			// Allow partial keys to recursively delete nested buckets.
 			return b.DeleteBucket(last)
 		}
 		return b.Delete(last)
 	})
 }
 
-func (bucket *keyedBucket) Next(k Key, set ...int) (int, error) {
+func (bucket *keyedBucket[T]) Fsck() error {
+	all, err := bucket.All(K{})
+	if err != nil {
+		return err
+	}
+	if len(all) == 0 {
+		return nil
+	}
+
+	var zero T
+	vv, ok := any(zero).(ValueValidator[T])
+	if !ok {
+		return nil
+	}
+	del, err := vv.ValidateValues(all)
+	if err != nil {
+		return err
+	}
+	if len(del) == 0 {
+		return nil
+	}
+	return bucket.db.Update(func(tx *bbolt.Tx) error {
+		for _, d := range del {
+			k := d.K()
+			elems, last := k.B()
+			if len(last) == 0 {
+				return bucket.error("Del(): refusing to delete everything")
+			}
+			b := bucket.find(tx, elems)
+			if b == nil {
+				continue
+			}
+			if b.Bucket.Bucket(last) != nil {
+				// Allow partial keys to recursively delete nested buckets.
+				if err := b.DeleteBucket(last); err != nil {
+					return err
+				}
+			} else {
+				if err := b.Delete(last); err != nil {
+					return err
+				}
+			}
+		}
+		return nil
+	})
+}
+
+func (bucket *keyedBucket[T]) Next(k Key, set ...int) (int, error) {
 	var i uint64
 	elems, last := k.B()
 	// Next implies that the last key elem is also a bucket.
