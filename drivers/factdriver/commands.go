@@ -12,7 +12,7 @@ import (
 )
 
 // Factoid chance: 'chance of that is' => sets chance of lastSeen[chan]
-func chance(ctx *bot.Context) {
+func (d *Driver) chance(ctx *bot.Context) {
 	str := ctx.Text()
 	var chance float64
 
@@ -41,9 +41,9 @@ func chance(ctx *bot.Context) {
 	}
 
 	// Retrieve last seen ObjectId, replace with ""
-	ls := LastSeen(ctx.Target(), "")
+	ls := d.LastSeen(ctx.Target(), "")
 	// ok, we're good to update the chance.
-	fact := fc.GetById(ls)
+	fact := d.fc.GetById(ls)
 	if !fact.Exists() {
 		ctx.ReplyN("Whatever that was, I've already forgotten it.")
 		return
@@ -54,7 +54,7 @@ func chance(ctx *bot.Context) {
 	// Update the Modified field
 	fact.Modify(ctx.Storable())
 	// And store the new factoid data
-	if err := fc.Put(fact); err != nil {
+	if err := d.fc.Put(fact); err != nil {
 		ctx.ReplyN("I failed to replace '%s': %s", fact.Key, err)
 		return
 	}
@@ -103,7 +103,7 @@ func unescapeRx(rx string) string {
 }
 
 // Factoid edit: that =~ s/<regex>/<replacement>/
-func edit(ctx *bot.Context) {
+func (d *Driver) edit(ctx *bot.Context) {
 	// extract regexp and replacement
 	l := &util.Lexer{Input: ctx.Text()}
 	if l.Next() != "s" {
@@ -125,8 +125,8 @@ func edit(ctx *bot.Context) {
 		return
 	}
 	// Retrieve last seen ObjectId, replace with ""
-	ls := LastSeen(ctx.Target(), "")
-	fact := fc.GetById(ls)
+	ls := d.LastSeen(ctx.Target(), "")
+	fact := d.fc.GetById(ls)
 	if !fact.Exists() {
 		ctx.ReplyN("I've forgotten what we were talking about, sorry!")
 		return
@@ -134,7 +134,7 @@ func edit(ctx *bot.Context) {
 	old := fact.Value
 	fact.Value = rx.ReplaceAllString(old, rp)
 	fact.Modify(ctx.Storable())
-	if err := fc.Put(fact); err != nil {
+	if err := d.fc.Put(fact); err != nil {
 		ctx.ReplyN("I failed to replace '%s': %s", fact.Key, err)
 		return
 	}
@@ -143,15 +143,15 @@ func edit(ctx *bot.Context) {
 }
 
 // Factoid delete: 'forget|delete that' => deletes lastSeen[chan]
-func forget(ctx *bot.Context) {
+func (d *Driver) forget(ctx *bot.Context) {
 	// Get fresh state on the last seen factoid.
-	ls := LastSeen(ctx.Target(), "")
-	fact := fc.GetById(ls)
+	ls := d.LastSeen(ctx.Target(), "")
+	fact := d.fc.GetById(ls)
 	if !fact.Exists() {
 		ctx.ReplyN("Whatever that was, I've already forgotten it.")
 		return
 	}
-	if err := fc.Del(fact); err != nil {
+	if err := d.fc.Del(fact); err != nil {
 		ctx.ReplyN("I failed to forget '%s': %s", fact.Key, err)
 		return
 	}
@@ -160,9 +160,9 @@ func forget(ctx *bot.Context) {
 }
 
 // Factoid info: 'fact info key' => some information about key
-func info(ctx *bot.Context) {
+func (d *Driver) info(ctx *bot.Context) {
 	key := ToKey(ctx.Text(), false)
-	count := fc.GetCount(key)
+	count := d.fc.GetCount(key)
 	if count == 0 {
 		ctx.ReplyN("I don't know anything about '%s'.", key)
 		return
@@ -174,7 +174,7 @@ func info(ctx *bot.Context) {
 		msgs = append(msgs, fmt.Sprintf("I know %d things about '%s'.",
 			count, key))
 	}
-	created, modified, accessed := fc.GetLast(key)
+	created, modified, accessed := d.fc.GetLast(key)
 	if created != nil && modified != nil && accessed != nil {
 		c := created.Created
 		msgs = append(msgs, "A factoid")
@@ -192,7 +192,7 @@ func info(ctx *bot.Context) {
 		msgs = append(msgs, fmt.Sprintf("and accessed on %s by %s.",
 			datetime.Format(a.Timestamp), a.Nick))
 	}
-	if info := fc.InfoMR(key); info != nil {
+	if info := d.fc.InfoMR(key); info != nil {
 		if key == "" {
 			msgs = append(msgs, "These factoids have")
 		} else {
@@ -206,9 +206,9 @@ func info(ctx *bot.Context) {
 }
 
 // Factoid literal: 'literal key' => info about factoid
-func literal(ctx *bot.Context) {
+func (d *Driver) literal(ctx *bot.Context) {
 	key := ToKey(ctx.Text(), false)
-	if count := fc.GetCount(key); count == 0 {
+	if count := d.fc.GetCount(key); count == 0 {
 		ctx.ReplyN("I don't know anything about '%s'.", key)
 		return
 	} else if count > 10 && ctx.Public() {
@@ -216,7 +216,7 @@ func literal(ctx *bot.Context) {
 		return
 	}
 
-	if facts := fc.GetAll(key); facts != nil {
+	if facts := d.fc.GetAll(key); facts != nil {
 		for _, fact := range facts {
 			// Use Privmsg directly here so that the results aren't output
 			// via the plugin system and contain the literal data.
@@ -229,9 +229,9 @@ func literal(ctx *bot.Context) {
 }
 
 // Factoid replace: 'replace that with' => updates lastSeen[chan]
-func replace(ctx *bot.Context) {
-	ls := LastSeen(ctx.Target(), "")
-	fact := fc.GetById(ls)
+func (d *Driver) replace(ctx *bot.Context) {
+	ls := d.LastSeen(ctx.Target(), "")
+	fact := d.fc.GetById(ls)
 	if fact == nil {
 		ctx.ReplyN("Whatever that was, I've already forgotten it.")
 		return
@@ -243,7 +243,7 @@ func replace(ctx *bot.Context) {
 	// Update the Modified field
 	fact.Modify(ctx.Storable())
 	// And store the new factoid data
-	if err := fc.Put(fact); err != nil {
+	if err := d.fc.Put(fact); err != nil {
 		ctx.ReplyN("I failed to replace '%s': %s", fact.Key, err)
 		return
 	}
@@ -252,8 +252,8 @@ func replace(ctx *bot.Context) {
 }
 
 // Factoid search: 'fact search regexp' => list of possible key matches
-func search(ctx *bot.Context) {
-	keys := fc.GetKeysMatching(ctx.Text())
+func (d *Driver) search(ctx *bot.Context) {
+	keys := d.fc.GetKeysMatching(ctx.Text())
 	if keys == nil || len(keys) == 0 {
 		ctx.ReplyN("I couldn't think of anything matching '%s'.",
 			ctx.Text())

@@ -11,47 +11,51 @@ import (
 )
 
 // We talk to the factoids collection
-var fc *factoids.Collection
-
-// Keep a reference to the last factoid looked up around
-// for use with 'edit that' and 'delete that' commands.
-// Do this on a per-channel basis to avoid (too much) confusion.
-var lastSeen = map[string]bson.ObjectId{}
-
-func Init() {
-	fc = factoids.Init()
-
-	bot.Handle(insert, client.PRIVMSG)
-	bot.Handle(lookup, client.PRIVMSG, client.ACTION)
-
-	bot.Rewrite(replaceIdentifiers)
-
-	bot.Command(chance, "chance of that is",
-		"chance  -- Sets trigger chance of the last displayed factoid value.")
-	bot.Command(edit, "that =~",
-		"=~ s/regex/replacement/ -- Edits the last factoid value using regex.")
-	bot.Command(forget, "delete that",
-		"delete  -- Forgets the last displayed factoid value.")
-	bot.Command(forget, "forget that",
-		"forget  -- Forgets the last displayed factoid value.")
-	bot.Command(info, "fact info",
-		"fact info <key>  -- Displays some stats about factoid <key>.")
-	bot.Command(literal, "literal",
-		"literal <key>  -- Displays the factoid values stored for <key>.")
-	bot.Command(replace, "replace that with",
-		"replace  -- Replaces the last displayed factoid value.")
-	bot.Command(search, "fact search",
-		"fact search <regexp>  -- Searches for factoids matching <regexp>.")
+type Driver struct {
+	fc       *factoids.Collection
+	// Keep a reference to the last factoid looked up around
+	// for use with 'edit that' and 'delete that' commands.
+	// Do this on a per-channel basis to avoid (too much) confusion.
+	lastSeen map[string]bson.ObjectId
 }
 
-func LastSeen(ch string, id ...bson.ObjectId) bson.ObjectId {
+
+func New(b *bot.Bot, fc *factoids.Collection) *Driver {
+	d := &Driver{fc: fc, lastSeen: map[string]bson.ObjectId{}}
+
+	b.Handle(d.insert, client.PRIVMSG)
+	b.Handle(d.lookup, client.PRIVMSG, client.ACTION)
+
+	b.Rewrite(d.replaceIdentifiers)
+
+	b.Command(d.chance, "chance of that is",
+		"chance  -- Sets trigger chance of the last displayed factoid value.")
+	b.Command(d.edit, "that =~",
+		"=~ s/regex/replacement/ -- Edits the last factoid value using regex.")
+	b.Command(d.forget, "delete that",
+		"delete  -- Forgets the last displayed factoid value.")
+	b.Command(d.forget, "forget that",
+		"forget  -- Forgets the last displayed factoid value.")
+	b.Command(d.info, "fact info",
+		"fact info <key>  -- Displays some stats about factoid <key>.")
+	b.Command(d.literal, "literal",
+		"literal <key>  -- Displays the factoid values stored for <key>.")
+	b.Command(d.replace, "replace that with",
+		"replace  -- Replaces the last displayed factoid value.")
+	b.Command(d.search, "fact search",
+		"fact search <regexp>  -- Searches for factoids matching <regexp>.")
+
+	return d
+}
+
+func (d *Driver) LastSeen(ch string, id ...bson.ObjectId) bson.ObjectId {
 	if len(id) > 0 {
-		old, ok := lastSeen[ch]
-		lastSeen[ch] = id[0]
+		old, ok := d.lastSeen[ch]
+		d.lastSeen[ch] = id[0]
 		if ok && old != "" {
 			return old
 		}
-	} else if ls, ok := lastSeen[ch]; ok {
+	} else if ls, ok := d.lastSeen[ch]; ok {
 		return ls
 	}
 	return ""

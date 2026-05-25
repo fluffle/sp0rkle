@@ -3,6 +3,7 @@ package factoids
 import (
 	"fmt"
 	"math/rand"
+	"regexp"
 	"strings"
 	"time"
 
@@ -137,25 +138,22 @@ func byKey(key string) db.K {
 	return k
 }
 
+func (f *Factoid) CollectionName() string { return "factoids" }
+
 type Factoids []*Factoid
 
 type Collection struct {
-	db.C
+	collection db.IndexedCollection[*Factoid]
 
 	// cache of objectIds for PseudoRand
 	seen map[string]map[bson.ObjectId]bool
 }
 
-// Wrapper to get hold of a factoid collection handle
-func Init() *Collection {
-	fc := &Collection{
-		seen: make(map[string]map[bson.ObjectId]bool),
+func New(collection db.IndexedCollection[*Factoid]) *Collection {
+	return &Collection{
+		collection: collection,
+		seen:       make(map[string]map[bson.ObjectId]bool),
 	}
-	fc.Init(db.Bolt.Indexed(), COLLECTION, nil)
-	if err := fc.Fsck(&Factoid{}); err != nil {
-		logging.Fatal("factoid fsck failed: %v", err)
-	}
-	return fc
 }
 
 // Can't call this Count because that'd override mgo.Collection.Count()
@@ -166,16 +164,16 @@ func (fc *Collection) GetCount(key string) int {
 
 func (fc *Collection) GetById(id bson.ObjectId) *Factoid {
 	res := &Factoid{Id_: id}
-	if err := fc.Get(res.byId(), res); err != nil || res.Key == "" {
-		logging.Warn("Factoid GetById failed: %v", err)
+	fact, err := fc.collection.Get(res.byId())
+	if err != nil || fact == nil {
 		return nil
 	}
-	return res
+	return fact
 }
 
 func (fc *Collection) GetAll(key string) []*Factoid {
-	res := Factoids{}
-	if err := fc.All(byKey(key), &res); err != nil {
+	res, err := fc.collection.All(byKey(key))
+	if err != nil {
 		logging.Warn("Factoid GetAll failed: %v", err)
 		return nil
 	}
@@ -228,8 +226,15 @@ func (fc *Collection) GetPseudoRand(key string) *Factoid {
 }
 
 func (fc *Collection) GetKeysMatching(regex string) []string {
-	facts := Factoids{}
-	if err := fc.Match("Key", regex, &facts); err != nil {
+	rx, err := regexp.Compile("(?i)" + regex)
+	if err != nil {
+		return nil
+	}
+	pred := func(f *Factoid) bool {
+		return rx.MatchString(f.Key)
+	}
+	facts, err := fc.collection.Match(pred)
+	if err != nil {
 		logging.Warn("Factoid GetKeyMatching failed: %v", err)
 		return nil
 	}
@@ -266,8 +271,8 @@ func (fc *Collection) InfoMR(key string) *FactoidInfo {
 	// Bolt, we have to do things manually, which is way easier even if it
 	// does involve maybe slurping all the factoids into a slice, *again*.
 	// TODO(fluffle): Add a ForEach() to boltdb wrapper once migrated.
-	facts := Factoids{}
-	if err := fc.All(byKey(key), &facts); err != nil {
+	facts, err := fc.collection.All(byKey(key))
+	if err != nil {
 		logging.Warn("Factoid InfoMR All failed: %v", err)
 	}
 
@@ -277,6 +282,14 @@ func (fc *Collection) InfoMR(key string) *FactoidInfo {
 		info.Created += fact.Created.Count
 	}
 	return info
+}
+
+func (fc *Collection) Put(f *Factoid) error {
+	return fc.collection.Put(f)
+}
+
+func (fc *Collection) Del(f *Factoid) error {
+	return fc.collection.Del(f)
 }
 
 func ParseValue(v string) (ft FactoidType, fv string) {

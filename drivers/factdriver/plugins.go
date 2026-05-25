@@ -9,7 +9,7 @@ import (
 )
 
 // Replicate perlfu's $<stuff> identifiers
-func replaceIdentifiers(in string, ctx *bot.Context) string {
+func (d *Driver) replaceIdentifiers(in string, ctx *bot.Context) string {
 	return id_replacer(in, ctx, time.Now())
 }
 

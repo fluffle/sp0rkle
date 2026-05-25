@@ -11,7 +11,7 @@ import (
 )
 
 // Factoid add: 'key := value' or 'key :is value'
-func insert(ctx *bot.Context) {
+func (d *Driver) insert(ctx *bot.Context) {
 	if !ctx.Addressed || !util.IsFactoidAddition(ctx.Text()) {
 		return
 	}
@@ -33,30 +33,30 @@ func insert(ctx *bot.Context) {
 
 	// The "randomwoot" factoid contains random positive phrases for success.
 	joy := "Woo"
-	if rand := fc.GetPseudoRand("randomwoot"); rand != nil {
+	if rand := d.fc.GetPseudoRand("randomwoot"); rand != nil {
 		joy = rand.Value
 	}
 
-	if err := fc.Put(fact); err != nil {
+	if err := d.fc.Put(fact); err != nil {
 		ctx.ReplyN("Error storing factoid: %s.", err)
 		return
 	}
-	count := fc.GetCount(key)
-	LastSeen(ctx.Target(), fact.Id())
+	count := d.fc.GetCount(key)
+	d.LastSeen(ctx.Target(), fact.Id())
 	ctx.ReplyN("%s, I now know %d things about '%s'.", joy, count, key)
 }
 
-func lookup(ctx *bot.Context) {
+func (d *Driver) lookup(ctx *bot.Context) {
 	// Only perform extra prefix removal if we weren't addressed directly
 	key := ToKey(ctx.Text(), !ctx.Addressed)
 	var fact *factoids.Factoid
 
-	if fact = fc.GetPseudoRand(key); fact == nil && ctx.Cmd == client.ACTION {
+	if fact = d.fc.GetPseudoRand(key); fact == nil && ctx.Cmd == client.ACTION {
 		// Support sp0rkle's habit of stripping off it's own nick
 		// but only for actions, not privmsgs.
 		if strings.HasSuffix(key, ctx.Me()) {
 			key = strings.TrimSpace(key[:len(key)-len(ctx.Me())])
-			fact = fc.GetPseudoRand(key)
+			fact = d.fc.GetPseudoRand(key)
 		}
 	}
 	if fact == nil {
@@ -73,17 +73,17 @@ func lookup(ctx *bot.Context) {
 	}
 	if rand.Float64() < chance {
 		// Store this as the last seen factoid
-		LastSeen(ctx.Target(), fact.Id())
+		d.LastSeen(ctx.Target(), fact.Id())
 		// Update the Accessed field
 		// TODO(fluffle): fd should take care of updating Accessed internally
 		fact.Access(ctx.Storable())
 		// And store the new factoid data
-		if err := fc.Put(fact); err != nil {
+		if err := d.fc.Put(fact); err != nil {
 			ctx.ReplyN("I failed to update '%s' (%s): %s ",
 				fact.Key, fact.Id(), err)
 
 		}
-		recurse(fact, map[string]bool{key: true})
+		d.recurse(fact, map[string]bool{key: true})
 		switch fact.Type {
 		case factoids.F_ACTION:
 			ctx.Do("%s", fact.Value)
@@ -94,7 +94,7 @@ func lookup(ctx *bot.Context) {
 }
 
 // Recursively resolve pointers to other factoids
-func recurse(fact *factoids.Factoid, keys map[string]bool) {
+func (d *Driver) recurse(fact *factoids.Factoid, keys map[string]bool) {
 	val := fact.Value
 	key, start, end := util.FactPointer(val)
 	if key == "" {
@@ -105,19 +105,19 @@ func recurse(fact *factoids.Factoid, keys map[string]bool) {
 		return
 	}
 	keys[key] = true
-	if f2 := fc.GetPseudoRand(key); f2 != nil {
+	if f2 := d.fc.GetPseudoRand(key); f2 != nil {
 		fact.Value = val[:start] + f2.Value + val[end:]
 		if start == 0 && fact.Type != f2.Type {
 			// Propagate change of factoid type when the pointer
 			// is at the beginning of the string.
 			fact.Type = f2.Type
 		}
-		recurse(fact, keys)
+		d.recurse(fact, keys)
 		return
 	}
 	// if we get here, we found a pointer key but no matching factoid
 	// so recurse on the stuff after that key *only* to avoid loops.
 	fact.Value = val[end:]
-	recurse(fact, keys)
+	d.recurse(fact, keys)
 	fact.Value = val[:end] + fact.Value
 }
