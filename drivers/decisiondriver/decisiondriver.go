@@ -17,16 +17,21 @@ import (
 
 var ErrUnbalanced = errors.New("unbalanced quotes")
 
-func Init() {
-	bot.Rewrite(randPlugin)
-	bot.Rewrite(decidePlugin)
+type Driver struct{}
 
-	bot.Command(randCmd, "rand", "rand <range>  -- "+
+func New(b *bot.Bot) *Driver {
+	d := new(Driver)
+
+	b.Rewrite(randPlugin)
+	b.Rewrite(decidePlugin)
+	b.Command(d.randCmd, "rand", "rand <range>  -- "+
 		"choose a random number in range [lo-]hi")
-	bot.Command(decideCmd, "decide", "decide <options>  -- "+
+	b.Command(d.decideCmd, "decide", "decide <options>  -- "+
 		"choose one of the (space, pipe, quote) delimited options at random")
-	bot.Command(decideCmd, "choose", "choose <options>  -- "+
+	b.Command(d.decideCmd, "choose", "choose <options>  -- "+
 		"choose one of the (space, pipe, quote) delimited options at random")
+
+	return d
 }
 
 func randomFloatAsString(val string) string {

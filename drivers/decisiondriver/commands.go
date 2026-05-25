@@ -7,7 +7,7 @@ import (
 	"github.com/fluffle/sp0rkle/bot"
 )
 
-func decideCmd(ctx *bot.Context) {
+func (d *Driver) decideCmd(ctx *bot.Context) {
 	opts, err := splitDelimitedString(ctx.Text())
 	if err != nil {
 		ctx.ReplyN("I can't decide: %v", err)
@@ -21,6 +21,6 @@ func decideCmd(ctx *bot.Context) {
 	ctx.ReplyN("%s", chosen)
 }
 
-func randCmd(ctx *bot.Context) {
+func (d *Driver) randCmd(ctx *bot.Context) {
 	ctx.ReplyN("%s", randomFloatAsString(ctx.Text()))
 }
