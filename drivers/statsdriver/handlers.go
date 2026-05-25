@@ -5,8 +5,8 @@ import (
 	"github.com/fluffle/sp0rkle/collections/stats"
 )
 
-func recordStats(ctx *bot.Context) {
-	ns := sc.StatsFor(ctx.Nick, ctx.Target())
+func (d *Driver) recordStats(ctx *bot.Context) {
+	ns := d.sc.StatsFor(ctx.Nick, ctx.Target())
 	if ns == nil {
 		n, c := ctx.Storable()
 		ns = stats.NewStat(n, c)
@@ -18,7 +18,7 @@ func recordStats(ctx *bot.Context) {
 			ctx.Nick, ns.Lines)
 
 	}
-	if err := sc.Put(ns); err != nil {
+	if err := d.sc.Put(ns); err != nil {
 		ctx.Reply("Failed to store stats data: %v", err)
 	}
 }

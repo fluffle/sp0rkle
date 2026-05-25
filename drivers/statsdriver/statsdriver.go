@@ -6,19 +6,23 @@ import (
 	"github.com/fluffle/sp0rkle/collections/stats"
 )
 
-var sc *stats.Collection
+type Driver struct {
+	sc *stats.Collection
+}
 
-func Init() {
-	sc = stats.Init()
+func New(b *bot.Bot, sc *stats.Collection) *Driver {
+	d := &Driver{sc: sc}
 
-	bot.Handle(recordStats, client.PRIVMSG, client.ACTION)
+	b.Handle(d.recordStats, client.PRIVMSG, client.ACTION)
 
-	bot.Command(statsCmd, "lines", "lines [nick]  -- "+
+	b.Command(d.statsCmd, "lines", "lines [nick]  -- "+
 		"display how many lines you [or nick] has said in the channel")
-	bot.Command(statsCmd, "stats", "stats [nick]  -- "+
+	b.Command(d.statsCmd, "stats", "stats [nick]  -- "+
 		"display how many lines you [or nick] has said in the channel")
-	bot.Command(topten, "topten", "topten  -- "+
+	b.Command(d.topten, "topten", "topten  -- "+
 		"display the nicks who have said the most in the channel")
-	bot.Command(topten, "top10", "top10  -- "+
+	b.Command(d.topten, "top10", "top10  -- "+
 		"display the nicks who have said the most in the channel")
+
+	return d
 }

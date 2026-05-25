@@ -2,6 +2,7 @@ package stats
 
 import (
 	"fmt"
+	"sort"
 	"strings"
 	"time"
 
@@ -88,37 +89,46 @@ func (ns *NickStat) byKey() db.Key {
 	return db.K{db.S{"chan", string(ns.Chan)}, db.S{"key", ns.Key}}
 }
 
+func (ns *NickStat) CollectionName() string { return "stats" }
+
 type NickStats []*NickStat
 
 type Collection struct {
-	db.C
+	collection db.IndexedCollection[*NickStat]
 }
 
-func Init() *Collection {
-	sc := &Collection{}
-	sc.Init(db.Bolt.Indexed(), COLLECTION, nil)
-	return sc
+func New(collection db.IndexedCollection[*NickStat]) *Collection {
+	return &Collection{collection: collection}
 }
 
 func (sc *Collection) StatsFor(nick, ch string) *NickStat {
 	res := NewStat(bot.Nick(nick), bot.Chan(ch))
-	if err := sc.Get(res.byKey(), res); err != nil || res.Lines == 0 {
+	stat, err := sc.collection.Get(res.byKey())
+	if err != nil || stat == nil {
 		return nil
 	}
-	return res
+	return stat
 }
 
 func (sc *Collection) TopTen(ch string) []*NickStat {
-	var bRes NickStats
-	if err := sc.All(db.K{db.S{"lines", ch}}, &bRes); err != nil {
+	bRes, err := sc.collection.All(db.K{db.S{"lines", ch}})
+	if err != nil {
 		return nil
 	}
-	// Results from bolt are in ascending order.
-	for i, j := 0, len(bRes)-1; i < j; i, j = i+1, j-1 {
-		bRes[i], bRes[j] = bRes[j], bRes[i]
-	}
+	// Sort descending by Lines count
+	sort.Slice(bRes, func(i, j int) bool {
+		return bRes[i].Lines > bRes[j].Lines
+	})
 	if len(bRes) > 10 {
 		bRes = bRes[:10]
 	}
 	return bRes
+}
+
+func (sc *Collection) Put(value *NickStat) error {
+	return sc.collection.Put(value)
+}
+
+func (sc *Collection) Del(value *NickStat) error {
+	return sc.collection.Del(value)
 }
