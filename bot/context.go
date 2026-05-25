@@ -31,8 +31,8 @@ type Context struct {
 	rws  RewriteSet
 }
 
-func reqContext(conn *client.Conn, line *client.Line) *Context {
-	ctx := &Context{conn: conn, Line: line.Copy(), rws: bot.rewriters}
+func newContext(conn *client.Conn, line *client.Line, rws RewriteSet) *Context {
+	ctx := &Context{conn: conn, Line: line.Copy(), rws: rws}
 	if ctx.Cmd != client.PRIVMSG {
 		return ctx
 	}

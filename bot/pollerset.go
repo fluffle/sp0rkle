@@ -22,18 +22,16 @@ type PollerSet interface {
 
 type pollerSet struct {
 	sync.RWMutex
-	// Pollers are started once when we first connect to a server
-	// and are stopped when we disconnect from the last server.
-	set map[Poller]chan struct{}
-	// Each time Poll() is called, it is passed a list of Contexts
-	// that represent the set of servers currently connected to.
+	set   map[Poller]chan struct{}
 	conns map[*client.Conn]*Context
+	rws   RewriteSet
 }
 
-func newPollerSet() *pollerSet {
+func newPollerSet(rws RewriteSet) *pollerSet {
 	return &pollerSet{
 		set:   make(map[Poller]chan struct{}),
 		conns: make(map[*client.Conn]*Context),
+		rws:   rws,
 	}
 }
 
@@ -53,7 +51,7 @@ func (ps *pollerSet) Handle(conn *client.Conn, line *client.Line) {
 	defer ps.Unlock()
 	switch line.Cmd {
 	case client.CONNECTED:
-		ps.conns[conn] = reqContext(conn, line)
+		ps.conns[conn] = newContext(conn, line, ps.rws)
 		logging.Debug("Conn: # conns: %d, # pollers: %d", len(ps.conns), len(ps.set))
 		if len(ps.conns) == 1 {
 			for p := range ps.set {

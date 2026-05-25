@@ -6,7 +6,7 @@ import (
 )
 
 func TestMatchCaseInsensitive(t *testing.T) {
-	cs := newCommandSet()
+	cs := newCommandSet(nil, nil)
 	// newCommandSet already adds "help"
 	cs.Add(&command{help: "remind help"}, "remind")
 	cs.Add(&command{help: "remind list help"}, "remind list")
@@ -41,7 +41,7 @@ func TestMatchCaseInsensitive(t *testing.T) {
 }
 
 func TestPossibleCaseInsensitive(t *testing.T) {
-	cs := newCommandSet()
+	cs := newCommandSet(nil, nil)
 	cs.Add(&command{help: "remind help"}, "remind")
 
 	tests := []struct {
@@ -70,7 +70,7 @@ func TestPossibleCaseInsensitive(t *testing.T) {
 
 func TestCasingPreservation(t *testing.T) {
 	// This tests the logic in Handle that cuts off the command
-	cs := newCommandSet()
+	cs := newCommandSet(nil, nil)
 	cs.Add(&command{help: "remind help"}, "remind")
 
 	input := "REmInD me Put the CAKE in the oven"

@@ -11,11 +11,20 @@ import (
 
 type HandlerFunc func(*Context)
 
-func (hf HandlerFunc) Handle(conn *client.Conn, line *client.Line) {
-	if !bot.filters.ShouldProcess(line) {
+// handler wraps a HandlerFunc with references to filters and rewriters for
+// dependency injection.
+type handler struct {
+	fn    HandlerFunc
+	filters *FilterPipeline
+	rws   RewriteSet
+}
+
+// Handle implements client.Handler by filtering and creating context via the bot.
+func (h *handler) Handle(conn *client.Conn, line *client.Line) {
+	if !h.filters.ShouldProcess(line) {
 		return
 	}
-	hf(reqContext(conn, line))
+	h.fn(newContext(conn, line, h.rws))
 }
 
 type Runner interface {
@@ -43,11 +52,13 @@ type CommandSet interface {
 
 type commandSet struct {
 	sync.RWMutex
-	set map[string]Runner
+	set     map[string]Runner
+	filters *FilterPipeline
+	rws     RewriteSet
 }
 
-func newCommandSet() *commandSet {
-	cs := &commandSet{set: make(map[string]Runner)}
+func newCommandSet(filters *FilterPipeline, rws RewriteSet) *commandSet {
+	cs := &commandSet{set: make(map[string]Runner), filters: filters, rws: rws}
 	// commandSet implements Runner to provide help for itself.
 	cs.Add(cs, "help")
 	return cs
@@ -108,12 +119,12 @@ func (cs *commandSet) possible(txt string) []string {
 
 // Implement client.Handler so commandSet can Handle things directly.
 func (cs *commandSet) Handle(conn *client.Conn, line *client.Line) {
-	if !bot.filters.ShouldProcess(line) {
+	if !cs.filters.ShouldProcess(line) {
 		return
 	}
 	// This is a dirty hack to treat factoid additions as a special
 	// case, since they may begin with command string prefixes.
-	ctx := reqContext(conn, line)
+	ctx := newContext(conn, line, cs.rws)
 	if util.IsFactoidAddition(line.Text()) {
 		return
 	}

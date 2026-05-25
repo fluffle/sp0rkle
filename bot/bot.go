@@ -10,7 +10,7 @@ import (
 
 	"github.com/fluffle/goirc/client"
 	"github.com/fluffle/golog/logging"
-	"github.com/fluffle/sp0rkle/collections/conf"
+	"github.com/fluffle/sp0rkle/db/conf"
 )
 
 // This is here because I'm not sure where better to put it...
@@ -21,107 +21,129 @@ func HttpHost() string {
 	return *httpHost
 }
 
-type botData struct {
-	ctx       context.Context
-	connected bool
-	servers   ServerSet
-	rewriters RewriteSet
-	commands  CommandSet
-	pollers   PollerSet
-	filters   *FilterPipeline
+// CommandRegistry defines the interface for registering handlers, commands,
+// rewrites, and pollers. *Bot implements this interface so it can be passed
+// to drivers and collections for dependency injection.
+type CommandRegistry interface {
+	Handle(fn HandlerFunc, events ...string)
+	HandleBG(fn HandlerFunc, events ...string)
+	Command(fn HandlerFunc, prefix, help string)
+	Rewrite(fn RewriteFunc)
+	Poll(p Poller)
+	Ctx() context.Context
 }
 
-var bot *botData
-var lock sync.Mutex
+// Bot holds all bot state and provides methods for connecting,
+// shutdown, handler registration, and command management.
+type Bot struct {
+	mu         sync.Mutex
+	isConnected  bool
+	servers    ServerSet
+	rewriters  RewriteSet
+	commands   CommandSet
+	pollers    PollerSet
+	filters    *FilterPipeline
+	ctx        context.Context
+	ignoreNs   conf.Namespace
+}
 
-func Init(ctx context.Context) {
-	lock.Lock()
-	defer lock.Unlock()
-	if bot != nil {
-		return
-	}
+// Ensure *Bot implements CommandRegistry.
+var _ CommandRegistry = (*Bot)(nil)
 
-	bot = &botData{
-		ctx:       ctx,
+// New creates a new Bot instance with the given context.
+func New(ctx context.Context, config *conf.Registry) *Bot {
+	b := &Bot{
+		ctx:        ctx,
+		ignoreNs:   config.Ns("ignore"),
 		servers:   newServerSet(),
-		commands:  newCommandSet(),
 		rewriters: newRewriteSet(),
-		pollers:   newPollerSet(),
 		filters:   &FilterPipeline{},
 	}
-
+	b.commands = newCommandSet(b.filters, b.rewriters)
+	b.pollers = newPollerSet(b.rewriters)
 
 	// This is a special handler that dispatches commands from the command set
-	bot.servers.HandleAll(client.PRIVMSG, bot.commands)
+	b.servers.HandleAll(client.PRIVMSG, b.commands)
 
 	// The poller set handles these two to start and stop registered pollers
-	bot.servers.HandleAll(client.CONNECTED, bot.pollers)
-	bot.servers.HandleAll(client.DISCONNECTED, bot.pollers)
+	b.servers.HandleAll(client.CONNECTED, b.pollers)
+	b.servers.HandleAll(client.DISCONNECTED, b.pollers)
 
-	// These three in handlers.go
-	Handle(connected, client.CONNECTED)
-	Handle(rebuild, client.NOTICE)
-	Handle(shutdown, client.NOTICE)
+	// Internal event handlers
+	b.Handle(func(ctx *Context) { b.connected(ctx) }, client.CONNECTED)
+	b.Handle(func(ctx *Context) { b.shutdown(ctx) }, client.NOTICE)
 
-	// These two in commands.go
-	Command(ignore, "ignore", "ignore <nick>  -- "+
+	// Internal commands
+	b.Command(func(ctx *Context) { b.ignore(ctx) }, "ignore", "ignore <nick>  -- "+
 		"make the bot ignore <nick> completely.")
-	Command(unignore, "unignore", "unignore <nick>  -- "+
+	b.Command(func(ctx *Context) { b.unignore(ctx) }, "unignore", "unignore <nick>  -- "+
 		"make the bot unignore <nick> again.")
+
+	return b
 }
 
-func Connect() chan bool {
-	lock.Lock()
-	defer lock.Unlock()
-	if bot == nil {
-		logging.Fatal("Called Connect() before Init().")
-	}
-	if bot.connected {
+// Connect starts the bot's server connections and returns a channel
+// that signals when the bot should rebuild or shut down.
+func (b *Bot) Connect() chan bool {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	if b.isConnected {
 		logging.Warn("Already connected to servers.")
 	}
-	bot.connected = true
-	bot.filters.Add(&nickIgnoreFilter{ns: conf.Ns(ignoreNs)})
-	return bot.servers.Connect()
+	b.isConnected = true
+	b.filters.Add(&nickIgnoreFilter{ns: b.ignoreNs})
+	return b.servers.Connect()
 }
 
-func Shutdown() {
-	lock.Lock()
-	defer lock.Unlock()
-	if bot == nil {
-		logging.Fatal("Called Shutdown() before Init().")
-	}
-	if !bot.connected {
+// Shutdown disconnects the bot from all servers.
+func (b *Bot) Shutdown() {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	if !b.isConnected {
 		logging.Warn("Not connected to servers.")
 	}
-	bot.connected = false
-	bot.filters = &FilterPipeline{}
-	bot.servers.Shutdown(false)
+	b.isConnected = false
+	b.filters = &FilterPipeline{}
+	b.servers.Shutdown(false)
 }
 
-func Handle(fn HandlerFunc, events ...string) {
+// Handle registers a handler function for the given IRC events.
+func (b *Bot) Handle(fn HandlerFunc, events ...string) {
+	h := &handler{fn: fn, filters: b.filters, rws: b.rewriters}
 	for _, ev := range events {
-		bot.servers.HandleAll(ev, fn)
+		b.servers.HandleAll(ev, h)
 	}
 }
 
-func HandleBG(fn HandlerFunc, events ...string) {
+// HandleBG registers a background handler function for the given IRC events.
+func (b *Bot) HandleBG(fn HandlerFunc, events ...string) {
+	h := &handler{fn: fn, filters: b.filters, rws: b.rewriters}
 	for _, ev := range events {
-		bot.servers.HandleAllBG(ev, fn)
+		b.servers.HandleAllBG(ev, h)
 	}
 }
 
-func Command(fn HandlerFunc, prefix, help string) {
-	bot.commands.Add(&command{fn, help}, prefix)
+// Command registers a command with the given prefix and help text.
+func (b *Bot) Command(fn HandlerFunc, prefix, help string) {
+	b.commands.Add(&command{fn, help}, prefix)
 }
 
-func Rewrite(fn RewriteFunc) {
-	bot.rewriters.Add(fn)
+// Rewrite registers a rewrite function.
+func (b *Bot) Rewrite(fn RewriteFunc) {
+	b.rewriters.Add(fn)
 }
 
-func Poll(p Poller) {
-	bot.pollers.Add(p)
+// Poll registers a poller.
+func (b *Bot) Poll(p Poller) {
+	b.pollers.Add(p)
 }
 
+// Ctx returns the bot's context.
+func (b *Bot) Ctx() context.Context {
+	return b.ctx
+}
+
+// GetSecret retrieves a secret value, supporting $ENV_VAR and <file_path> syntax.
 func GetSecret(s string) string {
 	if strings.HasPrefix(s, "$") {
 		return os.ExpandEnv(s)
@@ -132,10 +154,4 @@ func GetSecret(s string) string {
 		return ""
 	}
 	return s
-}
-
-// TODO(fluffle): The long slog refactor of subsuming the bot context
-// into a context.Context Value and using context.Context everywhere.
-func Ctx() context.Context {
-	return bot.ctx
 }

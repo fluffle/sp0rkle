@@ -2,8 +2,6 @@ package bot
 
 import (
 	"flag"
-	"fmt"
-	"os/exec"
 	"strings"
 
 	"github.com/fluffle/golog/logging"
@@ -20,8 +18,7 @@ var (
 		"user:password for server VHOST command on connect, or $ENV_VAR or <file_path to secret.")
 )
 
-func connected(ctx *Context) {
-	// Set bot mode to keep people informed.
+func (b *Bot) connected(ctx *Context) {
 	ctx.conn.Mode(ctx.Me(), "+B")
 	if GetSecret(*oper) != "" {
 		up := strings.SplitN(*oper, ":", 2)
@@ -41,41 +38,14 @@ func connected(ctx *Context) {
 	}
 }
 
-func rebuild(ctx *Context) {
-	if !check_rebuilder("rebuild", ctx) {
-		return
-	}
-
-	// Ok, we should be good to rebuild now.
-	logging.Info("Beginning rebuild")
-	ctx.conn.Notice(ctx.Nick, "Beginning rebuild")
-	cmd := exec.Command("go", "get", "-u", "github.com/fluffle/sp0rkle")
-	out, err := cmd.CombinedOutput()
-	logging.Info("Output from go get:\n%s", out)
-	if err != nil {
-		ctx.conn.Notice(ctx.Nick, fmt.Sprintf("Rebuild failed: %s", err))
-		for _, l := range strings.Split(string(out), "\n") {
-			ctx.conn.Notice(ctx.Nick, l)
-		}
-		return
-	}
-	bot.servers.Shutdown(true)
-}
-
-func shutdown(ctx *Context) {
-	if check_rebuilder("shutdown", ctx) {
-		bot.servers.Shutdown(false)
-	}
-}
-
-func check_rebuilder(cmd string, ctx *Context) bool {
+func (b *Bot) shutdown(ctx *Context) {
 	s := strings.Split(GetSecret(*rebuilder), ":")
-	if s[0] == "" || s[0] != ctx.Nick || !strings.HasPrefix(strings.ToLower(ctx.Text()), cmd) {
-		return false
+	if s[0] == "" || s[0] != ctx.Nick || !strings.HasPrefix(strings.ToLower(ctx.Text()), "shutdown") {
+		return
 	}
 	fields := strings.Fields(ctx.Text())
 	if len(s) > 1 && fields[len(fields)-1] != s[1] {
-		return false
+		return
 	}
-	return true
+	b.servers.Shutdown(false)
 }

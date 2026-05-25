@@ -17,7 +17,7 @@ func (d *dummyPoller) Tick() time.Duration   { return 10 * time.Second }
 
 func TestNilChannelPanic(t *testing.T) {
 	logging.InitFromFlags()
-	ps := newPollerSet()
+	ps := newPollerSet(newRewriteSet())
 	ps.Add(&dummyPoller{}) // Add poller before any connections - startOne returns nil
 	ps.Handle(nil, &client.Line{Cmd: client.DISCONNECTED}) // Should not panic
 }

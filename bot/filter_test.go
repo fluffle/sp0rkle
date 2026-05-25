@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"github.com/fluffle/goirc/client"
-	"github.com/fluffle/sp0rkle/collections/conf"
+	"github.com/fluffle/sp0rkle/db/conf"
 )
 
 func TestFilterPipeline(t *testing.T) {
@@ -39,7 +39,7 @@ func TestFilterPipeline(t *testing.T) {
 }
 
 func TestNickIgnoreFilter(t *testing.T) {
-	ns := conf.InMem(ignoreNs)
+	ns := conf.InMem("ignore")
 	// Ignore the nick "ignored" for testing purposes.
 	ns.String("ignored", "ignored")
 	p := &FilterPipeline{}

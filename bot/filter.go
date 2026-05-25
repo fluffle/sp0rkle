@@ -4,7 +4,7 @@ import (
 	"strings"
 
 	"github.com/fluffle/goirc/client"
-	"github.com/fluffle/sp0rkle/collections/conf"
+	"github.com/fluffle/sp0rkle/db/conf"
 )
 
 type LineFilter interface {
