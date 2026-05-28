@@ -82,3 +82,7 @@ func (ctx *Context) Topic(ch string, topic ...string) {
 func (ctx *Context) Me() string {
 	return ctx.conn.Me().Nick
 }
+
+func (ctx *Context) Network() string {
+	return ctx.conn.Config().Server
+}

@@ -3,6 +3,7 @@ package netdriver
 import (
 	"context"
 	"net/http"
+	"sync"
 
 	"github.com/fluffle/goirc/client"
 	"github.com/fluffle/golog/logging"
@@ -11,6 +12,7 @@ import (
 	"github.com/fluffle/sp0rkle/collections/pushes"
 	"github.com/fluffle/sp0rkle/collections/reminders"
 	"github.com/fluffle/sp0rkle/util/push"
+	"github.com/fluffle/sp0rkle/util/flights"
 	"github.com/google/go-github/github"
 )
 
@@ -19,6 +21,7 @@ type Driver struct {
 	pc     *pushes.Collection
 	rc     *reminders.Collection
 	gh     *github.Client
+	fp     *flightPoller
 	confNs conf.Namespace
 }
 
@@ -78,5 +81,20 @@ func New(b *bot.Bot, rc *reminders.Collection, pc *pushes.Collection, config *co
 		http.HandleFunc("/oauth/failure", d.pushFailureHTTP)
 	}
 
+	if flights.Enabled() {
+		logging.Info("Starting flight poller")
+		d.fp = &flightPoller{
+			Mutex: &sync.Mutex{},
+			tracking: make(map[string]*flightInfo),
+			aliases: make(map[string]string),
+		}
+		b.Command(d.stalk, "stalk", "stalk <flight>  -- trackers a flight via AviationStack")
+		b.Command(d.stalk, "flight tracking start", "flight tracking start <flight>  -- trackers a flight via AviationStack")
+		b.Command(d.unstalk, "unstalk", "unstalk <flight>  -- stops tracking a flight")
+		b.Command(d.unstalk, "flight tracking stop", "flight tracking stop <flight>  -- stops tracking a flight")
+		b.Command(d.status, "flight status", "flight status <flight> -- returns the cached status of the flight if it is being stalked")
+		b.Command(d.alias, "flight alias", "flight alias <flight> <alias> -- adds a memorable alias for the flight")
+		b.Poll(d.fp)
+	}
 	return d
 }
