@@ -1,0 +1,112 @@
+{
+  "pagination": {
+    "limit": 100,
+    "offset": 0,
+    "count": 2,
+    "total": 2
+  },
+  "data": [
+    {
+      "flight_date": "2026-05-27",
+      "flight_status": "scheduled",
+      "departure": {
+        "airport": "George Bush Intercontinental",
+        "timezone": "America/Chicago",
+        "iata": "IAH",
+        "icao": "KIAH",
+        "terminal": "E",
+        "gate": "9",
+        "delay": null,
+        "scheduled": "2026-05-27T09:48:00+00:00",
+        "estimated": "2026-05-27T09:48:00+00:00",
+        "actual": null,
+        "estimated_runway": null,
+        "actual_runway": null
+      },
+      "arrival": {
+        "airport": "Newark Liberty International",
+        "timezone": "America/New_York",
+        "iata": "EWR",
+        "icao": "KEWR",
+        "terminal": "C",
+        "gate": "109",
+        "baggage": "2",
+        "scheduled": "2026-05-27T14:27:00+00:00",
+        "delay": 20,
+        "estimated": null,
+        "actual": null,
+        "estimated_runway": null,
+        "actual_runway": null
+      },
+      "airline": {
+        "name": "United Airlines",
+        "iata": "UA",
+        "icao": "UAL"
+      },
+      "flight": {
+        "number": "2402",
+        "iata": "UA2402",
+        "icao": "UAL2402",
+        "codeshared": null
+      },
+      "aircraft": {
+        "registration": null,
+        "iata": null,
+        "icao": null,
+        "icao24": "A448D6"
+      },
+      "live": null
+    },
+    {
+      "flight_date": "2026-05-26",
+      "flight_status": "landed",
+      "departure": {
+        "airport": "George Bush Intercontinental",
+        "timezone": "America/Chicago",
+        "iata": "IAH",
+        "icao": "KIAH",
+        "terminal": "C",
+        "gate": "37",
+        "delay": null,
+        "scheduled": "2026-05-26T09:48:00+00:00",
+        "estimated": "2026-05-26T09:48:00+00:00",
+        "actual": "2026-05-26T10:08:00+00:00",
+        "estimated_runway": "2026-05-26T10:08:00+00:00",
+        "actual_runway": "2026-05-26T10:08:00+00:00"
+      },
+      "arrival": {
+        "airport": "Newark Liberty International",
+        "timezone": "America/New_York",
+        "iata": "EWR",
+        "icao": "KEWR",
+        "terminal": "C",
+        "gate": "70",
+        "baggage": "3",
+        "scheduled": "2026-05-26T14:27:00+00:00",
+        "delay": null,
+        "estimated": "2026-05-26T14:03:00+00:00",
+        "actual": "2026-05-26T14:03:00+00:00",
+        "estimated_runway": "2026-05-26T14:03:00+00:00",
+        "actual_runway": "2026-05-26T14:03:00+00:00"
+      },
+      "airline": {
+        "name": "United Airlines",
+        "iata": "UA",
+        "icao": "UAL"
+      },
+      "flight": {
+        "number": "2402",
+        "iata": "UA2402",
+        "icao": "UAL2402",
+        "codeshared": null
+      },
+      "aircraft": {
+        "registration": null,
+        "iata": null,
+        "icao": null,
+        "icao24": "A12AEB"
+      },
+      "live": null
+    }
+  ]
+}

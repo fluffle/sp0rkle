@@ -39,9 +39,7 @@ func (ps *pollerSet) Add(p Poller) {
 	ps.Lock()
 	defer ps.Unlock()
 	quit := ps.startOne(p)
-	if quit != nil {
-		ps.set[p] = quit
-	}
+	ps.set[p] = quit
 	logging.Debug("Add: # conns: %d, # pollers: %d", len(ps.conns), len(ps.set))
 }
 
@@ -51,17 +49,19 @@ func (ps *pollerSet) Handle(conn *client.Conn, line *client.Line) {
 	defer ps.Unlock()
 	switch line.Cmd {
 	case client.CONNECTED:
+		oldlen := len(ps.conns)
 		ps.conns[conn] = newContext(conn, line, ps.rws)
 		logging.Debug("Conn: # conns: %d, # pollers: %d", len(ps.conns), len(ps.set))
-		if len(ps.conns) == 1 {
+		if oldlen == 0 && len(ps.conns) == 1 {
 			for p := range ps.set {
 				ps.set[p] = ps.startOne(p)
 			}
 		}
 	case client.DISCONNECTED:
+		oldlen := len(ps.conns)
 		delete(ps.conns, conn)
 		logging.Debug("Disc: # conns: %d, # pollers: %d", len(ps.conns), len(ps.set))
-		if len(ps.conns) == 0 {
+		if oldlen == 1 && len(ps.conns) == 0 {
 			for p, quit := range ps.set {
 				if quit != nil {
 					close(quit)
