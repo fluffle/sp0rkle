@@ -1,16 +1,16 @@
 package markovdriver
 
 import (
+	"github.com/fluffle/sp0rkle/apis/llama"
 	"github.com/fluffle/sp0rkle/bot"
 	"github.com/fluffle/sp0rkle/util"
-	chain "github.com/fluffle/sp0rkle/util/markov"
 )
 
 func (d *Driver) insultPlugin(in string, ctx *bot.Context) string {
 	f := func(string) string {
-		source := d.mc.Source("tag:insult")
-		if insult, err := chain.Sentence(source); err == nil {
-			return insult
+		out, err := llama.Complete(randomPrompt())
+		if err == nil {
+			return out
 		}
 		return "<plugin error>"
 	}

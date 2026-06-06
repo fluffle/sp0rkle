@@ -3,6 +3,7 @@ package markovdriver
 import (
 	"strings"
 
+	"github.com/fluffle/sp0rkle/apis/llama"
 	"github.com/fluffle/sp0rkle/bot"
 	chain "github.com/fluffle/sp0rkle/util/markov"
 )
@@ -50,7 +51,6 @@ func (d *Driver) randomCmd(ctx *bot.Context) {
 }
 
 func (d *Driver) insult(ctx *bot.Context) {
-	source := d.mc.Source("tag:insult")
 	whom, lc := ctx.Text(), strings.ToLower(ctx.Text())
 	if lc == strings.ToLower(ctx.Me()) || lc == "yourself" {
 		ctx.ReplyN("Ha, you're funny. No, wait. Retarded... I meant retarded.")
@@ -59,14 +59,15 @@ func (d *Driver) insult(ctx *bot.Context) {
 	if lc == "me" {
 		whom = ctx.Nick
 	}
-	if out, err := chain.Sentence(source); err == nil {
+	out, err := llama.Complete(randomPrompt())
+	if err == nil {
 		if len(whom) > 0 {
 			ctx.Reply("%s: %s", whom, out)
 		} else {
 			ctx.Reply("%s", out)
 		}
 	} else {
-		ctx.ReplyN("markov error: %v", err)
+		ctx.ReplyN("The LLM couldn't be bothered: %v", err)
 	}
 }
 

@@ -2,6 +2,7 @@ package markovdriver
 
 import (
 	"github.com/fluffle/goirc/client"
+	"github.com/fluffle/sp0rkle/apis/llama"
 	"github.com/fluffle/sp0rkle/bot"
 	"github.com/fluffle/sp0rkle/db/conf"
 	"github.com/fluffle/sp0rkle/collections/markov"
@@ -19,7 +20,11 @@ func New(b *bot.Bot, mc *markov.Collection, config *conf.Registry) *Driver {
 	d := &Driver{mc: mc, confNs: config.Ns(markovNsName)}
 
 	b.Handle(d.recordMarkov, client.PRIVMSG, client.ACTION)
-	b.Rewrite(d.insultPlugin)
+
+	if llama.Enabled() {
+		b.Rewrite(d.insultPlugin)
+		b.Command(d.insult, "insult", "insult <nick>  -- Insult <nick> at random.")
+	}
 
 	b.Command(d.enableMarkov, "markov me", "markov me  -- "+
 		"Enable recording of your public messages to generate chains.")
@@ -29,7 +34,6 @@ func New(b *bot.Bot, mc *markov.Collection, config *conf.Registry) *Driver {
 		"Disable (and delete) recording of your public messages.")
 	b.Command(d.randomCmd, "markov", "markov <nick>  -- "+
 		"Generate random sentence for given <nick>.")
-	b.Command(d.insult, "insult", "insult <nick>  -- Insult <nick> at random.")
 	b.Command(d.learn, "learn", "learn <tag> <sentence>  -- "+
 		"Learns a sentence for a particular.")
 

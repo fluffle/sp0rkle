@@ -52,7 +52,7 @@ var (
 
 // Start connects the harness IRC client to the server, forks the bot,
 // joins the test channel, and self-validates.
-func Start(ctx context.Context) (*Harness, error) {
+func Start(ctx context.Context, flags ...string) (*Harness, error) {
 	mu.Lock()
 	defer mu.Unlock()
 
@@ -142,11 +142,15 @@ func Start(ctx context.Context) (*Harness, error) {
 
 	h.sp0rkle = Exec(
 		botBinary,
-		"--servers=" + localAddr,
-		"--channels=" + h.Channel,
-		"--boltdb=" + tmpDir + "/sp0rkle.boltdb",
-		"--backup_dir=" + tmpDir,
-		"--nick=" + h.BotNick,
+		// Go won't let us just expand flags at the end of
+		// another list of strings, guuuhh...
+		append([]string{
+			"--servers=" + localAddr,
+			"--channels=" + h.Channel,
+			"--boltdb=" + tmpDir + "/sp0rkle.boltdb",
+			"--backup_dir=" + tmpDir,
+			"--nick=" + h.BotNick,
+		}, flags...)...
 	)
 
 	if err := h.sp0rkle.Start(ctx); err != nil {
