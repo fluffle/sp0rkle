@@ -72,7 +72,7 @@ func (mcs *mcStatus) Poll(ctxs []*bot.Context) {
 		logging.Error("minecraft poll failed: %v", err)
 		return
 	}
-	*mcs = *st
+	mcs.merge(st)
 	for _, ctx := range ctxs {
 		ctx.Topic(mcs.confNs.String(mcChan))
 	}
@@ -104,6 +104,12 @@ func (mcs *mcStatus) Topic(ctx *bot.Context) {
 	if topic != ctx.Text() {
 		ctx.Topic(ch, topic)
 	}
+}
+
+func (mcs *mcStatus) merge(other *mcStatus) {
+	ns := mcs.confNs
+	*mcs = *other
+	mcs.confNs = ns
 }
 
 // Conducts a single poll of a server.
